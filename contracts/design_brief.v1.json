@@ -4,116 +4,330 @@
   "title": "DesignBrief v1",
   "description": "The recipe + ingredients the lab hands to the site agent. Portable: no local paths, every asset is a ref_id resolved through `assets`.",
   "type": "object",
-  "required": ["meta", "taste", "vibe", "tokens", "fonts", "layers", "sections", "assets"],
+  "required": [
+    "meta",
+    "taste",
+    "vibe",
+    "tokens",
+    "fonts",
+    "layers",
+    "sections",
+    "assets"
+  ],
   "additionalProperties": false,
   "$defs": {
-    "hex": {"type": "string", "pattern": "^#[0-9a-fA-F]{6}$"},
-    "cssVar": {"type": "string", "pattern": "^--[a-z0-9-]+$"},
-    "role": {"enum": ["layout", "background", "hero", "central", "palette"]},
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "cssVar": {
+      "type": "string",
+      "pattern": "^--[a-z0-9-]+$"
+    },
+    "role": {
+      "enum": [
+        "layout",
+        "background",
+        "hero",
+        "central",
+        "palette",
+        "section"
+      ]
+    },
     "font": {
       "type": "object",
-      "required": ["family", "category", "color"],
+      "required": [
+        "family",
+        "category",
+        "color"
+      ],
       "additionalProperties": false,
       "properties": {
-        "family": {"type": "string", "minLength": 1},
-        "category": {"type": "string"},
-        "color": {"type": "string"},
-        "google_css": {"type": "string", "format": "uri"}
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
+        },
+        "google_css": {
+          "type": "string",
+          "format": "uri"
+        }
       }
     }
   },
   "properties": {
     "meta": {
       "type": "object",
-      "required": ["version", "query", "full_query", "vibe_query", "routed_family", "router", "created_at"],
+      "required": [
+        "version",
+        "query",
+        "full_query",
+        "vibe_query",
+        "routed_family",
+        "router",
+        "created_at"
+      ],
       "additionalProperties": false,
       "properties": {
-        "version": {"const": 1},
-        "job_id": {"type": ["string", "null"]},
-        "query": {"type": "string", "maxLength": 300},
-        "full_query": {"type": "string", "maxLength": 300},
-        "vibe_query": {"type": "string", "maxLength": 300},
-        "routed_family": {"type": "string"},
-        "router": {"type": "string"},
-        "pi_log": {"type": "array", "items": {"type": "object"}},
-        "lab_ms": {"type": "integer"},
-        "created_at": {"type": "string", "format": "date-time"}
+        "version": {
+          "const": 1
+        },
+        "job_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "full_query": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "vibe_query": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "routed_family": {
+          "type": "string"
+        },
+        "router": {
+          "type": "string"
+        },
+        "pi_log": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "lab_ms": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "taste": {
       "type": "object",
-      "required": ["category", "category_name", "how", "niche", "affinity", "clash", "avoid"],
+      "required": [
+        "category",
+        "category_name",
+        "how",
+        "niche",
+        "affinity",
+        "clash",
+        "avoid"
+      ],
       "additionalProperties": false,
       "properties": {
-        "category": {"type": "string"},
-        "category_name": {"type": "string"},
-        "how": {"enum": ["keyword", "clip", "hint"]},
-        "niche": {"type": ["string", "null"]},
-        "niche_cues": {"type": ["string", "null"]},
-        "affinity": {"type": "number", "minimum": -1, "maximum": 1},
-        "clash": {"type": "boolean"},
-        "avoid": {"type": "array", "items": {"type": "string"}}
+        "category": {
+          "type": "string"
+        },
+        "category_name": {
+          "type": "string"
+        },
+        "how": {
+          "enum": [
+            "keyword",
+            "clip",
+            "hint"
+          ]
+        },
+        "niche": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "niche_cues": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "affinity": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "clash": {
+          "type": "boolean"
+        },
+        "avoid": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "vibe": {
       "type": "object",
-      "required": ["key", "name", "cues", "effect"],
+      "required": [
+        "key",
+        "name",
+        "cues",
+        "effect"
+      ],
       "additionalProperties": false,
       "properties": {
-        "key": {"type": "string"},
-        "name": {"type": "string"},
-        "cues": {"type": "string"},
-        "effect": {"type": "string"}
+        "key": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "cues": {
+          "type": "string"
+        },
+        "effect": {
+          "type": "string"
+        }
       }
     },
     "tokens": {
       "type": "object",
-      "required": ["color", "derived", "type", "contrast"],
+      "required": [
+        "color",
+        "derived",
+        "type",
+        "contrast"
+      ],
       "additionalProperties": false,
       "properties": {
-        "color": {"type": "object", "propertyNames": {"$ref": "#/$defs/cssVar"}, "additionalProperties": {"$ref": "#/$defs/hex"}, "minProperties": 2},
-        "derived": {"type": "object", "propertyNames": {"$ref": "#/$defs/cssVar"}},
-        "type": {"type": "object", "propertyNames": {"$ref": "#/$defs/cssVar"}},
+        "color": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/cssVar"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/hex"
+          },
+          "minProperties": 2
+        },
+        "derived": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/cssVar"
+          }
+        },
+        "type": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/cssVar"
+          }
+        },
         "contrast": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["pair", "ratio", "pass"],
+            "required": [
+              "pair",
+              "ratio",
+              "pass"
+            ],
             "additionalProperties": false,
-            "properties": {"pair": {"type": "string"}, "ratio": {"type": "number"}, "pass": {"type": "boolean"}}
+            "properties": {
+              "pair": {
+                "type": "string"
+              },
+              "ratio": {
+                "type": "number"
+              },
+              "pass": {
+                "type": "boolean"
+              }
+            }
           }
         },
-        "palette": {"type": "array", "items": {"$ref": "#/$defs/hex"}},
-        "family_dna": {"type": "array", "items": {"$ref": "#/$defs/hex"}}
+        "palette": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hex"
+          }
+        },
+        "family_dna": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hex"
+          }
+        }
       }
     },
     "fonts": {
-      "type": ["object", "null"],
-      "required": ["heading", "body"],
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "heading",
+        "body"
+      ],
       "additionalProperties": false,
       "properties": {
-        "heading": {"$ref": "#/$defs/font"},
-        "body": {"$ref": "#/$defs/font"},
+        "heading": {
+          "$ref": "#/$defs/font"
+        },
+        "body": {
+          "$ref": "#/$defs/font"
+        },
         "pairing": {}
       }
     },
-    "typography": {"type": ["object", "null"]},
+    "typography": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
     "layers": {
       "type": "object",
-      "required": ["L0", "L1", "L2", "L3"],
-      "additionalProperties": {"type": "string"}
+      "required": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      }
     },
     "sections": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "layer", "purpose"],
+        "required": [
+          "id",
+          "layer",
+          "purpose"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
-          "layer": {"enum": ["L0", "L1", "L2", "L3"]},
-          "purpose": {"type": "string"}
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "layer": {
+            "enum": [
+              "L0",
+              "L1",
+              "L2",
+              "L3"
+            ]
+          },
+          "purpose": {
+            "type": "string"
+          }
         }
       }
     },
@@ -121,17 +335,52 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["ref_id", "role", "fam", "id", "cluster", "path"],
+        "required": [
+          "ref_id",
+          "role",
+          "fam",
+          "id",
+          "cluster",
+          "path"
+        ],
         "additionalProperties": false,
         "properties": {
-          "ref_id": {"type": "string", "pattern": "^[a-z0-9]{12}$"},
-          "role": {"$ref": "#/$defs/role"},
-          "fam": {"type": "string"},
-          "id": {"type": "string"},
-          "cluster": {"type": "string"},
-          "type": {"type": ["string", "null"]},
-          "note": {"type": ["string", "null"]},
-          "path": {"type": "string", "pattern": "^assets/[a-z0-9]{12}\\.(jpg|jpeg|png|webp|avif|gif)$"}
+          "ref_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{12}$"
+          },
+          "role": {
+            "$ref": "#/$defs/role"
+          },
+          "fam": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "cluster": {
+            "type": "string"
+          },
+          "type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^assets/[a-z0-9]{12}\\.(jpg|jpeg|png|webp|avif|gif)$"
+          },
+          "text": {
+            "type": "boolean",
+            "description": "lab text detector: the image carries baked-in text"
+          }
         }
       }
     }

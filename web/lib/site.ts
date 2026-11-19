@@ -3,7 +3,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const TTL = 60 * 60; // signed URL lifetime (s); the page is private and re-signed on every view
 
-export type SiteRow = { id: string; job_id: string; user_id: string; title: string | null; html_path: string; css_path: string; created_at: string };
+export type SiteRow = { id: string; job_id: string; user_id: string; title: string | null; html_path: string; css_path: string; created_at: string; mockup_path?: string | null };
+
+/** One batch call: signed URLs for the gallery's image mockups (rows without one are skipped). */
+export async function signedMockups(supabase: SupabaseClient, rows: { id: string; mockup_path?: string | null }[]) {
+  const paths = rows.map((r) => r.mockup_path).filter((p): p is string => !!p);
+  if (!paths.length) return new Map<string, string>();
+  const { data } = await supabase.storage.from("sites").createSignedUrls(paths, TTL);
+  const byPath = new Map((data ?? []).map((s) => [s.path, s.signedUrl]));
+  return new Map(rows.filter((r) => r.mockup_path && byPath.get(r.mockup_path)).map((r) => [r.id, byPath.get(r.mockup_path!)!]));
+}
 
 /** Origin of the Supabase project, for the generated page's CSP. */
 export function supabaseOrigin(): string {

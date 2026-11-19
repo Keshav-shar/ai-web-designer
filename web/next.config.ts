@@ -21,6 +21,9 @@ const csp = [
 
 const config: NextConfig = {
   poweredByHeader: false,
+  async redirects() {
+    return [{ source: "/studio", destination: "/", permanent: true }];
+  },
   async headers() {
     return [
       {

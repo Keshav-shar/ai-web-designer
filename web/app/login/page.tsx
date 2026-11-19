@@ -5,7 +5,7 @@ export const metadata = { title: "Sign in" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   const sp = await searchParams;
-  const next = sp.next?.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/studio";
+  const next = sp.next?.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/";
   return (
     <section className="container-x grid min-h-[70dvh] place-items-center py-20">
       <GlassCard className="w-full max-w-md md:p-10">

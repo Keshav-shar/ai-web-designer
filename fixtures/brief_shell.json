@@ -1,0 +1,585 @@
+{
+ "meta": {
+  "version": 1,
+  "job_id": null,
+  "query": "serpman studio, a taste engine that turns one sentence into a designed website",
+  "full_query": "serpman studio, a taste engine that turns one sentence into a designed website",
+  "vibe_query": "dreamy ethereal",
+  "routed_family": "dreamy-ethereal",
+  "router": "v1",
+  "pi_log": [
+   {
+    "stream": "bg",
+    "pos": 14,
+    "digit": 3,
+    "mode": "mod3"
+   },
+   {
+    "stream": "el",
+    "pos": 15,
+    "digit": 2,
+    "mode": "mod3"
+   }
+  ],
+  "lab_ms": 8734,
+  "created_at": "2026-11-19T09:49:34+00:00"
+ },
+ "taste": {
+  "category": "devsaas",
+  "category_name": "Developer tools, SaaS and AI",
+  "how": "hint",
+  "niche": "AI dreamy / ethereal",
+  "niche_cues": "soft aurora gradients, slow motion, serif italics",
+  "affinity": 1.0,
+  "clash": false,
+  "avoid": [
+   "Punk / grunge / rock and roll",
+   "Military / tactical / HUD",
+   "Modern rock (stage / tour poster)",
+   "Terminal-finance / data-dense",
+   "Cottagecore / handmade",
+   "Anti-design / Web 1.0"
+  ]
+ },
+ "vibe": {
+  "key": "dreamy",
+  "name": "Dreamy / ethereal",
+  "cues": "Pastel mesh gradients, blur, film grain, soft italic serifs, slow floating motion",
+  "effect": "grain gradient blur css"
+ },
+ "tokens": {
+  "color": {
+   "--bg": "#D8BBA9",
+   "--surface": "#C18684",
+   "--text": "#2A2E3D",
+   "--text-muted": "#2F2D35",
+   "--accent": "#80616E",
+   "--accent-2": "#709494",
+   "--on-accent": "#FFFFFF",
+   "--border": "#A47577",
+   "--accent-soft": "#8F707D"
+  },
+  "derived": {
+   "--accent-hover": "#725966",
+   "--surface-2": "#CDA096",
+   "--focus-ring": "#80616E"
+  },
+  "type": {
+   "--fs-1": "16.0px",
+   "--fs-2": "20.0px",
+   "--fs-3": "25.0px",
+   "--fs-4": "31.2px",
+   "--fs-5": "39.1px",
+   "--fs-6": "48.8px",
+   "--fs-7": "61.0px",
+   "--fs-8": "76.3px",
+   "--ratio": 1.25,
+   "--lh-body": 1.5,
+   "--lh-heading": 1.1,
+   "--tracking-display": "-0.02em",
+   "--case-display": "none"
+  },
+  "contrast": [
+   {
+    "pair": "text/bg",
+    "ratio": 7.45,
+    "pass": true
+   },
+   {
+    "pair": "text/surface",
+    "ratio": 4.5,
+    "pass": true
+   },
+   {
+    "pair": "text-muted/bg",
+    "ratio": 7.5,
+    "pass": true
+   },
+   {
+    "pair": "text-muted/surface",
+    "ratio": 4.53,
+    "pass": true
+   },
+   {
+    "pair": "on-accent/accent",
+    "ratio": 5.45,
+    "pass": true
+   },
+   {
+    "pair": "accent/bg",
+    "ratio": 3.01,
+    "pass": true
+   }
+  ],
+  "palette": [
+   "#709494",
+   "#A09196",
+   "#D8BBA9",
+   "#C18684",
+   "#8F707D",
+   "#636979"
+  ],
+  "family_dna": [
+   "#08060B",
+   "#353B46",
+   "#CCD8D9",
+   "#646B6A",
+   "#842C8D",
+   "#C56A48"
+  ]
+ },
+ "fonts": {
+  "heading": {
+   "family": "Bodoni Moda SC",
+   "category": "Serif",
+   "color": "var(--text)",
+   "google_css": "https://fonts.googleapis.com/css2?family=Bodoni+Moda+SC:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap"
+  },
+  "body": {
+   "family": "DM Sans",
+   "category": "Sans Serif",
+   "color": "var(--text)",
+   "google_css": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
+  },
+  "pairing": {
+   "lab": [
+    "Butterfly Kids",
+    "DM Sans"
+   ],
+   "heading_italic": true
+  }
+ },
+ "typography": {
+  "alignment": "center",
+  "measure_ch": 66,
+  "roles": {
+   "eyebrow": {
+    "font": "DM Sans",
+    "size_token": "--fs-1",
+    "weight": 500,
+    "italic": false,
+    "text_transform": "uppercase",
+    "letter_spacing": "0.1em",
+    "color_token": "--text-muted"
+   },
+   "h1": {
+    "font": "Bodoni Moda SC",
+    "size_token": "--fs-8",
+    "weight": 500,
+    "italic": true,
+    "text_transform": "none",
+    "letter_spacing": "-0.02em",
+    "color_token": "--text"
+   },
+   "h2": {
+    "font": "Bodoni Moda SC",
+    "size_token": "--fs-6",
+    "weight": 500,
+    "italic": true,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text"
+   },
+   "h3": {
+    "font": "Bodoni Moda SC",
+    "size_token": "--fs-4",
+    "weight": 500,
+    "italic": false,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text"
+   },
+   "body": {
+    "font": "DM Sans",
+    "size_token": "--fs-1",
+    "weight": 400,
+    "italic": false,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text"
+   },
+   "small": {
+    "font": "DM Sans",
+    "size_token": "--fs-1",
+    "weight": 400,
+    "italic": false,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text-muted"
+   }
+  },
+  "overrides": [
+   {
+    "token": "category",
+    "from": "creators",
+    "to": "devsaas",
+    "why": "split's category_hint (domain read by the model)"
+   },
+   {
+    "token": "--bg",
+    "from": "#636979",
+    "to": "#D8BBA9",
+    "why": "light theme: background re-seated to the lightest swatch"
+   },
+   {
+    "token": "--surface",
+    "from": "#8F707D",
+    "to": "#C18684",
+    "why": "light theme: surface = next swatch by lightness, so cards stay close to the background"
+   },
+   {
+    "token": "--text",
+    "from": "#D8BBA9",
+    "to": "#2A2E3D",
+    "why": "pushed along OKLab lightness to meet WCAG AAA 7:1 on bg / AA on surface"
+   },
+   {
+    "token": "--text-muted",
+    "from": "#9F8373",
+    "to": "#2F2D35",
+    "why": "pushed along OKLab lightness to meet WCAG AA 4.5:1 on bg and surface"
+   },
+   {
+    "token": "--accent",
+    "from": "#C18684",
+    "to": "#80616E",
+    "why": "pushed along OKLab lightness to meet WCAG 4.5:1 under its button label and 3:1 on the page"
+   },
+   {
+    "token": "heading",
+    "from": "Butterfly Kids",
+    "to": "Bodoni Moda SC",
+    "why": "vibe cue requires {\"heading_category\": \"Serif\", \"heading_italic\": true}; first match from lab shortlist"
+   },
+   {
+    "token": "--ratio",
+    "from": 1.125,
+    "to": 1.25,
+    "why": "landing pages need display contrast; lab ratio gave a 29px top step"
+   },
+   {
+    "token": "--lh-body",
+    "from": 1.26,
+    "to": 1.5,
+    "why": "WCAG 1.4.12 readable body leading"
+   }
+  ],
+  "visuals": [
+   "#709494",
+   "#A09196",
+   "#C18684",
+   "#8F707D",
+   "#636979"
+  ]
+ },
+ "layers": {
+  "L0": "background: mesh gradient from visuals or the background asset",
+  "L1": "navigation + footer",
+  "L2": "hero + content sections",
+  "L3": "overlay effect: grain gradient blur css (pointer-events none, reduced-motion safe)"
+ },
+ "sections": [
+  {
+   "id": "hero",
+   "layer": "L2",
+   "purpose": "headline, subhead, primary + secondary CTA, hero visual"
+  },
+  {
+   "id": "how_it_works",
+   "layer": "L2",
+   "purpose": "3-4 numbered steps"
+  },
+  {
+   "id": "showcase",
+   "layer": "L2",
+   "purpose": "product screens, demo video or interactive preview"
+  },
+  {
+   "id": "faq",
+   "layer": "L2",
+   "purpose": "accordion of objections"
+  },
+  {
+   "id": "cta_band",
+   "layer": "L2",
+   "purpose": "final call to action / newsletter"
+  }
+ ],
+ "assets": [
+  {
+   "ref_id": "8682747b52d6",
+   "role": "layout",
+   "fam": "dreamy-ethereal",
+   "id": "palette__f6a9d2e8ca121d21f067.png",
+   "cluster": "website",
+   "type": "website",
+   "note": "layout reference: follow its structure, never copy its text",
+   "path": "assets/8682747b52d6.webp",
+   "text": false
+  },
+  {
+   "ref_id": "9b83d824baea",
+   "role": "background",
+   "fam": "dreamy-ethereal",
+   "id": "palette__dada758234834751ce83.jpg",
+   "cluster": "abstract art",
+   "type": "abstract art",
+   "note": "L0 background (mine)",
+   "path": "assets/9b83d824baea.webp",
+   "text": false
+  },
+  {
+   "ref_id": "e0adc784c2d5",
+   "role": "hero",
+   "fam": "dreamy-ethereal",
+   "id": "main__d686df8c1cf3a67e7a18.jpg",
+   "cluster": "website",
+   "type": "website",
+   "note": "hero reference",
+   "path": "assets/e0adc784c2d5.webp",
+   "text": true
+  },
+  {
+   "ref_id": "adc355ed2ce4",
+   "role": "central",
+   "fam": "dreamy-ethereal",
+   "id": "palette__b874cccb150cd9e7c4fb.jpg",
+   "cluster": "abstract art",
+   "type": "abstract art",
+   "note": "primary central graphic",
+   "path": "assets/adc355ed2ce4.webp",
+   "text": false
+  },
+  {
+   "ref_id": "5a6fb47d22de",
+   "role": "central",
+   "fam": "dreamy-ethereal",
+   "id": "palette__a35a150036cccc662fe6.webp",
+   "cluster": "illustration",
+   "type": "illustration",
+   "note": "supporting central graphic",
+   "path": "assets/5a6fb47d22de.webp",
+   "text": false
+  },
+  {
+   "ref_id": "62357a016b00",
+   "role": "central",
+   "fam": "dreamy-ethereal",
+   "id": "palette__fd9009723a4caa798fcc.webp",
+   "cluster": "abstract art",
+   "type": "abstract art",
+   "note": "supporting central graphic",
+   "path": "assets/62357a016b00.webp",
+   "text": false
+  },
+  {
+   "ref_id": "9f318c030105",
+   "role": "palette",
+   "fam": "dreamy-ethereal",
+   "id": "palette__2ff8bf9621484ebc46e0.jpg",
+   "cluster": "palette + moodboard",
+   "type": "palette",
+   "note": "palette source image",
+   "path": "assets/9f318c030105.webp",
+   "text": false
+  },
+  {
+   "ref_id": "b92c81656fe2",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "kit__2cf4dba7b992bd6fb5c4.jpg",
+   "cluster": "abstract art",
+   "type": "abstract art",
+   "note": "folder section: abstract art",
+   "path": "assets/b92c81656fe2.webp",
+   "text": false
+  },
+  {
+   "ref_id": "0c61a27ea773",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "font__f987d5a2e6d749fa702c.jpg",
+   "cluster": "type specimen",
+   "type": "type specimen",
+   "note": "folder section: type specimen",
+   "path": "assets/0c61a27ea773.webp",
+   "text": true
+  },
+  {
+   "ref_id": "a0a8275e645f",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "font__13d98e27efbb6c7805a2.webp",
+   "cluster": "type specimen",
+   "type": "type specimen",
+   "note": "folder section: type specimen",
+   "path": "assets/a0a8275e645f.webp",
+   "text": true
+  },
+  {
+   "ref_id": "301ba3192fb9",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "font__eaa15d90df99e280840e.webp",
+   "cluster": "type specimen",
+   "type": "type specimen",
+   "note": "folder section: type specimen",
+   "path": "assets/301ba3192fb9.webp",
+   "text": true
+  },
+  {
+   "ref_id": "6ab87d0557a4",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "font__be827c02a4c9976189f7.png",
+   "cluster": "website + UI kit",
+   "type": "website",
+   "note": "folder section: website + UI kit",
+   "path": "assets/6ab87d0557a4.webp",
+   "text": true
+  },
+  {
+   "ref_id": "9944cd9f5cd2",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "palette__80d14b08b79c1facdd87.png",
+   "cluster": "website + UI kit",
+   "type": "website",
+   "note": "folder section: website + UI kit",
+   "path": "assets/9944cd9f5cd2.webp",
+   "text": false
+  },
+  {
+   "ref_id": "975fb4db6fbf",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "kit__5cfa0bce4e7f42941d7e.webp",
+   "cluster": "website + UI kit",
+   "type": "website",
+   "note": "folder section: website + UI kit",
+   "path": "assets/975fb4db6fbf.webp",
+   "text": false
+  },
+  {
+   "ref_id": "71c18759bf2a",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "main__99fe116b7992ea36bdc9.webp",
+   "cluster": "website + print / packaging",
+   "type": "website",
+   "note": "folder section: website + print / packaging",
+   "path": "assets/71c18759bf2a.webp",
+   "text": true
+  },
+  {
+   "ref_id": "5768191046aa",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "main__d32ab0ad85f05cc9b2eb.webp",
+   "cluster": "website + print / packaging",
+   "type": "website",
+   "note": "folder section: website + print / packaging",
+   "path": "assets/5768191046aa.webp",
+   "text": true
+  },
+  {
+   "ref_id": "e9f1fd399b66",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "main__5729c28d4fc7c4c7699d.webp",
+   "cluster": "website + print / packaging",
+   "type": "website",
+   "note": "folder section: website + print / packaging",
+   "path": "assets/e9f1fd399b66.webp",
+   "text": true
+  },
+  {
+   "ref_id": "8f7bbdcc4fdf",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "effect__d66a529bdc5705b7ad85.jpg",
+   "cluster": "abstract art + logo / branding",
+   "type": "abstract art",
+   "note": "folder section: abstract art + logo / branding",
+   "path": "assets/8f7bbdcc4fdf.webp",
+   "text": false
+  },
+  {
+   "ref_id": "91b69a8338e2",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "effect__ade69c02d4dcba709e3a.avif",
+   "cluster": "abstract art + logo / branding",
+   "type": "abstract art",
+   "note": "folder section: abstract art + logo / branding",
+   "path": "assets/91b69a8338e2.webp",
+   "text": false
+  },
+  {
+   "ref_id": "139859b097a2",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "effect__8df02409fc0697d0f455.jpg",
+   "cluster": "abstract art + logo / branding",
+   "type": "abstract art",
+   "note": "folder section: abstract art + logo / branding",
+   "path": "assets/139859b097a2.webp",
+   "text": false
+  },
+  {
+   "ref_id": "5ba8862555ec",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "kit__fad9e5cdeff90edacbf4.webp",
+   "cluster": "website + social post",
+   "type": "website",
+   "note": "folder section: website + social post",
+   "path": "assets/5ba8862555ec.webp",
+   "text": false
+  },
+  {
+   "ref_id": "852b63294536",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "kit__e8bfe2daf6dcd4655a36.webp",
+   "cluster": "website + social post",
+   "type": "website",
+   "note": "folder section: website + social post",
+   "path": "assets/852b63294536.webp",
+   "text": false
+  },
+  {
+   "ref_id": "2e41d12c5a02",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "kit__b3ca1ffa6539b04f1573.webp",
+   "cluster": "website + social post",
+   "type": "website",
+   "note": "folder section: website + social post",
+   "path": "assets/2e41d12c5a02.webp",
+   "text": false
+  },
+  {
+   "ref_id": "5e2ca48ab771",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "palette__25048231086d09d85960.jpg",
+   "cluster": "illustration",
+   "type": "illustration",
+   "note": "folder section: illustration",
+   "path": "assets/5e2ca48ab771.webp",
+   "text": false
+  },
+  {
+   "ref_id": "3a708ab6d188",
+   "role": "section",
+   "fam": "dreamy-ethereal",
+   "id": "palette__2feb88af4876cf82fdce.webp",
+   "cluster": "illustration",
+   "type": "illustration",
+   "note": "folder section: illustration",
+   "path": "assets/3a708ab6d188.webp",
+   "text": false
+  }
+ ]
+}

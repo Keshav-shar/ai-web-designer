@@ -20,6 +20,8 @@ const SECTION_IDS = new Set(catalog.section_ids);
 const VIBE_WORDS = catalog.vibe_words as Record<string, string[]>;
 // "called Dew", "named Moss & Co" -> brand; same regex as worker/split.py
 const BRAND = /\b(?:called|named)\s+([A-Z][\w&'.-]*(?:\s+(?:&\s+)?[A-Z][\w&'.-]*){0,3})/;
+// the look, when no catalogue word names it; same regex as worker/split.py
+const STYLE_CLAUSE = /(?:\b(?:feels?|feeling|looks?)\s+(?:like\s+)?|\bvibes?:?\s+|,\s*)([^,;]{3,80})/i;
 
 function systemPrompt(): string {
   return SPLIT_PROMPT.replace("{{FAMILIES}}", catalog.vibes.map((v) => `- ${v.term}: ${v.name}`).join("\n"))
@@ -29,12 +31,13 @@ function systemPrompt(): string {
 
 export function fallbackSplit(prompt: string): Split {
   const words = prompt.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  const vibe = [...new Set(words.filter((w) => w in VIBE_WORDS))];
+  let vibe = [...new Set(words.filter((w) => w in VIBE_WORDS))].join(" ");
   const cat = catalog.categories.find((c) => words.some((w) => c.tokens.includes(w)))?.key ?? null;
+  if (!vibe) vibe = prompt.match(STYLE_CLAUSE)?.[1]?.trim().replace(/^[ .]+|[ .]+$/g, "") ?? "";
   const brand = prompt.match(BRAND)?.[1]?.slice(0, 80) ?? null;
   return {
     full_query: prompt.trim().slice(0, 300),
-    vibe_query: (vibe.join(" ") || prompt.trim()).slice(0, 300),
+    vibe_query: (vibe || prompt.trim()).slice(0, 300),
     category_hint: cat,
     brand_name: brand,
     audience: null,

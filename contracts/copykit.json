@@ -1,0 +1,161 @@
+{
+  "_doc": "Non-AI copy for engine-composed sections (worker/compose.py). 'default' is merged under each category. Mockup copy: plausible, specific to the domain, never placeholder text. A later Qwen pass can fill the same shape per job.",
+  "default": {
+    "tagline": "Made with care, built around the people who use it.",
+    "cta": ["Get started", "See how it works"],
+    "proof": ["Independent and small by design", "Answers within a day", "Loved by early customers"],
+    "features": [["Thoughtful by default", "Every detail is considered, so the experience simply works."], ["Made for you", "Built around what you actually need, nothing more."], ["Here to help", "Real people answer, usually within a few hours."]],
+    "steps": [["Tell us what you need", "A short form, no account required."], ["We shape it with you", "One conversation, then a clear plan."], ["Enjoy the result", "Delivered on time, supported after."]],
+    "stats": [["2019", "founded"], ["12k", "happy customers"], ["4.9/5", "average rating"]],
+    "quotes": [["Exactly what I was looking for, and nicer than I expected.", "early customer"], ["Clear, calm and quick. I recommended it the same week.", "returning client"], ["It feels like someone actually cared about the details.", "first-time visitor"]],
+    "faq": [["How do I get started?", "Use the button at the top of the page; it takes about two minutes."], ["Can I change my mind later?", "Yes. Plans and bookings can be changed or cancelled at any time."], ["How do I reach a person?", "Write to us and a real person replies, usually the same day."]],
+    "tiers": [["Starter", "Free", "For trying things out"], ["Plus", "$12/mo", "For regular use"], ["Studio", "$39/mo", "For teams and power users"]],
+    "products": ["Signature", "Everyday", "Limited edition", "Gift set", "Travel size", "Refill"],
+    "cta_band": ["Ready when you are", "Start today and see the difference in a week."],
+    "rows": {}
+  },
+  "fintech": {
+    "tagline": "Money that moves as calmly as you do: clear fees, instant transfers, no surprises.",
+    "cta": ["Open an account", "See pricing"],
+    "proof": ["Regulated and insured deposits", "Bank-grade encryption", "Support 24/7"],
+    "features": [["Instant transfers", "Send money in seconds, at home or abroad."], ["Fees you can read", "One flat price, shown before you pay."], ["Spending, sorted", "Automatic categories and gentle monthly summaries."]],
+    "steps": [["Sign up in minutes", "Verify your ID from your phone."], ["Add money", "Top up by card or bank transfer."], ["Spend and save", "Cards, pots and transfers in one place."]],
+    "stats": [["0%", "foreign card fees"], ["150+", "countries supported"], ["24/7", "in-app support"]],
+    "faq": [["Is my money protected?", "Deposits are held with partner banks under the local deposit protection scheme."], ["Are there hidden fees?", "No. Every fee is shown before you confirm a payment."], ["Can I close my account?", "Yes, at any time from settings, with no closing fee."]],
+    "tiers": [["Standard", "Free", "Everyday account and card"], ["Plus", "$4/mo", "Higher limits, travel insurance"], ["Business", "$15/mo", "Team cards and invoicing"]],
+    "rows": {"live_ticker": [["EUR / USD", "1.0842  +0.12%"], ["GBP / USD", "1.2715  -0.05%"], ["BTC / USD", "64,210  +1.4%"]]}
+  },
+  "devsaas": {
+    "tagline": "The calm way to ship: fast to set up, quiet when it works, clear when it doesn't.",
+    "cta": ["Start free", "Read the docs"],
+    "proof": ["SOC 2 in progress", "99.95% uptime", "Open API"],
+    "features": [["Set up in minutes", "One command, sensible defaults, nothing to babysit."], ["Built for teams", "Roles, review flows and audit logs from day one."], ["Plays well with others", "Webhooks, an open API and the tools you already use."]],
+    "steps": [["Install", "Drop in the SDK or connect your repository."], ["Configure", "Pick a template or start from a blank project."], ["Ship", "Deploy, monitor and iterate from one dashboard."]],
+    "stats": [["4 min", "median setup"], ["99.95%", "uptime last year"], ["120+", "integrations"]],
+    "faq": [["Is there a free plan?", "Yes, the free plan covers personal projects with generous limits."], ["Can I self-host?", "Enterprise plans include a self-hosted option."], ["How is my data handled?", "Encrypted in transit and at rest, and never used to train models."]],
+    "tiers": [["Hobby", "Free", "Personal projects"], ["Pro", "$20/mo", "For growing teams"], ["Enterprise", "Custom", "SSO, SLAs, self-hosting"]],
+    "rows": {"changelog": [["v2.4", "Faster cold starts and a new CLI"], ["v2.3", "Team roles and audit log export"], ["v2.2", "Webhooks for every event"]],
+             "code_demo": [["$ npx create-app", "scaffolds a project"], ["$ app deploy", "ships to production"], ["$ app logs --tail", "streams live logs"]]}
+  },
+  "music": {
+    "tagline": "New record out now. Come hear it loud.",
+    "cta": ["Get tickets", "Listen now"],
+    "proof": ["Out now on all platforms", "Tour on sale", "Limited vinyl pressing"],
+    "features": [["The new record", "Ten songs written on the road and recorded live to tape."], ["On tour", "Twenty nights across the spring, small rooms and big ones."], ["Merch and vinyl", "Pressed in small batches, shipped worldwide."]],
+    "stats": [["10", "new songs"], ["20", "tour dates"], ["3", "years in the making"]],
+    "quotes": [["A record that sounds like a room full of people.", "music press"], ["The best live show I saw all year.", "fan, spring tour"], ["Raw, warm and impossible to skip.", "radio host"]],
+    "faq": [["When do tickets go on sale?", "Pre-sale opens a week before general sale; join the list to get the code."], ["Do you ship vinyl worldwide?", "Yes, with tracked shipping from our label store."], ["Are shows all ages?", "Most are; each date lists its own age policy."]],
+    "rows": {"tour_dates": [["Lisbon", "Fri 12 Jun · Musicbox"], ["Madrid", "Sat 13 Jun · Sala El Sol"], ["Paris", "Tue 16 Jun · La Maroquinerie"], ["Berlin", "Thu 18 Jun · Lido"]],
+             "lineup": [["Headliner", "Main stage, 22:00"], ["Special guest", "Main stage, 20:30"], ["Opening set", "Side room, 19:30"]],
+             "press_kit": [["Press photos", "High resolution, 6 images"], ["Biography", "Short and long versions"], ["Stage plot", "Tech rider and input list"]]}
+  },
+  "fashion": {
+    "tagline": "Made slowly, worn often. Small batches from materials we can trace.",
+    "cta": ["Shop the collection", "Our materials"],
+    "proof": ["Free returns within 30 days", "Traceable materials", "Made in small batches"],
+    "features": [["Traceable materials", "Every fibre and ingredient listed, with where it comes from."], ["Small batches", "We make less, more carefully, and restock what you love."], ["Made to last", "Repairs and refills, so things stay in use."]],
+    "stats": [["30-day", "free returns"], ["100%", "traceable materials"], ["12", "pieces per drop"]],
+    "faq": [["How does sizing run?", "True to size; each product page lists exact measurements."], ["Do you ship internationally?", "Yes, with duties included at checkout for most countries."], ["What is your returns policy?", "Free returns within 30 days, unworn and with tags."]],
+    "products": ["The everyday piece", "Linen overshirt", "Wool knit", "Canvas tote", "Night serum", "Refill pouch"],
+    "rows": {"ingredients": [["Primary material", "Certified organic, traceable to the source"], ["Finishing", "Plant-based, no harsh solvents"], ["Packaging", "Recycled and recyclable"]],
+             "countdown_drop": [["Next drop", "Friday, 10:00"], ["Pieces", "12 styles, limited runs"], ["Waitlist", "Members get early access"]]}
+  },
+  "food": {
+    "tagline": "Seasonal plates, good drinks and a table that feels like home.",
+    "cta": ["Book a table", "See the menu"],
+    "proof": ["Open six nights a week", "Seasonal menu", "Walk-ins welcome at the bar"],
+    "features": [["Seasonal kitchen", "A short menu that changes with what the market brings in."], ["Natural pours", "Low-intervention wines and a handful of house cocktails."], ["Private dining", "A small room for twelve, for the nights that matter."]],
+    "stats": [["2014", "opened"], ["40", "seats"], ["6", "nights a week"]],
+    "quotes": [["The kind of place you plan the rest of the evening around.", "regular guest"], ["Every plate tasted like the season.", "first visit"], ["Warm room, great list, kind people.", "neighbourhood local"]],
+    "faq": [["Do you take walk-ins?", "Yes, the bar is kept for walk-ins every night."], ["Can you cater for allergies?", "Tell us when you book and the kitchen will adapt the menu."], ["Do you host private events?", "Our private room seats twelve; write to us for dates."]],
+    "rows": {"menu": [["To start", "Bread, cultured butter, pickles"], ["Small plates", "Changes daily with the market"], ["Mains", "One fish, one meat, one from the garden"], ["Sweet", "Seasonal fruit, something chocolate"]],
+             "location_hours": [["Address", "Rua do Exemplo 12, city centre"], ["Tue to Sat", "18:00 to midnight"], ["Sunday", "Lunch 12:30 to 16:00"]],
+             "reservations": [["Tables for 2 to 6", "Book online up to 30 days ahead"], ["Larger groups", "Write to us"], ["Bar seats", "Kept for walk-ins"]]}
+  },
+  "health": {
+    "tagline": "Care that listens first, explained in plain language.",
+    "cta": ["Book an appointment", "Meet the team"],
+    "proof": ["Registered practitioners", "Same-week appointments", "Clear pricing"],
+    "features": [["Unhurried appointments", "Time to ask questions and understand your options."], ["A team that knows you", "The same practitioner, visit after visit."], ["Clear next steps", "A written plan after every appointment."]],
+    "stats": [["15+", "years of practice"], ["48h", "typical wait"], ["4.9/5", "patient rating"]],
+    "faq": [["Do I need a referral?", "No, you can book directly; we coordinate with your doctor if needed."], ["Is my information private?", "Records are confidential and stored securely."], ["Can I cancel?", "Free cancellation up to 24 hours before your appointment."]],
+    "rows": {"booking": [["First consultation", "45 minutes"], ["Follow-up", "30 minutes"], ["Video call", "Available most days"]],
+             "team": [["Lead practitioner", "15 years in practice"], ["Specialist", "Women's and family health"], ["Care coordinator", "Your first point of contact"]]}
+  },
+  "realestate": {
+    "tagline": "Homes chosen with care, presented honestly.",
+    "cta": ["View listings", "Book a viewing"],
+    "proof": ["Local experts", "Verified listings", "No hidden fees"],
+    "features": [["Curated homes", "Fewer listings, each one visited and photographed by us."], ["Honest details", "Floor plans, running costs and the things others leave out."], ["Viewings that fit you", "Evenings and weekends, in person or by video."]],
+    "stats": [["300+", "homes sold"], ["21 days", "average time to offer"], ["98%", "asking price achieved"]],
+    "rows": {"listings_map": [["Two-bed apartment", "Old town · 84 m²"], ["Family house with garden", "Riverside · 160 m²"], ["Studio loft", "Harbour district · 48 m²"]],
+             "location_hours": [["Office", "Main square 3"], ["Mon to Fri", "09:00 to 18:00"], ["Saturday", "By appointment"]],
+             "team": [["Founder", "Twenty years in the local market"], ["Sales lead", "Homes and new builds"], ["Lettings", "Rentals and property care"]]}
+  },
+  "education": {
+    "tagline": "Learning that fits around your life, taught by people who care.",
+    "cta": ["Browse courses", "Try a free lesson"],
+    "proof": ["Small groups", "Certified tutors", "Learn at your pace"],
+    "features": [["Small groups", "Never more than twelve learners, so everyone is heard."], ["Real practice", "Projects and conversations, not just quizzes."], ["Flexible schedule", "Evening and weekend sessions, with recordings."]],
+    "stats": [["5k", "learners"], ["12", "max per group"], ["94%", "would recommend"]],
+    "rows": {"course_catalog": [["Foundations", "8 weeks · beginners"], ["Intermediate", "10 weeks · some experience"], ["Masterclass", "4 weekends · advanced"]],
+             "events": [["Open day", "Saturday 10:00"], ["Taster session", "Wednesday 18:30"], ["Graduation", "End of term"]]}
+  },
+  "gaming": {
+    "tagline": "A new world to get lost in. Wishlist now.",
+    "cta": ["Wishlist now", "Watch the trailer"],
+    "proof": ["Coming to PC and consoles", "Single player and co-op", "Built by a small studio"],
+    "features": [["A world that remembers", "Your choices change the map, the people and the ending."], ["Play together", "Drop-in co-op for up to four friends."], ["Made by hand", "Every level designed and tested by our small team."]],
+    "stats": [["40h", "main story"], ["4", "player co-op"], ["2026", "release"]],
+    "rows": {"game_trailer": [["Steam", "Wishlist now"], ["Console", "Coming at launch"], ["Demo", "Available this month"]],
+             "community": [["Discord", "Join the community"], ["Dev diary", "Monthly updates"], ["Playtests", "Sign up for early builds"]],
+             "live_ticker": [["Players online", "12,408"], ["Season", "Two, week 3"], ["Next event", "Saturday 18:00"]]}
+  },
+  "creators": {
+    "tagline": "Selected work, a few words about it, and how to get in touch.",
+    "cta": ["See the work", "Get in touch"],
+    "proof": ["Available for commissions", "Based in Europe, working worldwide", "Replies within two days"],
+    "features": [["Selected work", "A small set of projects, each with the story behind it."], ["Process", "How I work, from first sketch to final delivery."], ["Commissions", "Open for a few projects each season."]],
+    "stats": [["10 years", "of practice"], ["60+", "projects"], ["12", "countries"]],
+    "rows": {"press_kit": [["Portrait", "High resolution"], ["Short bio", "50 and 150 words"], ["Selected clients", "One page PDF"]],
+             "team": [["Studio lead", "Direction and design"], ["Collaborator", "Motion and 3D"], ["Producer", "Projects and planning"]]}
+  },
+  "ecommerce": {
+    "tagline": "Good things, made well, delivered to your door.",
+    "cta": ["Shop now", "Best sellers"],
+    "proof": ["Free shipping over $50", "30-day returns", "Secure checkout"],
+    "features": [["Carefully made", "Small makers, honest materials, things that last."], ["Fast delivery", "Dispatched within 24 hours on weekdays."], ["Easy returns", "Changed your mind? Send it back within 30 days."]],
+    "stats": [["24h", "dispatch"], ["30-day", "returns"], ["4.8/5", "reviews"]],
+    "products": ["Best seller", "New arrival", "The classic", "Bundle and save", "Limited run", "Gift card"],
+    "rows": {"countdown_drop": [["Next drop", "Thursday 12:00"], ["Quantity", "Limited run"], ["Early access", "For subscribers"]]}
+  },
+  "automotive": {
+    "tagline": "Engineered for the long road. Built to be driven.",
+    "cta": ["Configure yours", "Book a test drive"],
+    "proof": ["Warranty included", "Nationwide service", "Test drives seven days a week"],
+    "features": [["Performance", "Responsive power and precise handling, every day."], ["Efficiency", "More range, lower running costs."], ["Craft", "Materials and details you notice every time you get in."]],
+    "stats": [["0-100", "in 4.2 s"], ["520 km", "range"], ["8 yr", "warranty"]],
+    "rows": {"spec_sheet": [["Power", "300 kW"], ["Range", "520 km"], ["Charging", "10-80% in 25 min"], ["Weight", "1,850 kg"]],
+             "configurator": [["Exterior", "Six colours"], ["Interior", "Three trims"], ["Wheels", "19 or 21 inch"]],
+             "location_hours": [["Showroom", "Ring road 40"], ["Mon to Sat", "09:00 to 19:00"], ["Service", "By appointment"]]}
+  },
+  "civic": {
+    "tagline": "Clear information and real help, for everyone.",
+    "cta": ["Get help", "Donate"],
+    "proof": ["Registered charity", "Volunteer-led", "Accessible to all"],
+    "features": [["Plain language", "Information anyone can read and act on."], ["Help that reaches people", "Local teams, on the ground, all year."], ["Open about our work", "Where every donation goes, published yearly."]],
+    "stats": [["18k", "people helped"], ["92%", "of funds to programmes"], ["350", "volunteers"]],
+    "rows": {"donate": [["$10", "One week of supplies"], ["$25", "A home visit"], ["$50", "A month of support"]],
+             "impact_stats": [["18,000", "people helped last year"], ["40", "communities reached"], ["92%", "spent on programmes"]],
+             "events": [["Volunteer evening", "First Monday, 18:00"], ["Community meeting", "Monthly, town hall"], ["Fundraiser", "Spring"]]}
+  },
+  "dashboards": {
+    "tagline": "Everything you watch, on one calm screen.",
+    "cta": ["Open the dashboard", "See a demo"],
+    "proof": ["Real-time data", "Role-based access", "Export anywhere"],
+    "features": [["At a glance", "The numbers that matter, without the noise."], ["Alerts that help", "Only when something actually needs you."], ["Share views", "Saved views for every team."]],
+    "stats": [["1s", "refresh"], ["50+", "data sources"], ["99.9%", "uptime"]],
+    "rows": {"kpi_cards": [["Revenue", "$48.2k  +6%"], ["Active users", "3,912  +2%"], ["Churn", "1.8%  -0.3"]],
+             "live_ticker": [["Requests / s", "1,284"], ["Error rate", "0.02%"], ["p95 latency", "182 ms"]]}
+  }
+}

@@ -1,81 +1,114 @@
 # serpman studio
 
-One sentence in → a design recipe from the serpman lab → a static website written section by section by Qwen.
+Type one sentence. The serpman lab routes its *feeling* to one of 39 aesthetic families, builds a recipe (palette,
+type, scale, alignment, imagery from that family's folders), and composes a website from it. The site is shown
+inside the studio as a browser-frame mockup.
 
 ```
 Browser ─► Vercel (web/)  ── user JWT, RLS ──►  Supabase  ◄── outbound only ──  PC worker (worker/)
-           /api/generate: validate, split            jobs queue, job_events          claim → lab → brief →
-           /studio: live timeline (Realtime)         private Storage: sites/<uid>/   images → Qwen × sections →
-           /sites/[id]: sandboxed preview, zip       Auth (invite only)              validate → Tailwind → upload
+           /           studio: prompt → mockup      jobs queue, job_events          claim → lab → brief →
+           /about      engine-composed (dreamy)     private Storage: sites/<uid>/   folder images → compose →
+           /sites      gallery of image mockups     Auth (invite only)              validate → Tailwind →
+           /api/generate  validate, split, queue                                    mockup.webp → upload
 ```
 
 **API, not MCP.** The app is the only client and the pipeline is fixed, so it is REST plus a queue. An MCP adapter
 (`get_recipe`, `generate_site`) can wrap the same backend later for outside agents.
 
+## How a site is made (no AI in the sections by default)
+
+1. **Split.** `/api/generate` splits the prompt into `full_query` (what it is: sections and copy) and `vibe_query`
+   (how it feels: the router). Qwen does the split when `QWEN_*` is set. Otherwise a rule-based split takes the
+   catalogue's style words, or the style clause ("…, hand-drawn and loud").
+2. **Recipe.** `route_engine.lab()` gives the family, layout, palette, roles, fonts and type template. `worker/brief.py` adds:
+   - sections from the full query;
+   - the niche and clash check (`taste_affinity`);
+   - the guardrails;
+   - the family's **folder sections** (`route()["in_family"]`: best image + 2 alternates per cluster folder).
+3. **Compose** (`worker/compose.py`, `SECTION_MODE=compose`, the default). Deterministic templates use:
+   - the measured alignment (centred or split hero, centred or bento features), the type scale and the tokens;
+   - images by cluster type:
+
+     | Section | Images |
+     |---|---|
+     | hero | 3D render, abstract art or illustration, text-free |
+     | showcase | UI kit, app and website captures in browser frames |
+     | galleries | product, illustration, print |
+     | social proof | logo / branding |
+   - copy from `contracts/copykit.json` (per category).
+
+   Every section must pass `worker/validate.py`. `SECTION_MODE=qwen` lets Qwen write sections instead, falling back to the composed ones.
+4. **Assemble.** L0 background, L1 nav and footer, L2 sections, L3 vibe overlay. The CSS is compiled with Tailwind, and `worker/mockup.py` renders `mockup.webp`.
+
+**Baked-in text filter.** Hero and gallery images must be text-free. This is checked with a CLIP zero-shot score on the stored embeddings, with a threshold of −0.02 calibrated over 10,427 images:
+- type specimens have a median of +0.019, 3D renders −0.052;
+- the known text-baked listing graphics scored −0.001 to +0.017.
+
+The lab's pixel text detector flagged about 80% of 3D renders, so it is no longer used for this.
+
 ## Layout
 
 | path | what |
 |---|---|
-| `contracts/design_brief.v1.json` | the recipe contract (JSON Schema). Python validates it fully; `web/lib/brief.ts` (zod) reads it |
-| `contracts/split.v1.json`, `prompts/split.md` | prompt → {full_query, vibe_query, ...}; the same prompt and fallback in `worker/split.py` and `web/lib/split.ts` |
-| `contracts/prompts/section.md` | the per-section agent prompt (hard rules that `worker/validate.py` enforces) |
-| `contracts/catalog.json` | 39 vibes, 14 categories, section ids (from serpman's `taste_catalog`) |
-| `worker/` | `worker.py` (once / run), `brief.py`, `guardrails.py`, `agent.py`, `validate.py`, `assemble.py`, `assets.py`, `qwen.py`, `supa.py` |
-| `tools/export_tokens.py` | a lab run → the web app's theme (`web/app/theme/tokens.css`, `tokens.json`, `fonts.ts`) |
-| `tools/export_catalog.py` | regenerates `contracts/catalog.json`, `web/lib/catalog.json`, `web/lib/split-prompt.generated.ts` |
-| `supabase/migrations/` | tables, RLS, column grants, quota trigger, `claim_job()`, Realtime, private bucket |
+| `contracts/design_brief.v1.json` | the recipe contract (JSON Schema; `web/lib/brief.ts` reads it with zod) |
+| `contracts/copykit.json`, `about_copy.json` | non-AI copy per category, and the app's own About copy |
+| `contracts/site-components.css` | shared classes (`glass`, `btn`, `frame`, `glyph`, …) used by generated sites **and** the app |
+| `contracts/split.v1.json`, `prompts/*.md` | split contract, the split prompt, and the Qwen section prompt |
+| `worker/` | `worker.py` (once / run), `brief.py`, `compose.py`, `guardrails.py`, `agent.py`, `validate.py`, `assemble.py`, `mockup.py`, `supa.py` |
+| `tools/build_shell.py` | runs the engine on a dreamy ethereal query and writes the app theme + `/about` (see below) |
+| `tools/export_catalog.py` | regenerates `contracts/catalog.json` and copies the catalogue, split prompt and site components into `web/` |
+| `supabase/migrations/` | `…000_init.sql` (tables, RLS, quota, `claim_job()`, bucket), `…21000000_site_mockups.sql` (`sites.mockup_path`) |
 
-## What the worker adds on top of the lab
+## The app's own look: generated by the engine
 
-- **Split.** The vibe query goes to the router and the full query goes to section planning. Mixing domain words into the vibe query pulled the dreamy app run toward dev-SaaS sections.
-- **Taste at runtime.** `taste_affinity` gives the category's best niche for the routed vibe, a clash flag, and the vibes to avoid. All of these go into the prompts.
-- **Guardrails** (`worker/guardrails.py`). Every change is logged in `brief.typography.overrides` with its reason:
-  - WCAG repair along OKLab lightness: text 7:1, muted text 4.5:1, button label 4.5:1, button fill 3:1;
-  - cue constraints on fonts ("soft italic serifs" means a serif face that has italics);
-  - normal-width body text;
-  - a display type scale (ratio of at least 1.25, body leading of at least 1.5);
-  - **no baked-in text in page graphics:** more than 3 text lines, or a text box taller than 15% of the image, is replaced with the next clean lab candidate or dropped.
-- **Images.** Only `background` and `central` images appear on a page. Layout and hero screenshots are structural references, shown only in the private recipe view.
+```
+D:\caches\venvs\uifp\Scripts\python.exe tools\export_catalog.py
+D:\caches\venvs\uifp\Scripts\python.exe tools\build_shell.py          # --family dreamy-ethereal --theme light
+```
 
-## Setup
+One engine run (pinned to `dreamy-ethereal`, without advancing the π cursor) writes:
+- `web/app/theme/tokens.css` and `tokens.json`, and `web/app/fonts.ts`: the header, footer and app theme;
+- `web/content/about.generated.ts` and `web/public/about/assets/*`: the About page.
+
+Rebuild, and the whole app re-skins.
+
+## Run
 
 1. **Supabase**
-   1. Create a project.
-   2. Run `supabase/migrations/20261120000000_init.sql`, either in the SQL editor or with `npx supabase db push`.
-   3. Under Auth, disable sign-ups and invite testers by email.
-   4. Optionally enable GitHub OAuth.
-   5. Add `https://<your-vercel-domain>/auth/callback` and `http://localhost:3000/auth/callback` to the redirect URLs.
-2. **Web** (`web/`, npm cache on D: via `.npmrc`)
+   1. Run both migrations in the SQL editor, in order.
+   2. Under Auth, disable sign-ups and invite testers.
+   3. Add the redirect URLs `https://utthan-labs.vercel.app/auth/callback` and `http://localhost:3000/auth/callback`.
+2. **Web** (`web/`)
    1. Run `npm install`.
-   2. Copy `.env.example` to `.env.local` and fill it in.
+   2. In `web/.env`, set `NEXT_PUBLIC_SUPABASE_URL` to your project URL (`https://<ref>.supabase.co`) and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the publishable key. Optionally set `QWEN_BASE`, `QWEN_SPLIT_MODEL` and `QWEN_API_KEY` for the split.
    3. Run `npm run dev`.
-   4. On Vercel: set the root directory to `web`, and set the same env vars. The **service-role key is never set here**.
-3. **Worker**, with `D:\caches\venvs\uifp\Scripts\python.exe` and env vars only, never files:
-   - `QWEN_BASE`, `QWEN_API_KEY`, `QWEN_MODEL` (a coder-class model);
-   - optional: `QWEN_SPLIT_MODEL`, `QWEN_VL_MODEL`;
-   - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`;
-   - optional: `LAB_AI_KEY`, `LAB_AI_BASE`, `LAB_AI_MODEL`, so the lab's own AI comparers use Qwen too.
+3. **Worker**
+   1. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in your shell or in `worker/.env` (gitignored, and it stays on this PC).
+   2. Start it:
+      ```
+      D:\caches\venvs\uifp\Scripts\python.exe worker\worker.py run
+      D:\caches\venvs\uifp\Scripts\python.exe worker\worker.py once --prompt "a natural wine bar in Lisbon, hand-drawn and loud"
+      ```
+      `once` works offline and writes `out/<slug>/` with `index.html`, `brief.json` and `mockup.webp`.
 
-   Then:
-   ```
-   python worker\worker.py once --prompt "a natural wine bar in Lisbon, hand-drawn and loud"   # local, no Supabase
-   python worker\worker.py run                                                              # serve the queue
-   ```
-   Tailwind compiles with `web/node_modules/.bin/tailwindcss` (run `npm install` once), or with `TAILWIND_BIN`.
+## Deploy (Vercel project utthan-labs)
 
-## Re-skin the app from the lab
+As of 2026-11-20, https://utthan-labs.vercel.app/ serves one static HTML file: an old local test page. The Next.js app has never been built there. To fix it:
 
-```
-cd C:\Users\...\serpman
-D:\caches\venvs\uifp\Scripts\python.exe route_engine.py query "dreamy ethereal ai website builder landing page" --lab --fam dreamy-ethereal --full > D:\serpman-studio\fixtures\lab_dreamy_full.json
-cd D:\serpman-studio
-D:\caches\venvs\uifp\Scripts\python.exe tools\export_tokens.py fixtures\lab_dreamy_full.json --theme light [--heading "Fraunces"]
-```
-The export refuses to write a theme that still fails contrast.
+1. **Settings → Git:** connect `Keshav-shar/ai-web-designer`. Set the production branch to `master`, or merge `master` into `main` (`main` only has `.gitattributes`).
+2. **Settings → Build:** set Root Directory to **`web`** and the framework to Next.js. Leave the output directory at its default.
+3. **Environment variables:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and optionally `QWEN_*`. **Never** the service-role key.
+4. **Supabase → Auth → URL configuration:** Site URL `https://utthan-labs.vercel.app` and the `/auth/callback` redirect.
+5. Redeploy, then check:
+   - `/` shows the studio;
+   - `/about` shows the engine-composed page;
+   - `/login` loads;
+   - `POST /api/generate` without a session returns 401.
 
 ## Checks
 
-- `python worker\test_validate.py`: the section checker (scripts, handlers, external URLs, literal colours, placeholders).
-- `npm run check:brief -- ..\out\dew\brief.json`: a Python-made brief parses in the UI schema.
+- `python worker\test_compose.py`: every section id × 14 categories × 2 alignments composes valid, placeholder-free HTML, and no text-baked image reaches a hero.
+- `python worker\test_validate.py`: the section checker rejects scripts, handlers, external URLs, literal colours and placeholders.
+- `npm run check:brief -- ..\out\wine-bar\brief.json`: a brief made in Python parses in the UI schema.
 - `npm run typecheck`, `npm run build`
 - `python tools\shoot.py <url-or-file> <prefix>`: desktop and phone screenshots, with a horizontal-overflow check.

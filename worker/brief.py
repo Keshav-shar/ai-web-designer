@@ -120,12 +120,20 @@ def typography_roles(lab_typo: dict | None, heading: str, body: str, italic: boo
 
 MAX_TEXT_LINES = 3      # same threshold the lab's background "mine" filter uses (palette_lab BASE["T"])
 MAX_TEXT_HEIGHT = 0.15  # one text box taller than 15% of the image = a headline banner baked into the graphic
+# CLIP zero-shot "contains text" score = mean sim(5 text prompts) - mean sim(5 no-text prompts), on the stored
+# image embeddings. Calibrated 2026-11-20 over 10,427 cream images: type specimens median +0.019, 3D renders -0.052,
+# abstract art -0.060; the three known text-baked listing graphics from the Dew run scored -0.001..+0.017.
+# The pixel detector (lines/hmax) flagged ~80% of 3D renders, so CLIP is used whenever the worker provides it.
+CLIP_TEXT_T = -0.02
 
 
 def texty(reading) -> str | None:
-    """reading = (lines, hmax) from the lab's colour cache -> reason string if the image carries text."""
+    """reading = {"clip": score} (worker) or (lines, hmax) (lab colour cache) -> reason if the image carries text."""
     if reading is None:
         return None
+    if isinstance(reading, dict):
+        s = reading["clip"]
+        return f"CLIP reads baked-in text ({s:+.3f} > {CLIP_TEXT_T})" if s > CLIP_TEXT_T else None
     lines, hmax = reading
     if lines > MAX_TEXT_LINES:
         return f"{int(lines)} text lines detected"
@@ -160,10 +168,17 @@ def clean_central(o: dict, text_lines, over: list) -> list[dict]:
     return out
 
 
+FOLDER_PER_CLUSTER = 3     # best + 2 alternates from each of the family's cluster folders
+FOLDER_MAX = 18
+
+
 def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id: str | None = None,
-                theme: str = "auto", resolve=None, text_lines=None) -> tuple[dict, dict[str, Path]]:
+                theme: str = "auto", resolve=None, text_lines=None, folder_sections: list | None = None,
+                sections_override: list[str] | None = None) -> tuple[dict, dict[str, Path]]:
     """-> (brief, {ref_id: local file}). `sections_src` = section_plan.suggest(enc, full_query).
-    text_lines(fam, id) (the worker passes the lab's ColorStore reading) enables the baked-in-text filter."""
+    text_lines(fam, id) (the worker passes the lab's ColorStore reading) enables the baked-in-text filter.
+    folder_sections = route_engine.route(...)["in_family"]: the best images of each cluster folder of the routed
+    family; they become `section` assets the composer places by cluster type."""
     import jsonschema
     p = o["payload"]
     fam = p["family"]
@@ -176,7 +191,11 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
     if hint in CATEGORY and hint != cat_key:
         over.append({"token": "category", "from": cat_key, "to": hint, "why": "split's category_hint (domain read by the model)"})
         cat_key, cat_name, how = hint, CATEGORY[hint].name, "hint"
-    sections = sections_for(cat_key, split.get("must_sections") or [])
+    if sections_override:
+        sections = [{"id": s, "layer": sp.SECTIONS[s][0], "purpose": sp.SECTIONS[s][1]}
+                    for s in dict.fromkeys(sections_override) if s in sp.SECTIONS]
+    else:
+        sections = sections_for(cat_key, split.get("must_sections") or [])
 
     roles, derived, visuals, o_col = g.colour_roles(p["palette"]["swatches"], p["color_tokens"], theme)
     f = o.get("fonts", {})
@@ -199,8 +218,11 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
         local = resolve(ref["fam"], ref["id"])
         if local is None:
             return
-        assets.append({"ref_id": rid, "role": role, "fam": ref["fam"], "id": ref["id"], "cluster": ref.get("cluster", ""),
-                       "type": typ, "note": note, "path": f"assets/{rid}.webp"})   # assets.py re-encodes to webp
+        item = {"ref_id": rid, "role": role, "fam": ref["fam"], "id": ref["id"], "cluster": ref.get("cluster", ""),
+                "type": typ, "note": note, "path": f"assets/{rid}.webp"}   # assets.py re-encodes to webp
+        if text_lines is not None:
+            item["text"] = texty(text_lines(ref["fam"], ref["id"])) is not None
+        assets.append(item)
         files[rid] = local
 
     add(p["layout"], "layout", "website", "layout reference: follow its structure, never copy its text")
@@ -211,6 +233,16 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
     for c in clean_central(o, text_lines, over):
         add(c, "central", c.get("type"), f"{c.get('role')} central graphic")
     add(p.get("palette"), "palette", "palette", "palette source image")
+    n_folder = 0
+    for best in folder_sections or []:
+        if not best:
+            continue
+        for ref in [best, *best.get("alts", [])][:FOLDER_PER_CLUSTER]:
+            if n_folder >= FOLDER_MAX:
+                break
+            before = len(assets)
+            add(ref, "section", ref.get("type") or best.get("type"), f"folder section: {best.get('cluster')}")
+            n_folder += len(assets) - before
 
     brief = {
         "meta": {"version": 1, "job_id": job_id, "query": query[:300], "full_query": split["full_query"][:300],

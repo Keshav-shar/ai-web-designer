@@ -1,0 +1,35 @@
+{
+  "_doc": "Copy for the app's own About page. tools/build_shell.py composes it with the engine's dreamy-ethereal design. '#studio' links are rewritten to '/' when exported.",
+  "hero": {
+    "eyebrow": "a taste engine for the web",
+    "title": "Describe a site. Get its taste.",
+    "sub": "One sentence in. A design recipe drawn from ten thousand real references out, then a page composed from it, section by section.",
+    "cta": ["Open the studio", "#studio"],
+    "cta2": ["How it works", "#how_it_works"]
+  },
+  "how_it_works": {
+    "title": "Three steps, each one inspectable",
+    "steps": [
+      ["Split", "Your sentence becomes two queries: what the site is for, and how it should feel."],
+      ["Taste", "The feeling is routed through 39 aesthetic families to a palette, a type pairing, a scale and imagery from that family's folders."],
+      ["Compose", "Sections are built inside a frame the recipe defines, then checked: contrast, fonts, no scripts, no stray colours."]
+    ]
+  },
+  "showcase": {
+    "title": "Every family keeps its own folders",
+    "sub": "Website captures, UI kits, 3D renders, illustration, type specimens and palettes, grouped by CLIP. The studio pulls from the routed family's folders for each section."
+  },
+  "faq": {
+    "title": "Questions",
+    "items": [
+      ["Where do the images come from?", "A research corpus of public design references, clustered into 39 aesthetic families. They are shown only to signed-in testers and credited as references."],
+      ["Is any of this written by AI?", "Not right now. Sections are composed from the lab's design decisions and a copy kit; a language model can fill the copy later without changing the design."],
+      ["What keeps it from looking generic?", "The recipe decides palette, type, scale, alignment and imagery from real references, and guardrails repair anything that fails contrast or the vibe's own cues."]
+    ]
+  },
+  "cta_band": {
+    "title": "Bring a sentence",
+    "sub": "Invite-only while the engine runs on one machine.",
+    "cta": ["Start in the studio", "#studio"]
+  }
+}

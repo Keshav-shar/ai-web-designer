@@ -21,16 +21,21 @@ def system_prompt() -> str:
 def fallback(prompt: str) -> dict:
     """No model: style words (from the vibe catalogue) form the vibe query; category from reserved words."""
     words = re.findall(r"[a-z0-9]+", prompt.lower())
-    vibe = [w for w in words if w in CATALOG["vibe_words"]]
+    vibe = " ".join(dict.fromkeys(w for w in words if w in CATALOG["vibe_words"]))
     cat = next((c["key"] for c in CATALOG["categories"] if set(words) & set(c["tokens"])), None)
+    if not vibe:                    # no catalogue style word: use the style clause ("..., hand-drawn and loud")
+        m = STYLE_CLAUSE.search(prompt)
+        vibe = m.group(1).strip(" .") if m else ""
     m = BRAND.search(prompt)
-    return {"full_query": prompt.strip()[:300], "vibe_query": (" ".join(dict.fromkeys(vibe)) or prompt.strip())[:300],
+    return {"full_query": prompt.strip()[:300], "vibe_query": (vibe or prompt.strip())[:300],
             "category_hint": cat, "brand_name": m.group(1)[:80] if m else None, "audience": None,
             "must_sections": [], "source": "fallback"}
 
 
 # "called Dew", "named Moss & Co" -> brand (capitalised words right after called/named); same regex in split.ts
 BRAND = re.compile(r"\b(?:called|named)\s+([A-Z][\w&'.-]*(?:\s+(?:&\s+)?[A-Z][\w&'.-]*){0,3})")
+# the look, when no catalogue word names it: after "feels (like)" / "looks (like)" / "vibe:" or the first comma
+STYLE_CLAUSE = re.compile(r"(?:\b(?:feels?|feeling|looks?)\s+(?:like\s+)?|\bvibes?:?\s+|,\s*)([^,;]{3,80})", re.I)
 
 
 def clean(d: dict, prompt: str) -> dict:

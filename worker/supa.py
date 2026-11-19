@@ -40,9 +40,14 @@ class Supa:
                                 headers={**self.h, "Prefer": "return=minimal"}))
 
     def insert_site(self, row: dict) -> dict:
-        r = self._ok(self.http.post(f"{self.url}/rest/v1/sites", json=row,
-                                    headers={**self.h, "Prefer": "return=representation"}))
-        return r.json()[0]
+        h = {**self.h, "Prefer": "return=representation"}
+        r = self.http.post(f"{self.url}/rest/v1/sites", json=row, headers=h)
+        if r.status_code >= 300 and "mockup_path" in row and "mockup_path" in r.text:
+            # migration 20261121000000_site_mockups.sql not applied yet: keep the site, drop the mockup link
+            print("sites.mockup_path missing: run supabase/migrations/20261121000000_site_mockups.sql", flush=True)
+            r = self.http.post(f"{self.url}/rest/v1/sites", json={k: v for k, v in row.items() if k != "mockup_path"},
+                               headers=h)
+        return self._ok(r).json()[0]
 
     def upload(self, path: str, data: bytes, content_type: str) -> None:
         self._ok(self.http.post(f"{self.url}/storage/v1/object/sites/{quote(path)}", content=data,

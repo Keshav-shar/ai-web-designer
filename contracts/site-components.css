@@ -1,0 +1,55 @@
+/* Shared component classes for engine-composed sections. One source: assemble.py inlines it into every
+   generated site; tools/export_catalog.py copies it to web/app/theme/site-components.css for the Next app.
+   Everything reads the theme variables (--bg, --surface, --text, --accent, --visual-N, --fs-N ...). */
+
+.container-x { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
+
+.glass {
+  background: color-mix(in oklab, var(--surface) 58%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  border-radius: 1.75rem;
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 22px 64px -34px color-mix(in oklab, var(--text) 38%, transparent);
+}
+
+.eyebrow { font-size: var(--fs-1); text-transform: uppercase; letter-spacing: .15em; color: var(--text-muted); margin-bottom: .75rem; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; border-radius: 999px;
+       padding: .8rem 1.5rem; font-weight: 500; text-decoration: none;
+       transition: transform .5s cubic-bezier(.2,.7,.2,1), background-color .4s ease; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); }
+.btn-ghost { border: 1px solid var(--border); color: var(--text); background: color-mix(in oklab, var(--surface) 40%, transparent); }
+.btn-ghost:hover { transform: translateY(-2px); }
+
+.soft-glow { position: absolute; inset: 8% 4%; border-radius: 50%; filter: blur(64px); opacity: .7; z-index: -1;
+             background: radial-gradient(circle at 30% 30%, var(--visual-1, var(--accent-soft)), transparent 60%),
+                         radial-gradient(circle at 70% 65%, var(--visual-2, var(--accent-soft)), transparent 60%); }
+
+/* browser-window chrome around a screen image: three dots drawn with gradients, no extra markup */
+.frame { position: relative; overflow: hidden; border-radius: 1.1rem; border: 1px solid var(--border);
+         background: var(--surface); box-shadow: 0 30px 70px -40px color-mix(in oklab, var(--text) 45%, transparent); }
+.frame::before { content: ""; display: block; height: 1.75rem; border-bottom: 1px solid var(--border);
+                 background:
+                   radial-gradient(circle at 1rem 50%, var(--text-muted) .22rem, transparent .26rem),
+                   radial-gradient(circle at 1.7rem 50%, var(--text-muted) .22rem, transparent .26rem),
+                   radial-gradient(circle at 2.4rem 50%, var(--text-muted) .22rem, transparent .26rem),
+                   color-mix(in oklab, var(--surface) 80%, var(--bg)); opacity: .9; }
+.frame img { display: block; width: 100%; height: auto; }
+
+.glyph { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 999px;
+         background: color-mix(in oklab, var(--accent-soft, var(--accent)) 55%, var(--surface));
+         color: var(--text); font-family: var(--font-heading); }
+
+.float { animation: float 9s ease-in-out infinite; }
+.fade-up { animation: fade-up 1.1s cubic-bezier(.2,.7,.2,1) both; }
+
+details.faq-item > summary { list-style: none; cursor: pointer; }
+details.faq-item > summary::-webkit-details-marker { display: none; }
+details.faq-item[open] .faq-plus { transform: rotate(45deg); }
+.faq-plus { transition: transform .4s ease; }
+
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .float, .fade-up { animation: none !important; } }

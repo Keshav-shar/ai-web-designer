@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { bodyFont, headingFont } from "./fonts";
+import tokens from "./theme/tokens.json";
 import { Grain, MeshBackground } from "@/components/atmosphere";
 import { SiteNav } from "@/components/site-nav";
 
@@ -24,8 +25,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="main">{children}</main>
         <footer className="container-x mt-32 border-t border-line py-10 text-muted">
           <p>
-            serpman studio. A private research demo: reference images belong to their authors and are shown only to
-            signed-in testers.
+            serpman studio. Theme, header, footer and About page composed by our own engine from the{" "}
+            {tokens.source.family} family. A private research demo: reference images belong to their authors.
           </p>
         </footer>
         <Grain />

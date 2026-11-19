@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED = ["/studio", "/sites", "/api/generate"];
+// "/" (the studio) and "/about" are public; generating and viewing sites need an invited account.
+const PROTECTED = ["/sites", "/api/generate"];
 
 /** Refreshes the Supabase session cookie on every request and keeps signed-out users out of the app. */
 export async function proxy(request: NextRequest) {
