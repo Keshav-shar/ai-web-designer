@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <Display as="h1" step={6}>Sign in</Display>
         {configured ? (
           <>
-            <p className="mt-3 text-muted">Use the email and password you were given. Accounts are created by invitation only.</p>
+            <p className="mt-3 text-muted">Use the username and password you were given. Accounts are created by invitation only.</p>
             {error && <p role="alert" className="mt-4 rounded-2xl border border-line bg-surface px-4 py-3 text-ink">{error}</p>}
             <LoginForm next={next} />
           </>

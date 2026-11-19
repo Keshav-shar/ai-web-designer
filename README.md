@@ -73,16 +73,20 @@ One engine run (pinned to `dreamy-ethereal`, without advancing the π cursor) wr
 
 Rebuild, and the whole app re-skins.
 
-## Accounts: invite by credentials only
-No self sign-up, no GitHub, no magic links. **You** create each account and hand out the email and password; users can only sign in.
-- **Dashboard:** Authentication → Users → **Add user → Create new user**. Enter email + password and tick **Auto Confirm User**.
-- **Or from the PC:** `D:\caches\venvs\uifp\Scripts\python.exe tools\create_user.py --email someone@example.com [--quota 5]`. Without `--password`, it prints a generated one **once**; nothing is stored.
-
-Each account gets a profile with a daily quota of 5 (change it in the `profiles` table or with `--quota`). Forgotten passwords are reset by you: in the dashboard, open the user and set a new password.
+## Accounts: username + password, invite only
+No email, no GitHub, no magic links, no sign-up. **You** create each account and hand out the **username and password**; users can only sign in.
+- **Create one from the PC:** `D:\caches\venvs\uifp\Scripts\python.exe tools\create_user.py --username ana [--quota 5]`. Without `--password`, it prints a generated one **once**; nothing is stored. Usernames are 3–24 characters of `a-z 0-9 . _ -`, case-insensitive and unique.
+- **How it works:** Supabase's password login needs an email-shaped ID, so each username maps internally to a placeholder `<username>@users.serpman.invalid`. It is never shown, never emailed and not a real mailbox, and the app only ever displays the username (`profiles.username`).
+  - If Supabase ever rejects that domain, set `LOGIN_ID_DOMAIN` in `worker/.env` and `NEXT_PUBLIC_LOGIN_ID_DOMAIN` in Vercel to the same domain you control.
+- **Dashboard alternative:** Authentication → Users → Add user, with ID `ana@users.serpman.invalid`, a password, and **Auto Confirm User** ticked. The username is taken from the part before `@`.
+- **Quotas and passwords:** each account gets a daily quota of 5 (`profiles.daily_quota`, or `--quota`). Forgotten passwords: open the user in the dashboard and set a new one.
 
 ## Finalize Supabase (once, in this order)
-1. **SQL editor:** run `supabase/migrations/20261120000000_init.sql`, then `20261121000000_site_mockups.sql`, then `20261122000000_engine_status.sql`.
-2. **Authentication → Sign In / Providers:** Email on; **"Allow new users to sign up" off**; GitHub and every other provider off.
+1. **SQL editor:** run `supabase/migrations/20261120000000_init.sql`, then `20261121000000_site_mockups.sql`, then `20261122000000_engine_status.sql`, then `20261123000000_usernames.sql`.
+2. **Authentication → Sign In / Providers:**
+   - Keep the **Email** provider **on**. It is the password mechanism behind usernames; no emails are ever sent.
+   - Turn **"Allow new users to sign up" off** and **"Confirm email" off**.
+   - Turn GitHub and every other provider off.
 3. **Authentication → URL Configuration:** Site URL `https://ai-web-designer-gamma.vercel.app`.
 4. Create the accounts (above).
 5. **Project Settings → API keys:** copy the **service_role** (secret) key into `worker/.env` on this PC. It is gitignored:
