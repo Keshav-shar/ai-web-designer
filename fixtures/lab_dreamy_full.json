@@ -1,0 +1,3693 @@
+﻿02:46:23 index: 10427 cream images, 39 families, 893 website-cluster images, 217 cropped (1.8s)
+02:46:32 colors: 10427/10427 cached
+02:46:32 fonts: 1217 fonts, 228 readable body candidates
+{
+ "query": "dreamy ethereal ai website builder landing page",
+ "routed": "dreamy-ethereal",
+ "layout": {
+  "fam": "dreamy-ethereal",
+  "id": "main__c428e68167e26fdb3662.jpg",
+  "cluster": "website",
+  "type": "website",
+  "score": 0.3108,
+  "q_sim": 0.3086,
+  "source": "router"
+ },
+ "palette": {
+  "scope": [
+   "dreamy-ethereal"
+  ],
+  "note": null,
+  "n": 20,
+  "cmp": "blend",
+  "cands": [
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__aae1361275090cf0cef6.avif",
+    "cluster": "palette",
+    "sw": [
+     {
+      "hex": "#F6C0E7",
+      "w": 0.202,
+      "card": false
+     },
+     {
+      "hex": "#A6C8FE",
+      "w": 0.201,
+      "card": false
+     },
+     {
+      "hex": "#FFF6FB",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#FBE1FF",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#CFB3FE",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#857397",
+      "w": 0.009,
+      "card": false
+     }
+    ],
+    "rank": 0,
+    "clip": 0.3129,
+    "hex": -46.9984,
+    "d_layout": 36.6797,
+    "d_dna": 34.3958,
+    "blend": 0.752
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__61f22ad851281fba843d.avif",
+    "cluster": "palette",
+    "sw": [
+     {
+      "hex": "#F9B8C4",
+      "w": 0.2,
+      "card": false
+     },
+     {
+      "hex": "#233446",
+      "w": 0.198,
+      "card": false
+     },
+     {
+      "hex": "#E2A5B7",
+      "w": 0.198,
+      "card": false
+     },
+     {
+      "hex": "#FFE6EB",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#B7A7D5",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#846D86",
+      "w": 0.013,
+      "card": false
+     }
+    ],
+    "rank": 1,
+    "clip": 0.27,
+    "hex": -20.8688,
+    "d_layout": 16.3263,
+    "d_dna": 15.1417,
+    "blend": 0.5713
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__a9785f733260609bd6af.jpg",
+    "cluster": "palette + moodboard",
+    "sw": [
+     {
+      "hex": "#C9A9A7",
+      "w": 0.227,
+      "card": false
+     },
+     {
+      "hex": "#89A794",
+      "w": 0.186,
+      "card": false
+     },
+     {
+      "hex": "#888499",
+      "w": 0.184,
+      "card": false
+     },
+     {
+      "hex": "#D49F7E",
+      "w": 0.172,
+      "card": false
+     },
+     {
+      "hex": "#C17573",
+      "w": 0.126,
+      "card": false
+     },
+     {
+      "hex": "#4E6062",
+      "w": 0.105,
+      "card": false
+     }
+    ],
+    "rank": 2,
+    "clip": 0.2886,
+    "hex": -36.3151,
+    "d_layout": 29.0139,
+    "d_dna": 24.3376,
+    "blend": 0.5531
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__259ed1c5d2db2872fa44.avif",
+    "cluster": "palette",
+    "sw": [
+     {
+      "hex": "#C7F2FE",
+      "w": 0.201,
+      "card": false
+     },
+     {
+      "hex": "#FFE0F0",
+      "w": 0.201,
+      "card": false
+     },
+     {
+      "hex": "#FED5E8",
+      "w": 0.197,
+      "card": false
+     },
+     {
+      "hex": "#B7C8FE",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#FFF8FA",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#8B8193",
+      "w": 0.01,
+      "card": false
+     }
+    ],
+    "rank": 3,
+    "clip": 0.3028,
+    "hex": -49.9875,
+    "d_layout": 39.2883,
+    "d_dna": 35.6638,
+    "blend": 0.4944
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__646472fe1c16263f0c14.avif",
+    "cluster": "palette",
+    "sw": [
+     {
+      "hex": "#FFDFCD",
+      "w": 0.202,
+      "card": false
+     },
+     {
+      "hex": "#CBE9FE",
+      "w": 0.2,
+      "card": false
+     },
+     {
+      "hex": "#9FC5E8",
+      "w": 0.197,
+      "card": false
+     },
+     {
+      "hex": "#FFD1D9",
+      "w": 0.196,
+      "card": false
+     },
+     {
+      "hex": "#FFF1E8",
+      "w": 0.195,
+      "card": false
+     },
+     {
+      "hex": "#847B82",
+      "w": 0.009,
+      "card": false
+     }
+    ],
+    "rank": 4,
+    "clip": 0.2916,
+    "hex": -46.5231,
+    "d_layout": 36.7382,
+    "d_dna": 32.6164,
+    "blend": 0.3678
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__767d401954c09e03f416.png",
+    "cluster": "palette",
+    "sw": [
+     {
+      "hex": "#3D325E",
+      "w": 0.401,
+      "card": false
+     },
+     {
+      "hex": "#C4B7BB",
+      "w": 0.198,
+      "card": false
+     },
+     {
+      "hex": "#8B77A8",
+      "w": 0.104,
+      "card": false
+     },
+     {
+      "hex": "#7D4A98",
+      "w": 0.099,
+      "card": false
+     },
+     {
+      "hex": "#1E1C2A",
+      "w": 0.099,
+      "card": false
+     },
+     {
+      "hex": "#F0E6A2",
+      "w": 0.099,
+      "card": false
+     }
+    ],
+    "rank": 5,
+    "clip": 0.2415,
+    "hex": -12.0342,
+    "d_layout": 8.8328,
+    "d_dna": 10.6713,
+    "blend": 0.2517
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__2ff8bf9621484ebc46e0.jpg",
+    "cluster": "palette + moodboard",
+    "sw": [
+     {
+      "hex": "#709494",
+      "w": 0.249,
+      "card": false
+     },
+     {
+      "hex": "#A09196",
+      "w": 0.169,
+      "card": false
+     },
+     {
+      "hex": "#D8BBA9",
+      "w": 0.169,
+      "card": false
+     },
+     {
+      "hex": "#C18684",
+      "w": 0.167,
+      "card": false
+     },
+     {
+      "hex": "#8F707D",
+      "w": 0.153,
+      "card": false
+     },
+     {
+      "hex": "#636979",
+      "w": 0.093,
+      "card": false
+     }
+    ],
+    "rank": 6,
+    "clip": 0.275,
+    "hex": -38.6791,
+    "d_layout": 30.5778,
+    "d_dna": 27.0045,
+    "blend": 0.2453
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__119b69f4e8f87af64a0e.avif",
+    "cluster": "palette + moodboard",
+    "sw": [
+     {
+      "hex": "#709493",
+      "w": 0.248,
+      "card": false
+     },
+     {
+      "hex": "#9C8E95",
+      "w": 0.191,
+      "card": false
+     },
+     {
+      "hex": "#D7BAA9",
+      "w": 0.169,
+      "card": false
+     },
+     {
+      "hex": "#C38785",
+      "w": 0.162,
+      "card": false
+     },
+     {
+      "hex": "#936E79",
+      "w": 0.126,
+      "card": false
+     },
+     {
+      "hex": "#666978",
+      "w": 0.104,
+      "card": false
+     }
+    ],
+    "rank": 7,
+    "clip": 0.2729,
+    "hex": -38.5411,
+    "d_layout": 30.4251,
+    "d_dna": 27.0533,
+    "blend": 0.2093
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__93cf28682d981817e230.jpg",
+    "cluster": "palette + moodboard",
+    "sw": [
+     {
+      "hex": "#C89184",
+      "w": 0.286,
+      "card": false
+     },
+     {
+      "hex": "#91A9A2",
+      "w": 0.215,
+      "card": false
+     },
+     {
+      "hex": "#638381",
+      "w": 0.171,
+      "card": false
+     },
+     {
+      "hex": "#3A4A54",
+      "w": 0.128,
+      "card": false
+     },
+     {
+      "hex": "#D9C2A4",
+      "w": 0.119,
+      "card": false
+     },
+     {
+      "hex": "#8B7881",
+      "w": 0.081,
+      "card": false
+     }
+    ],
+    "rank": 8,
+    "clip": 0.258,
+    "hex": -27.2088,
+    "d_layout": 21.7824,
+    "d_dna": 18.088,
+    "blend": 0.1999
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "effect__188d07f1949a6e404771.png",
+    "cluster": "palette",
+    "sw": [
+     {
+      "hex": "#F9FBFC",
+      "w": 0.477,
+      "card": true
+     },
+     {
+      "hex": "#8665E4",
+      "w": 0.158,
+      "card": false
+     },
+     {
+      "hex": "#4330F2",
+      "w": 0.138,
+      "card": false
+     },
+     {
+      "hex": "#C898D4",
+      "w": 0.121,
+      "card": false
+     },
+     {
+      "hex": "#42DD07",
+      "w": 0.061,
+      "card": false
+     },
+     {
+      "hex": "#C34A14",
+      "w": 0.044,
+      "card": false
+     }
+    ],
+    "rank": 9,
+    "clip": 0.2803,
+    "hex": -47.2107,
+    "d_layout": 36.7354,
+    "d_dna": 34.9179,
+    "blend": 0.1427
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "palette__e711ca2c33166d845ce8.avif",
+    "cluster": "palette + moodboard",
+    "sw": [
+     {
+      "hex": "#869B8E",
+      "w": 0.231,
+      "card": false
+     },
+     {
+      "hex": "#BD8B76",
+      "w": 0.187,
+      "card": false
+     },
+     {
+      "hex": "#C8B9A4",
+      "w": 0.184,
+      "card": false
+     },
+     {
+      "hex": "#3F2B2E",
+      "w": 0.151,
+      "card": false
+     },
+     {
+      "hex": "#4F6567",
+      "w": 0.124,
+      "card": false
+     },
+     {
+      "hex": "#82676D",
+      "w": 0.124,
+      "card": false
+     }
+    ],
+    "rank": 10,
+    "clip": 0.245,
+    "hex": -19.8983,
+    "d_layout": 15.5406,
+    "d_dna": 14.5259,
+    "blend": 0.1316
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "kit__c1cde300a01b1df9b54c.png",
+    "cluster": "palette",
+    "sw": [
+     {
+      "hex": "#111111",
+      "w": 0.867,
+      "card": true
+     },
+     {
+      "hex": "#F4F5F5",
+      "w": 0.068,
+      "card": false
+     },
+     {
+      "hex": "#C8C7D6",
+      "w": 0.024,
+      "card": false
+     },
+     {
+      "hex": "#D98304",
+      "w": 0.021,
+      "card": false
+     },
+     {
+      "hex": "#626263",
+      "w": 0.016,
+      "card": false
+     },
+     {
+      "hex": "#6B4309",
+      "w": 0.004,
+      "card": false
+     }
+    ],
+    "rank": 11,
+    "clip": 0.2639,
+    "hex": -35.167,
+    "d_layout": 28.1203,
+    "d_dna": 23.4888,
+    "blend": 0.121
+   }
+  ],
+  "chosen": {
+   "fam": "dreamy-ethereal",
+   "id": "palette__aae1361275090cf0cef6.avif",
+   "cluster": "palette",
+   "sw": [
+    {
+     "hex": "#F6C0E7",
+     "w": 0.202,
+     "card": false
+    },
+    {
+     "hex": "#A6C8FE",
+     "w": 0.201,
+     "card": false
+    },
+    {
+     "hex": "#FFF6FB",
+     "w": 0.196,
+     "card": false
+    },
+    {
+     "hex": "#FBE1FF",
+     "w": 0.196,
+     "card": false
+    },
+    {
+     "hex": "#CFB3FE",
+     "w": 0.196,
+     "card": false
+    },
+    {
+     "hex": "#857397",
+     "w": 0.009,
+     "card": false
+    }
+   ],
+   "rank": 0,
+   "clip": 0.3129,
+   "hex": -46.9984,
+   "d_layout": 36.6797,
+   "d_dna": 34.3958,
+   "blend": 0.752
+  },
+  "chosen_k": 3797,
+  "chosen_mask": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "pick": {
+   "mode": "none",
+   "digit": null,
+   "rank": 0,
+   "n_cand": 1
+  },
+  "layout_sw": [
+   {
+    "hex": "#05010B",
+    "w": 0.783,
+    "card": false
+   },
+   {
+    "hex": "#20062E",
+    "w": 0.133,
+    "card": false
+   },
+   {
+    "hex": "#F0F0F0",
+    "w": 0.037,
+    "card": false
+   },
+   {
+    "hex": "#938D95",
+    "w": 0.018,
+    "card": false
+   },
+   {
+    "hex": "#8B1887",
+    "w": 0.015,
+    "card": false
+   },
+   {
+    "hex": "#52014F",
+    "w": 0.015,
+    "card": false
+   }
+  ],
+  "dna": [
+   {
+    "hex": "#08060B",
+    "w": 0.725
+   },
+   {
+    "hex": "#353B46",
+    "w": 0.093
+   },
+   {
+    "hex": "#CCD8D9",
+    "w": 0.09
+   },
+   {
+    "hex": "#646B6A",
+    "w": 0.06
+   },
+   {
+    "hex": "#842C8D",
+    "w": 0.017
+   },
+   {
+    "hex": "#C56A48",
+    "w": 0.015
+   }
+  ],
+  "ai": null
+ },
+ "roles": {
+  "code": {
+   "roles": {
+    "bg": {
+     "hex": "#857397",
+     "src": "palette \u00b7 anchor layout+dna",
+     "dE": 3.69
+    },
+    "surface": {
+     "hex": "#A6C8FE",
+     "src": "palette",
+     "dE": 0.0
+    },
+    "text": {
+     "hex": "#FFF6FB",
+     "src": "palette",
+     "dE": 1.26
+    },
+    "text_muted": {
+     "hex": "#F6C0E7",
+     "src": "palette",
+     "dE": 0.22
+    },
+    "accent": {
+     "hex": "#FBE1FF",
+     "src": "palette",
+     "dE": 0.52
+    },
+    "accent_2": {
+     "hex": "#CFB3FE",
+     "src": "palette",
+     "dE": 0.0
+    },
+    "border": {
+     "hex": "#685679",
+     "src": "derived",
+     "dE": 2.47
+    }
+   },
+   "visuals": [
+    "#FBE1FF",
+    "#CFB3FE"
+   ]
+  },
+  "ai": null,
+  "active": "code",
+  "checks": [
+   {
+    "pair": "text/bg",
+    "ratio": 4.05,
+    "min": 4.5,
+    "pass": false
+   },
+   {
+    "pair": "text/surface",
+    "ratio": 1.61,
+    "min": 4.5,
+    "pass": false
+   },
+   {
+    "pair": "text_muted/bg",
+    "ratio": 2.78,
+    "min": 3.0,
+    "pass": false
+   },
+   {
+    "pair": "bg/accent",
+    "ratio": 3.54,
+    "min": 3.0,
+    "pass": true
+   },
+   {
+    "pair": "accent/bg",
+    "ratio": 3.54,
+    "min": 3.0,
+    "pass": true
+   }
+  ],
+  "derived": {
+   "accent_hover": "#FFF5FF",
+   "surface_2": "#B3D5FF",
+   "focus_ring": "#CFB3FE"
+  }
+ },
+ "router_layout": {
+  "fam": "dreamy-ethereal",
+  "id": "main__c428e68167e26fdb3662.jpg",
+  "cluster": "website",
+  "type": "website",
+  "score": 0.3108,
+  "q_sim": 0.3086,
+  "source": "router"
+ },
+ "alt_layouts": [
+  {
+   "fam": "dreamy-ethereal",
+   "id": "main__7b1b3037adf809fd6cb8.jpg",
+   "cluster": "website",
+   "type": "website",
+   "score": 0.282
+  },
+  {
+   "fam": "dreamy-ethereal",
+   "id": "effect__25e68bddd10e9c4c5d50.jpg",
+   "cluster": "website",
+   "type": "website",
+   "score": 0.2644
+  },
+  {
+   "fam": "dreamy-ethereal",
+   "id": "palette__f6a9d2e8ca121d21f067.png",
+   "cluster": "website",
+   "type": "website",
+   "score": 0.2582
+  }
+ ],
+ "router": "v1",
+ "route_families": [
+  {
+   "fam": "dreamy-ethereal",
+   "score": 1.0408,
+   "img": 0.2857,
+   "name": 0.7551,
+   "n": 13
+  },
+  {
+   "fam": "linear-style-dark-saas",
+   "score": 0.9736,
+   "img": 0.3182,
+   "name": 0.6554,
+   "n": 10
+  },
+  {
+   "fam": "cosmic-sci-fi",
+   "score": 0.9721,
+   "img": 0.3036,
+   "name": 0.6685,
+   "n": 23
+  },
+  {
+   "fam": "editorial-magazine",
+   "score": 0.9338,
+   "img": 0.2764,
+   "name": 0.6574,
+   "n": 24
+  },
+  {
+   "fam": "aurora-glassmorphism",
+   "score": 0.9301,
+   "img": 0.3403,
+   "name": 0.5898,
+   "n": 20
+  },
+  {
+   "fam": "playful-bubbly",
+   "score": 0.9234,
+   "img": 0.2785,
+   "name": 0.6449,
+   "n": 33
+  },
+  {
+   "fam": "blueprint-industrial",
+   "score": 0.9134,
+   "img": 0.2997,
+   "name": 0.6137,
+   "n": 27
+  },
+  {
+   "fam": "institutional-trust",
+   "score": 0.8977,
+   "img": 0.3086,
+   "name": 0.5891,
+   "n": 24
+  },
+  {
+   "fam": "clinical-calm",
+   "score": 0.8931,
+   "img": 0.2711,
+   "name": 0.622,
+   "n": 32
+  },
+  {
+   "fam": "anti-design-web-1-0",
+   "score": 0.892,
+   "img": 0.2972,
+   "name": 0.5949,
+   "n": 27
+  },
+  {
+   "fam": "quiet-luxury",
+   "score": 0.8903,
+   "img": 0.2849,
+   "name": 0.6054,
+   "n": 27
+  },
+  {
+   "fam": "maximalist-collage",
+   "score": 0.8833,
+   "img": 0.2799,
+   "name": 0.6034,
+   "n": 30
+  }
+ ],
+ "route_variant": null,
+ "fam_pick": null,
+ "typography": {
+  "family": "dreamy-ethereal",
+  "used_ai": false,
+  "alignment": {
+   "value": "center",
+   "from": "template sheets' measured alignment (layout text alignment was mixed)"
+  },
+  "measure": 0.66,
+  "leading": 1.26,
+  "divider": false,
+  "roles": {
+   "eyebrow": {
+    "font": "Archivo Narrow",
+    "font_slug": "archivo-narrow",
+    "size_token": "--fs-1",
+    "size_px": 12.0,
+    "case": "upper",
+    "text_transform": "uppercase",
+    "tracking": "wide",
+    "letter_spacing": "0.1em",
+    "weight": 400,
+    "italic": false,
+    "align": "center",
+    "color_token": "--accent",
+    "color": "#FBE1FF",
+    "source": "assumed default + classical size/align"
+   },
+   "h1": {
+    "font": "Just Another Hand",
+    "font_slug": "just-another-hand",
+    "size_token": "--fs-2",
+    "size_px": 18.0,
+    "case": "sentence",
+    "text_transform": "none",
+    "tracking": "tight",
+    "letter_spacing": "-0.02em",
+    "weight": 700,
+    "italic": false,
+    "align": "center",
+    "color_token": "--text",
+    "color": "#FFF6FB",
+    "source": "assumed default + classical size/align"
+   },
+   "h2": {
+    "font": "Just Another Hand",
+    "font_slug": "just-another-hand",
+    "size_token": "--fs-5",
+    "size_px": 25.6,
+    "case": "sentence",
+    "text_transform": "none",
+    "tracking": "normal",
+    "letter_spacing": "0em",
+    "weight": 400,
+    "italic": false,
+    "align": "center",
+    "color_token": "--text",
+    "color": "#FFF6FB",
+    "source": "assumed default + classical size/align"
+   },
+   "body": {
+    "font": "Archivo Narrow",
+    "font_slug": "archivo-narrow",
+    "size_token": "--fs-1",
+    "size_px": 16.0,
+    "case": "sentence",
+    "text_transform": "none",
+    "tracking": "normal",
+    "letter_spacing": "0em",
+    "weight": 400,
+    "italic": false,
+    "align": "center",
+    "color_token": "--text-muted",
+    "color": "#F6C0E7",
+    "source": "assumed default + classical size/align"
+   }
+  },
+  "pairings": [],
+  "notes": [
+   "no AI key: classical-only template, roles use documented defaults",
+   "no AI readings: font wiring uses render lookalikes only"
+  ],
+  "sheets": [
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__0c0827717a0226de9903.jpg",
+    "cluster": "type specimen + icons"
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__095dd2ccb5270177b3a7.webp",
+    "cluster": "type specimen + icons"
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__8f9e6fdc77e77e590c5f.png",
+    "cluster": "type specimen + icons"
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__fcebba4217cae4550f71.webp",
+    "cluster": "type specimen + icons"
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__e8602ab38254751e63b0.png",
+    "cluster": "type specimen + icons"
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__587e00494f7a758cdba8.webp",
+    "cluster": "type specimen + icons"
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__95a9fb5ac048fb7a30c5.webp",
+    "cluster": "type specimen + icons"
+   },
+   {
+    "fam": "dreamy-ethereal",
+    "id": "font__6e78982d6d1b1408957f.png",
+    "cluster": "type specimen + icons"
+   }
+  ]
+ },
+ "template_error": null,
+ "template": {
+  "family": "dreamy-ethereal",
+  "used_ai": false,
+  "built": "2026-11-19 00:42:20",
+  "notes": [
+   "no AI key: classical-only template, roles use documented defaults",
+   "no AI readings: font wiring uses render lookalikes only"
+  ],
+  "classical": {
+   "h1_rel": 1.14,
+   "leading": 1.26,
+   "measure": 0.66,
+   "align_center": 0.64,
+   "align_left": 0.12
+  },
+  "pairings": [],
+  "names": [],
+  "lookalikes": [
+   {
+    "slug": "rubik-pixels",
+    "count": 5
+   },
+   {
+    "slug": "rubik-glitch-pop",
+    "count": 2
+   },
+   {
+    "slug": "libertinus-keyboard",
+    "count": 1
+   }
+  ]
+ },
+ "layout_measure": {
+  "lines": 10,
+  "h1_rel": 2.54,
+  "ladder": [
+   2.5,
+   2.2
+  ],
+  "align": {
+   "center": 0.3,
+   "left": 0.4,
+   "value": "mixed"
+  },
+  "leading": 1.53,
+  "measure": 0.14
+ },
+ "bg": {
+  "target": [
+   {
+    "hex": "#857397",
+    "w": 0.6
+   },
+   {
+    "hex": "#FBE1FF",
+    "w": 0.2
+   },
+   {
+    "hex": "#CFB3FE",
+    "w": 0.2
+   }
+  ],
+  "yours": {
+   "scope": [
+    "dreamy-ethereal"
+   ],
+   "n": 35,
+   "note": null,
+   "cands": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__2cf4dba7b992bd6fb5c4.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#897DA3",
+       "w": 0.223,
+       "card": false
+      },
+      {
+       "hex": "#575687",
+       "w": 0.173,
+       "card": false
+      },
+      {
+       "hex": "#A59FC0",
+       "w": 0.172,
+       "card": false
+      },
+      {
+       "hex": "#CAA6BA",
+       "w": 0.148,
+       "card": false
+      },
+      {
+       "hex": "#E9D7DC",
+       "w": 0.142,
+       "card": false
+      },
+      {
+       "hex": "#C5C2D8",
+       "w": 0.141,
+       "card": false
+      }
+     ],
+     "rank": 0,
+     "type": "abstract art",
+     "dE": 6.8808,
+     "link": 0.3038,
+     "z": 1.5163,
+     "edge": 0.0287,
+     "lines": 9.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__d222a8911ddd3268a8ba.webp",
+     "cluster": "abstract art + logo / branding",
+     "sw": [
+      {
+       "hex": "#F3E9EA",
+       "w": 0.222,
+       "card": false
+      },
+      {
+       "hex": "#C5CAD7",
+       "w": 0.202,
+       "card": false
+      },
+      {
+       "hex": "#C67B90",
+       "w": 0.186,
+       "card": false
+      },
+      {
+       "hex": "#E6B1B6",
+       "w": 0.165,
+       "card": false
+      },
+      {
+       "hex": "#E77A81",
+       "w": 0.151,
+       "card": false
+      },
+      {
+       "hex": "#7F6E89",
+       "w": 0.073,
+       "card": false
+      }
+     ],
+     "rank": 1,
+     "type": "abstract art",
+     "dE": 7.9921,
+     "link": 0.2785,
+     "z": 1.3432,
+     "edge": 0.0,
+     "lines": 0.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__dada758234834751ce83.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#AEBDCA",
+       "w": 0.308,
+       "card": false
+      },
+      {
+       "hex": "#E5E2E0",
+       "w": 0.196,
+       "card": false
+      },
+      {
+       "hex": "#EEC2B9",
+       "w": 0.15,
+       "card": false
+      },
+      {
+       "hex": "#BB919F",
+       "w": 0.121,
+       "card": false
+      },
+      {
+       "hex": "#75A0B0",
+       "w": 0.119,
+       "card": false
+      },
+      {
+       "hex": "#7B7BA1",
+       "w": 0.105,
+       "card": false
+      }
+     ],
+     "rank": 2,
+     "type": "abstract art",
+     "dE": 9.8375,
+     "link": 0.266,
+     "z": 1.0557,
+     "edge": 0.0053,
+     "lines": 3.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__d6e76dc0b3912ac9354c.webp",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#AEBDCA",
+       "w": 0.306,
+       "card": false
+      },
+      {
+       "hex": "#E5E2E0",
+       "w": 0.194,
+       "card": false
+      },
+      {
+       "hex": "#EEC2B9",
+       "w": 0.151,
+       "card": false
+      },
+      {
+       "hex": "#BB92A0",
+       "w": 0.125,
+       "card": false
+      },
+      {
+       "hex": "#75A0B0",
+       "w": 0.12,
+       "card": false
+      },
+      {
+       "hex": "#7A7BA0",
+       "w": 0.103,
+       "card": false
+      }
+     ],
+     "rank": 3,
+     "type": "abstract art",
+     "dE": 9.8949,
+     "link": 0.2421,
+     "z": 1.0468,
+     "edge": 0.0052,
+     "lines": 4.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__b874cccb150cd9e7c4fb.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#B6C2C9",
+       "w": 0.199,
+       "card": false
+      },
+      {
+       "hex": "#8FADB8",
+       "w": 0.192,
+       "card": false
+      },
+      {
+       "hex": "#728C9E",
+       "w": 0.191,
+       "card": false
+      },
+      {
+       "hex": "#E2D8D9",
+       "w": 0.178,
+       "card": false
+      },
+      {
+       "hex": "#C5ACB8",
+       "w": 0.127,
+       "card": false
+      },
+      {
+       "hex": "#8E889C",
+       "w": 0.113,
+       "card": false
+      }
+     ],
+     "rank": 4,
+     "type": "abstract art",
+     "dE": 11.0222,
+     "link": 0.3185,
+     "z": 0.8712,
+     "edge": 0.003,
+     "lines": 1.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__ade69c02d4dcba709e3a.avif",
+     "cluster": "abstract art + logo / branding",
+     "sw": [
+      {
+       "hex": "#686AB0",
+       "w": 0.257,
+       "card": false
+      },
+      {
+       "hex": "#B57DB4",
+       "w": 0.242,
+       "card": false
+      },
+      {
+       "hex": "#865AA6",
+       "w": 0.234,
+       "card": false
+      },
+      {
+       "hex": "#719AC9",
+       "w": 0.124,
+       "card": false
+      },
+      {
+       "hex": "#D6C2D6",
+       "w": 0.102,
+       "card": false
+      },
+      {
+       "hex": "#7FBBB3",
+       "w": 0.041,
+       "card": false
+      }
+     ],
+     "rank": 5,
+     "type": "abstract art",
+     "dE": 11.1326,
+     "link": 0.3059,
+     "z": 0.854,
+     "edge": 0.0,
+     "lines": 0.0
+    }
+   ],
+   "chosen": {
+    "fam": "dreamy-ethereal",
+    "id": "effect__d222a8911ddd3268a8ba.webp",
+    "cluster": "abstract art + logo / branding",
+    "sw": [
+     {
+      "hex": "#F3E9EA",
+      "w": 0.222,
+      "card": false
+     },
+     {
+      "hex": "#C5CAD7",
+      "w": 0.202,
+      "card": false
+     },
+     {
+      "hex": "#C67B90",
+      "w": 0.186,
+      "card": false
+     },
+     {
+      "hex": "#E6B1B6",
+      "w": 0.165,
+      "card": false
+     },
+     {
+      "hex": "#E77A81",
+      "w": 0.151,
+      "card": false
+     },
+     {
+      "hex": "#7F6E89",
+      "w": 0.073,
+      "card": false
+     }
+    ],
+    "rank": 1,
+    "type": "abstract art",
+    "dE": 7.9921,
+    "link": 0.2785,
+    "z": 1.3432,
+    "edge": 0.0,
+    "lines": 0.0
+   },
+   "pick": {
+    "mode": "mod3",
+    "digit": 1,
+    "rank": 1,
+    "n_cand": 3
+   }
+  },
+  "mine": {
+   "scope": [
+    "dreamy-ethereal"
+   ],
+   "n": 18,
+   "note": "18/35 pass edge\u22640.08 lines\u22643",
+   "cands": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__b874cccb150cd9e7c4fb.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#B6C2C9",
+       "w": 0.199,
+       "card": false
+      },
+      {
+       "hex": "#8FADB8",
+       "w": 0.192,
+       "card": false
+      },
+      {
+       "hex": "#728C9E",
+       "w": 0.191,
+       "card": false
+      },
+      {
+       "hex": "#E2D8D9",
+       "w": 0.178,
+       "card": false
+      },
+      {
+       "hex": "#C5ACB8",
+       "w": 0.127,
+       "card": false
+      },
+      {
+       "hex": "#8E889C",
+       "w": 0.113,
+       "card": false
+      }
+     ],
+     "rank": 0,
+     "type": "abstract art",
+     "dE": 11.0222,
+     "link": 0.3185,
+     "z": 1.5575,
+     "edge": 0.003,
+     "lines": 1.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__22f10bb9d6faee7ddff4.webp",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#A2B9C1",
+       "w": 0.271,
+       "card": false
+      },
+      {
+       "hex": "#DBD4D6",
+       "w": 0.215,
+       "card": false
+      },
+      {
+       "hex": "#7591A1",
+       "w": 0.208,
+       "card": false
+      },
+      {
+       "hex": "#C4ADB8",
+       "w": 0.115,
+       "card": false
+      },
+      {
+       "hex": "#8E889D",
+       "w": 0.103,
+       "card": false
+      },
+      {
+       "hex": "#1878AE",
+       "w": 0.088,
+       "card": false
+      }
+     ],
+     "rank": 1,
+     "type": "abstract art",
+     "dE": 11.7244,
+     "link": 0.3166,
+     "z": 1.4701,
+     "edge": 0.0139,
+     "lines": 2.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__ade69c02d4dcba709e3a.avif",
+     "cluster": "abstract art + logo / branding",
+     "sw": [
+      {
+       "hex": "#686AB0",
+       "w": 0.257,
+       "card": false
+      },
+      {
+       "hex": "#B57DB4",
+       "w": 0.242,
+       "card": false
+      },
+      {
+       "hex": "#865AA6",
+       "w": 0.234,
+       "card": false
+      },
+      {
+       "hex": "#719AC9",
+       "w": 0.124,
+       "card": false
+      },
+      {
+       "hex": "#D6C2D6",
+       "w": 0.102,
+       "card": false
+      },
+      {
+       "hex": "#7FBBB3",
+       "w": 0.041,
+       "card": false
+      }
+     ],
+     "rank": 2,
+     "type": "abstract art",
+     "dE": 11.1326,
+     "link": 0.3059,
+     "z": 1.2813,
+     "edge": 0.0,
+     "lines": 0.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__d222a8911ddd3268a8ba.webp",
+     "cluster": "abstract art + logo / branding",
+     "sw": [
+      {
+       "hex": "#F3E9EA",
+       "w": 0.222,
+       "card": false
+      },
+      {
+       "hex": "#C5CAD7",
+       "w": 0.202,
+       "card": false
+      },
+      {
+       "hex": "#C67B90",
+       "w": 0.186,
+       "card": false
+      },
+      {
+       "hex": "#E6B1B6",
+       "w": 0.165,
+       "card": false
+      },
+      {
+       "hex": "#E77A81",
+       "w": 0.151,
+       "card": false
+      },
+      {
+       "hex": "#7F6E89",
+       "w": 0.073,
+       "card": false
+      }
+     ],
+     "rank": 3,
+     "type": "abstract art",
+     "dE": 7.9921,
+     "link": 0.2785,
+     "z": 0.9086,
+     "edge": 0.0,
+     "lines": 0.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__dada758234834751ce83.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#AEBDCA",
+       "w": 0.308,
+       "card": false
+      },
+      {
+       "hex": "#E5E2E0",
+       "w": 0.196,
+       "card": false
+      },
+      {
+       "hex": "#EEC2B9",
+       "w": 0.15,
+       "card": false
+      },
+      {
+       "hex": "#BB919F",
+       "w": 0.121,
+       "card": false
+      },
+      {
+       "hex": "#75A0B0",
+       "w": 0.119,
+       "card": false
+      },
+      {
+       "hex": "#7B7BA1",
+       "w": 0.105,
+       "card": false
+      }
+     ],
+     "rank": 4,
+     "type": "abstract art",
+     "dE": 9.8375,
+     "link": 0.266,
+     "z": 0.5187,
+     "edge": 0.0053,
+     "lines": 3.0
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__d4196e0c4003320e9edc.jpg",
+     "cluster": "abstract art + logo / branding",
+     "sw": [
+      {
+       "hex": "#D4235D",
+       "w": 0.245,
+       "card": false
+      },
+      {
+       "hex": "#52BFB3",
+       "w": 0.21,
+       "card": false
+      },
+      {
+       "hex": "#C24935",
+       "w": 0.2,
+       "card": false
+      },
+      {
+       "hex": "#50DD66",
+       "w": 0.155,
+       "card": false
+      },
+      {
+       "hex": "#72558B",
+       "w": 0.118,
+       "card": false
+      },
+      {
+       "hex": "#9E9144",
+       "w": 0.072,
+       "card": false
+      }
+     ],
+     "rank": 5,
+     "type": "abstract art",
+     "dE": 21.2225,
+     "link": 0.2902,
+     "z": 0.2745,
+     "edge": 0.0,
+     "lines": 0.0
+    }
+   ],
+   "chosen": {
+    "fam": "dreamy-ethereal",
+    "id": "palette__22f10bb9d6faee7ddff4.webp",
+    "cluster": "abstract art",
+    "sw": [
+     {
+      "hex": "#A2B9C1",
+      "w": 0.271,
+      "card": false
+     },
+     {
+      "hex": "#DBD4D6",
+      "w": 0.215,
+      "card": false
+     },
+     {
+      "hex": "#7591A1",
+      "w": 0.208,
+      "card": false
+     },
+     {
+      "hex": "#C4ADB8",
+      "w": 0.115,
+      "card": false
+     },
+     {
+      "hex": "#8E889D",
+      "w": 0.103,
+      "card": false
+     },
+     {
+      "hex": "#1878AE",
+      "w": 0.088,
+      "card": false
+     }
+    ],
+    "rank": 1,
+    "type": "abstract art",
+    "dE": 11.7244,
+    "link": 0.3166,
+    "z": 1.4701,
+    "edge": 0.0139,
+    "lines": 2.0
+   },
+   "pick": {
+    "mode": "mod3",
+    "digit": 1,
+    "rank": 1,
+    "n_cand": 3
+   }
+  }
+ },
+ "el": {
+  "cmp": "merge",
+  "beta_el": 0.3,
+  "family": "dreamy-ethereal",
+  "notes": [],
+  "hero": {
+   "n": 12,
+   "cands": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "main__7b1b3037adf809fd6cb8.jpg",
+     "cluster": "website",
+     "sw": [
+      {
+       "hex": "#060209",
+       "w": 0.963,
+       "card": false
+      },
+      {
+       "hex": "#353439",
+       "w": 0.022,
+       "card": false
+      },
+      {
+       "hex": "#D7D7D7",
+       "w": 0.005,
+       "card": false
+      },
+      {
+       "hex": "#460740",
+       "w": 0.004,
+       "card": false
+      },
+      {
+       "hex": "#6E6D72",
+       "w": 0.004,
+       "card": false
+      },
+      {
+       "hex": "#981F92",
+       "w": 0.002,
+       "card": false
+      }
+     ],
+     "rank": 0,
+     "type": "website",
+     "dE": 14.3037,
+     "ctx": 0.4234,
+     "z": 2.0029
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "main__d686df8c1cf3a67e7a18.jpg",
+     "cluster": "website",
+     "sw": [
+      {
+       "hex": "#0B0B0B",
+       "w": 0.618,
+       "card": false
+      },
+      {
+       "hex": "#050006",
+       "w": 0.282,
+       "card": false
+      },
+      {
+       "hex": "#4B4B4B",
+       "w": 0.039,
+       "card": false
+      },
+      {
+       "hex": "#2B2B2B",
+       "w": 0.032,
+       "card": false
+      },
+      {
+       "hex": "#6D6D6D",
+       "w": 0.023,
+       "card": false
+      },
+      {
+       "hex": "#B2B2B2",
+       "w": 0.006,
+       "card": false
+      }
+     ],
+     "rank": 1,
+     "type": "website",
+     "dE": 18.7362,
+     "ctx": 0.3553,
+     "z": 0.3308
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__25e68bddd10e9c4c5d50.jpg",
+     "cluster": "website",
+     "sw": [
+      {
+       "hex": "#000000",
+       "w": 0.904,
+       "card": false
+      },
+      {
+       "hex": "#080808",
+       "w": 0.067,
+       "card": false
+      },
+      {
+       "hex": "#1F1F1F",
+       "w": 0.01,
+       "card": false
+      },
+      {
+       "hex": "#343434",
+       "w": 0.008,
+       "card": false
+      },
+      {
+       "hex": "#515050",
+       "w": 0.007,
+       "card": false
+      },
+      {
+       "hex": "#6D6D6D",
+       "w": 0.003,
+       "card": false
+      }
+     ],
+     "rank": 2,
+     "type": "website",
+     "dE": 30.7019,
+     "ctx": 0.3763,
+     "z": 0.1786
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "main__18dc157b4b98e944e786.jpg",
+     "cluster": "website",
+     "sw": [
+      {
+       "hex": "#04010A",
+       "w": 0.9,
+       "card": false
+      },
+      {
+       "hex": "#212122",
+       "w": 0.075,
+       "card": false
+      },
+      {
+       "hex": "#605C5C",
+       "w": 0.011,
+       "card": false
+      },
+      {
+       "hex": "#D1D1D1",
+       "w": 0.008,
+       "card": false
+      },
+      {
+       "hex": "#461843",
+       "w": 0.005,
+       "card": false
+      },
+      {
+       "hex": "#A1309C",
+       "w": 0.001,
+       "card": false
+      }
+     ],
+     "rank": 3,
+     "type": "website",
+     "dE": 16.1982,
+     "ctx": 0.3422,
+     "z": 0.1776
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "main__3db00625c4997e4a937a.webp",
+     "cluster": "website",
+     "sw": [
+      {
+       "hex": "#040405",
+       "w": 0.733,
+       "card": false
+      },
+      {
+       "hex": "#CFCDD1",
+       "w": 0.128,
+       "card": false
+      },
+      {
+       "hex": "#6C6969",
+       "w": 0.067,
+       "card": false
+      },
+      {
+       "hex": "#C98217",
+       "w": 0.035,
+       "card": false
+      },
+      {
+       "hex": "#A2CEA4",
+       "w": 0.02,
+       "card": false
+      },
+      {
+       "hex": "#A94EBD",
+       "w": 0.017,
+       "card": false
+      }
+     ],
+     "rank": 4,
+     "type": "website",
+     "dE": 14.3233,
+     "ctx": 0.3357,
+     "z": 0.1318
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "main__c92695e3664f91c3c120.webp",
+     "cluster": "website",
+     "sw": [
+      {
+       "hex": "#040405",
+       "w": 0.733,
+       "card": false
+      },
+      {
+       "hex": "#CECDD1",
+       "w": 0.129,
+       "card": false
+      },
+      {
+       "hex": "#6C6869",
+       "w": 0.065,
+       "card": false
+      },
+      {
+       "hex": "#C98116",
+       "w": 0.036,
+       "card": false
+      },
+      {
+       "hex": "#A0CDA3",
+       "w": 0.02,
+       "card": false
+      },
+      {
+       "hex": "#A84CBC",
+       "w": 0.017,
+       "card": false
+      }
+     ],
+     "rank": 5,
+     "type": "website",
+     "dE": 14.4222,
+     "ctx": 0.3344,
+     "z": 0.0996
+    }
+   ],
+   "chosen": {
+    "fam": "dreamy-ethereal",
+    "id": "effect__25e68bddd10e9c4c5d50.jpg",
+    "cluster": "website",
+    "sw": [
+     {
+      "hex": "#000000",
+      "w": 0.904,
+      "card": false
+     },
+     {
+      "hex": "#080808",
+      "w": 0.067,
+      "card": false
+     },
+     {
+      "hex": "#1F1F1F",
+      "w": 0.01,
+      "card": false
+     },
+     {
+      "hex": "#343434",
+      "w": 0.008,
+      "card": false
+     },
+     {
+      "hex": "#515050",
+      "w": 0.007,
+      "card": false
+     },
+     {
+      "hex": "#6D6D6D",
+      "w": 0.003,
+      "card": false
+     }
+    ],
+    "rank": 2,
+    "type": "website",
+    "dE": 30.7019,
+    "ctx": 0.3763,
+    "z": 0.1786
+   },
+   "pick": {
+    "mode": "mod3",
+    "digit": 5,
+    "rank": 2,
+    "n_cand": 3
+   },
+   "target": [
+    {
+     "hex": "#857397",
+     "w": 0.4
+    },
+    {
+     "hex": "#FFF6FB",
+     "w": 0.2
+    },
+    {
+     "hex": "#FBE1FF",
+     "w": 0.4
+    }
+   ]
+  },
+  "central": {
+   "n": 46,
+   "picks": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__2cf4dba7b992bd6fb5c4.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#897DA3",
+       "w": 0.223,
+       "card": false
+      },
+      {
+       "hex": "#575687",
+       "w": 0.173,
+       "card": false
+      },
+      {
+       "hex": "#A59FC0",
+       "w": 0.172,
+       "card": false
+      },
+      {
+       "hex": "#CAA6BA",
+       "w": 0.148,
+       "card": false
+      },
+      {
+       "hex": "#E9D7DC",
+       "w": 0.142,
+       "card": false
+      },
+      {
+       "hex": "#C5C2D8",
+       "w": 0.141,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 2,
+     "dE": 11.9647,
+     "ctx": 0.3038,
+     "z": 1.2357,
+     "role": "primary"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__b874cccb150cd9e7c4fb.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#B6C2C9",
+       "w": 0.199,
+       "card": false
+      },
+      {
+       "hex": "#8FADB8",
+       "w": 0.192,
+       "card": false
+      },
+      {
+       "hex": "#728C9E",
+       "w": 0.191,
+       "card": false
+      },
+      {
+       "hex": "#E2D8D9",
+       "w": 0.178,
+       "card": false
+      },
+      {
+       "hex": "#C5ACB8",
+       "w": 0.127,
+       "card": false
+      },
+      {
+       "hex": "#8E889C",
+       "w": 0.113,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 0,
+     "dE": 13.6657,
+     "ctx": 0.3185,
+     "z": 1.5097,
+     "role": "supporting"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__c4526b13bb22d36d875c.jpg",
+     "cluster": "illustration",
+     "sw": [
+      {
+       "hex": "#C0C1EE",
+       "w": 0.238,
+       "card": false
+      },
+      {
+       "hex": "#EDE3F2",
+       "w": 0.219,
+       "card": false
+      },
+      {
+       "hex": "#7C8BDB",
+       "w": 0.198,
+       "card": false
+      },
+      {
+       "hex": "#6357CF",
+       "w": 0.144,
+       "card": false
+      },
+      {
+       "hex": "#B27ABB",
+       "w": 0.12,
+       "card": false
+      },
+      {
+       "hex": "#273D8E",
+       "w": 0.082,
+       "card": false
+      }
+     ],
+     "type": "illustration",
+     "rank": 3,
+     "dE": 8.5193,
+     "ctx": 0.2941,
+     "z": 1.1413,
+     "role": "supporting"
+    }
+   ],
+   "cands": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__b874cccb150cd9e7c4fb.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#B6C2C9",
+       "w": 0.199,
+       "card": false
+      },
+      {
+       "hex": "#8FADB8",
+       "w": 0.192,
+       "card": false
+      },
+      {
+       "hex": "#728C9E",
+       "w": 0.191,
+       "card": false
+      },
+      {
+       "hex": "#E2D8D9",
+       "w": 0.178,
+       "card": false
+      },
+      {
+       "hex": "#C5ACB8",
+       "w": 0.127,
+       "card": false
+      },
+      {
+       "hex": "#8E889C",
+       "w": 0.113,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 0,
+     "dE": 13.6657,
+     "ctx": 0.3185,
+     "z": 1.5097
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__ade69c02d4dcba709e3a.avif",
+     "cluster": "abstract art + logo / branding",
+     "sw": [
+      {
+       "hex": "#686AB0",
+       "w": 0.257,
+       "card": false
+      },
+      {
+       "hex": "#B57DB4",
+       "w": 0.242,
+       "card": false
+      },
+      {
+       "hex": "#865AA6",
+       "w": 0.234,
+       "card": false
+      },
+      {
+       "hex": "#719AC9",
+       "w": 0.124,
+       "card": false
+      },
+      {
+       "hex": "#D6C2D6",
+       "w": 0.102,
+       "card": false
+      },
+      {
+       "hex": "#7FBBB3",
+       "w": 0.041,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 1,
+     "dE": 11.7636,
+     "ctx": 0.3059,
+     "z": 1.2916
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__2cf4dba7b992bd6fb5c4.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#897DA3",
+       "w": 0.223,
+       "card": false
+      },
+      {
+       "hex": "#575687",
+       "w": 0.173,
+       "card": false
+      },
+      {
+       "hex": "#A59FC0",
+       "w": 0.172,
+       "card": false
+      },
+      {
+       "hex": "#CAA6BA",
+       "w": 0.148,
+       "card": false
+      },
+      {
+       "hex": "#E9D7DC",
+       "w": 0.142,
+       "card": false
+      },
+      {
+       "hex": "#C5C2D8",
+       "w": 0.141,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 2,
+     "dE": 11.9647,
+     "ctx": 0.3038,
+     "z": 1.2357
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__c4526b13bb22d36d875c.jpg",
+     "cluster": "illustration",
+     "sw": [
+      {
+       "hex": "#C0C1EE",
+       "w": 0.238,
+       "card": false
+      },
+      {
+       "hex": "#EDE3F2",
+       "w": 0.219,
+       "card": false
+      },
+      {
+       "hex": "#7C8BDB",
+       "w": 0.198,
+       "card": false
+      },
+      {
+       "hex": "#6357CF",
+       "w": 0.144,
+       "card": false
+      },
+      {
+       "hex": "#B27ABB",
+       "w": 0.12,
+       "card": false
+      },
+      {
+       "hex": "#273D8E",
+       "w": 0.082,
+       "card": false
+      }
+     ],
+     "type": "illustration",
+     "rank": 3,
+     "dE": 8.5193,
+     "ctx": 0.2941,
+     "z": 1.1413
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__d1c7c1e56ae54d754014.webp",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#7578A3",
+       "w": 0.261,
+       "card": false
+      },
+      {
+       "hex": "#312A4B",
+       "w": 0.212,
+       "card": false
+      },
+      {
+       "hex": "#50517E",
+       "w": 0.164,
+       "card": false
+      },
+      {
+       "hex": "#C98FB3",
+       "w": 0.138,
+       "card": false
+      },
+      {
+       "hex": "#98A3C5",
+       "w": 0.12,
+       "card": false
+      },
+      {
+       "hex": "#A65E89",
+       "w": 0.104,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 4,
+     "dE": 15.5646,
+     "ctx": 0.3026,
+     "z": 1.0772
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__8dcf7c39be56a482bc18.webp",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#EEA5E7",
+       "w": 0.262,
+       "card": false
+      },
+      {
+       "hex": "#E0B6EC",
+       "w": 0.222,
+       "card": false
+      },
+      {
+       "hex": "#8DD9F8",
+       "w": 0.146,
+       "card": false
+      },
+      {
+       "hex": "#7CB7F4",
+       "w": 0.131,
+       "card": false
+      },
+      {
+       "hex": "#EFD8F5",
+       "w": 0.122,
+       "card": false
+      },
+      {
+       "hex": "#A6A4EF",
+       "w": 0.117,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 5,
+     "dE": 5.2267,
+     "ctx": 0.2832,
+     "z": 1.0132
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__2feb88af4876cf82fdce.webp",
+     "cluster": "illustration",
+     "sw": [
+      {
+       "hex": "#131017",
+       "w": 0.297,
+       "card": false
+      },
+      {
+       "hex": "#2B3A42",
+       "w": 0.173,
+       "card": false
+      },
+      {
+       "hex": "#32243C",
+       "w": 0.156,
+       "card": false
+      },
+      {
+       "hex": "#577172",
+       "w": 0.132,
+       "card": false
+      },
+      {
+       "hex": "#614E5D",
+       "w": 0.132,
+       "card": false
+      },
+      {
+       "hex": "#A19E93",
+       "w": 0.11,
+       "card": false
+      }
+     ],
+     "type": "illustration",
+     "rank": 6,
+     "dE": 29.3951,
+     "ctx": 0.3086,
+     "z": 0.7049
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "effect__d222a8911ddd3268a8ba.webp",
+     "cluster": "abstract art + logo / branding",
+     "sw": [
+      {
+       "hex": "#F3E9EA",
+       "w": 0.222,
+       "card": false
+      },
+      {
+       "hex": "#C5CAD7",
+       "w": 0.202,
+       "card": false
+      },
+      {
+       "hex": "#C67B90",
+       "w": 0.186,
+       "card": false
+      },
+      {
+       "hex": "#E6B1B6",
+       "w": 0.165,
+       "card": false
+      },
+      {
+       "hex": "#E77A81",
+       "w": 0.151,
+       "card": false
+      },
+      {
+       "hex": "#7F6E89",
+       "w": 0.073,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 7,
+     "dE": 13.7725,
+     "ctx": 0.2785,
+     "z": 0.5943
+    }
+   ],
+   "by_type": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__b874cccb150cd9e7c4fb.jpg",
+     "cluster": "abstract art",
+     "sw": [
+      {
+       "hex": "#B6C2C9",
+       "w": 0.199,
+       "card": false
+      },
+      {
+       "hex": "#8FADB8",
+       "w": 0.192,
+       "card": false
+      },
+      {
+       "hex": "#728C9E",
+       "w": 0.191,
+       "card": false
+      },
+      {
+       "hex": "#E2D8D9",
+       "w": 0.178,
+       "card": false
+      },
+      {
+       "hex": "#C5ACB8",
+       "w": 0.127,
+       "card": false
+      },
+      {
+       "hex": "#8E889C",
+       "w": 0.113,
+       "card": false
+      }
+     ],
+     "type": "abstract art",
+     "rank": 0,
+     "dE": 13.6657,
+     "ctx": 0.3185,
+     "z": 1.5097
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__c4526b13bb22d36d875c.jpg",
+     "cluster": "illustration",
+     "sw": [
+      {
+       "hex": "#C0C1EE",
+       "w": 0.238,
+       "card": false
+      },
+      {
+       "hex": "#EDE3F2",
+       "w": 0.219,
+       "card": false
+      },
+      {
+       "hex": "#7C8BDB",
+       "w": 0.198,
+       "card": false
+      },
+      {
+       "hex": "#6357CF",
+       "w": 0.144,
+       "card": false
+      },
+      {
+       "hex": "#B27ABB",
+       "w": 0.12,
+       "card": false
+      },
+      {
+       "hex": "#273D8E",
+       "w": 0.082,
+       "card": false
+      }
+     ],
+     "type": "illustration",
+     "rank": 3,
+     "dE": 8.5193,
+     "ctx": 0.2941,
+     "z": 1.1413
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "main__f4585e5c4758fa4fcbbd.jpg",
+     "cluster": "3D render",
+     "sw": [
+      {
+       "hex": "#DCC3D5",
+       "w": 0.305,
+       "card": false
+      },
+      {
+       "hex": "#EAE0E2",
+       "w": 0.27,
+       "card": false
+      },
+      {
+       "hex": "#EBC9BE",
+       "w": 0.192,
+       "card": false
+      },
+      {
+       "hex": "#E9A9B8",
+       "w": 0.12,
+       "card": false
+      },
+      {
+       "hex": "#C1A1CE",
+       "w": 0.088,
+       "card": false
+      },
+      {
+       "hex": "#BB645E",
+       "w": 0.024,
+       "card": false
+      }
+     ],
+     "type": "3D render",
+     "rank": 45,
+     "dE": 12.3274,
+     "ctx": 0.1315,
+     "z": -2.7036
+    }
+   ],
+   "pick": {
+    "mode": "mod3",
+    "digit": 5,
+    "rank": 2,
+    "n_cand": 3
+   },
+   "target": [
+    {
+     "hex": "#FBE1FF",
+     "w": 0.4
+    },
+    {
+     "hex": "#CFB3FE",
+     "w": 0.3
+    },
+    {
+     "hex": "#A6C8FE",
+     "w": 0.3
+    }
+   ]
+  }
+ },
+ "fonts": {
+  "comps": [
+   "F1",
+   "F2",
+   "F4",
+   "F5"
+  ],
+  "heading": {
+   "name": "Just Another Hand",
+   "slug": "just-another-hand",
+   "category": "Handwriting",
+   "cls": [
+    "Handwriting"
+   ],
+   "weight": 400,
+   "nweights": 1,
+   "tags": [
+    "handwritten script",
+    "informal script",
+    "upright script script",
+    "sincere"
+   ],
+   "fixed": false,
+   "readable": false,
+   "uses": 0,
+   "total": 1.52,
+   "F1": 1.264,
+   "F2": 2.185,
+   "F4": 0.573,
+   "F5": 2.595
+  },
+  "body": {
+   "name": "Archivo Narrow",
+   "slug": "archivo-narrow",
+   "category": "Sans Serif",
+   "cls": [],
+   "weight": 400,
+   "nweights": 4,
+   "tags": [
+    "grotesque sans",
+    "loud"
+   ],
+   "fixed": false,
+   "readable": true,
+   "uses": 0,
+   "total": 1.227,
+   "F1": 2.671,
+   "F2": -0.916,
+   "F4": 2.138,
+   "F5": 0.803
+  },
+  "pair": "P5",
+  "pair_source": {
+   "mode": "P5",
+   "used": "P2",
+   "how": "category contrast"
+  },
+  "shortlist": [
+   {
+    "name": "Just Another Hand",
+    "slug": "just-another-hand",
+    "category": "Handwriting",
+    "cls": [
+     "Handwriting"
+    ],
+    "weight": 400,
+    "nweights": 1,
+    "tags": [
+     "handwritten script",
+     "informal script",
+     "upright script script",
+     "sincere"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.52,
+    "F1": 1.264,
+    "F2": 2.185,
+    "F4": 0.573,
+    "F5": 2.595
+   },
+   {
+    "name": "Jim Nightshade",
+    "slug": "jim-nightshade",
+    "category": "Handwriting",
+    "cls": [
+     "Handwriting"
+    ],
+    "weight": 400,
+    "nweights": 1,
+    "tags": [
+     "vintage",
+     "artistic",
+     "formal script",
+     "sophisticated"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.423,
+    "F1": 0.518,
+    "F2": 2.635,
+    "F4": 0.474,
+    "F5": 2.707
+   },
+   {
+    "name": "Saira Extra Condensed",
+    "slug": "saira-extra-condensed",
+    "category": "Sans Serif",
+    "cls": [
+     "Display"
+    ],
+    "weight": 400,
+    "nweights": 9,
+    "tags": [
+     "superellipse sans",
+     "futuristic",
+     "calm",
+     "stiff"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.411,
+    "F1": -0.065,
+    "F2": 0.986,
+    "F4": 2.101,
+    "F5": 3.836
+   },
+   {
+    "name": "Wire One",
+    "slug": "wire-one",
+    "category": "Sans Serif",
+    "cls": [
+     "Display"
+    ],
+    "weight": 400,
+    "nweights": 1,
+    "tags": [
+     "rounded sans",
+     "vintage",
+     "neo grotesque sans",
+     "stiff"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.397,
+    "F1": 0.574,
+    "F2": 1.658,
+    "F4": 1.296,
+    "F5": 2.723
+   },
+   {
+    "name": "Butterfly Kids",
+    "slug": "butterfly-kids",
+    "category": "Handwriting",
+    "cls": [
+     "Display",
+     "Handwriting"
+    ],
+    "weight": 400,
+    "nweights": 1,
+    "tags": [
+     "handwritten script",
+     "informal script",
+     "playful",
+     "awkward"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.387,
+    "F1": 1.218,
+    "F2": 1.883,
+    "F4": -0.379,
+    "F5": 4.264
+   },
+   {
+    "name": "Over the Rainbow",
+    "slug": "over-the-rainbow",
+    "category": "Handwriting",
+    "cls": [
+     "Display",
+     "Handwriting"
+    ],
+    "weight": 400,
+    "nweights": 1,
+    "tags": [
+     "handwritten script",
+     "informal script",
+     "sincere",
+     "artistic"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.245,
+    "F1": 0.995,
+    "F2": 1.13,
+    "F4": 1.08,
+    "F5": 2.301
+   },
+   {
+    "name": "Archivo Narrow",
+    "slug": "archivo-narrow",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 4,
+    "tags": [
+     "grotesque sans",
+     "loud"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.227,
+    "F1": 2.671,
+    "F2": -0.916,
+    "F4": 2.138,
+    "F5": 0.803
+   },
+   {
+    "name": "DM Sans",
+    "slug": "dm-sans",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 10,
+    "tags": [
+     "geometric sans",
+     "calm",
+     "vintage",
+     "competent"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.196,
+    "F1": 1.849,
+    "F2": 2.182,
+    "F4": 0.64,
+    "F5": -0.97
+   },
+   {
+    "name": "Ewert",
+    "slug": "ewert",
+    "category": "Display",
+    "cls": [
+     "Display"
+    ],
+    "weight": 400,
+    "nweights": 1,
+    "tags": [
+     "shaded",
+     "tuscan",
+     "awkward",
+     "vintage"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.14,
+    "F1": -0.487,
+    "F2": 2.936,
+    "F4": 0.664,
+    "F5": 1.753
+   },
+   {
+    "name": "Pompiere",
+    "slug": "pompiere",
+    "category": "Display",
+    "cls": [
+     "Display"
+    ],
+    "weight": 400,
+    "nweights": 1,
+    "tags": [
+     "vintage",
+     "art deco",
+     "calm",
+     "happy"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.108,
+    "F1": -0.306,
+    "F2": 1.645,
+    "F4": 1.024,
+    "F5": 3.034
+   },
+   {
+    "name": "Imbue",
+    "slug": "imbue",
+    "category": "Serif",
+    "cls": [
+     "Display"
+    ],
+    "weight": 400,
+    "nweights": 9,
+    "tags": [
+     "didone serif",
+     "excited"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.04,
+    "F1": 0.603,
+    "F2": -0.171,
+    "F4": 1.931,
+    "F5": 2.557
+   },
+   {
+    "name": "Poltawski Nowy",
+    "slug": "poltawski-nowy",
+    "category": "Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 4,
+    "tags": [
+     "awkward",
+     "didone serif",
+     "modern serif",
+     "loud"
+    ],
+    "fixed": false,
+    "readable": false,
+    "uses": 0,
+    "total": 1.011,
+    "F1": 1.007,
+    "F2": 0.675,
+    "F4": 1.855,
+    "F5": 0.0
+   }
+  ],
+  "body_cands": [
+   {
+    "name": "Archivo Narrow",
+    "slug": "archivo-narrow",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 4,
+    "tags": [
+     "grotesque sans",
+     "loud"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.227,
+    "F1": 2.671,
+    "F2": -0.916,
+    "F4": 2.138,
+    "F5": 0.803
+   },
+   {
+    "name": "DM Sans",
+    "slug": "dm-sans",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 10,
+    "tags": [
+     "geometric sans",
+     "calm",
+     "vintage",
+     "competent"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.196,
+    "F1": 1.849,
+    "F2": 2.182,
+    "F4": 0.64,
+    "F5": -0.97
+   },
+   {
+    "name": "Archivo",
+    "slug": "archivo",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 9,
+    "tags": [
+     "grotesque sans"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.146,
+    "F1": 2.888,
+    "F2": -0.119,
+    "F4": 1.477,
+    "F5": -0.472
+   },
+   {
+    "name": "BenchNine",
+    "slug": "benchnine",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 3,
+    "tags": [
+     "humanist sans",
+     "calm",
+     "vintage",
+     "stiff"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.092,
+    "F1": -0.267,
+    "F2": 2.927,
+    "F4": 0.596,
+    "F5": 1.135
+   },
+   {
+    "name": "Mozilla Headline",
+    "slug": "mozilla-headline",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 6,
+    "tags": [
+     "grotesque sans"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.092,
+    "F1": 2.888,
+    "F2": -0.119,
+    "F4": 1.379,
+    "F5": -0.652
+   },
+   {
+    "name": "Strichpunkt Sans",
+    "slug": "strichpunkt-sans",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 6,
+    "tags": [
+     "grotesque sans"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.069,
+    "F1": 2.888,
+    "F2": -0.119,
+    "F4": 1.179,
+    "F5": -0.414
+   },
+   {
+    "name": "Roboto Flex",
+    "slug": "roboto-flex",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 10,
+    "tags": [
+     "neo grotesque sans",
+     "stiff"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.039,
+    "F1": 2.5,
+    "F2": -0.021,
+    "F4": 1.517,
+    "F5": -0.717
+   },
+   {
+    "name": "Sofia Sans Extra Condensed",
+    "slug": "sofia-sans-extra-condensed",
+    "category": "Sans Serif",
+    "cls": [],
+    "weight": 400,
+    "nweights": 11,
+    "tags": [
+     "neo grotesque sans",
+     "vintage",
+     "rounded sans",
+     "stiff"
+    ],
+    "fixed": false,
+    "readable": true,
+    "uses": 0,
+    "total": 1.032,
+    "F1": 2.013,
+    "F2": -0.065,
+    "F4": 1.039,
+    "F5": 1.253
+   }
+  ],
+  "pick_head": {
+   "mode": "none",
+   "digit": null,
+   "rank": 0,
+   "n_cand": 1,
+   "ai_override": false
+  },
+  "pick_body": {
+   "mode": "none",
+   "digit": null,
+   "rank": 0,
+   "n_cand": 1
+  },
+  "scale": {
+   "src": "T4 family template: h1 1.14x body (assumed default + classical size/align)",
+   "ratio": 1.125,
+   "fs": [
+    16.0,
+    18.0,
+    20.2,
+    22.8,
+    25.6,
+    28.8
+   ],
+   "lh_body": 1.26,
+   "lh_heading": 1.1,
+   "tracking_display": "-0.02em",
+   "case_display": "none"
+  },
+  "colors": {
+   "heading": "#FFF6FB",
+   "body": "#FFF6FB",
+   "muted": "#F6C0E7"
+  },
+  "crop": {
+   "box": [
+    0.363,
+    0.053,
+    0.604,
+    0.893
+   ]
+  },
+  "specimen": {
+   "fam": "dreamy-ethereal",
+   "id": "font__13d98e27efbb6c7805a2.webp"
+  },
+  "ai": null,
+  "notes": [
+   "font context: family only",
+   "F7 off: no catalogue font names read from this family's sheets (needs the AI key)",
+   "P5: the heading has no pairing on this family's sheets -> P2"
+  ]
+ },
+ "sections": {
+  "category": "devsaas",
+  "category_name": "Developer tools, SaaS and AI",
+  "how": "keyword",
+  "sections": [
+   {
+    "id": "announce_bar",
+    "layer": "L1",
+    "purpose": "thin top strip: launch, offer or status"
+   },
+   {
+    "id": "nav",
+    "layer": "L1",
+    "purpose": "logo, primary links, one CTA; sticky state + mobile drawer"
+   },
+   {
+    "id": "hero",
+    "layer": "L2",
+    "purpose": "headline, subhead, primary + secondary CTA, hero visual"
+   },
+   {
+    "id": "code_demo",
+    "layer": "L2",
+    "purpose": "CLI or code block demo"
+   },
+   {
+    "id": "showcase",
+    "layer": "L2",
+    "purpose": "product screens, demo video or interactive preview"
+   },
+   {
+    "id": "integrations",
+    "layer": "L2",
+    "purpose": "ecosystem / partner logos"
+   },
+   {
+    "id": "pricing",
+    "layer": "L2",
+    "purpose": "plans + comparison table"
+   },
+   {
+    "id": "changelog",
+    "layer": "L2",
+    "purpose": "recent releases"
+   },
+   {
+    "id": "faq",
+    "layer": "L2",
+    "purpose": "accordion of objections"
+   },
+   {
+    "id": "social_proof",
+    "layer": "L2",
+    "purpose": "logo strip, press quotes or rating badge"
+   },
+   {
+    "id": "features",
+    "layer": "L2",
+    "purpose": "value props as grid or bento tiles"
+   },
+   {
+    "id": "testimonials",
+    "layer": "L2",
+    "purpose": "quotes, avatars, case-study links"
+   },
+   {
+    "id": "cta_band",
+    "layer": "L2",
+    "purpose": "final call to action / newsletter"
+   },
+   {
+    "id": "footer",
+    "layer": "L1",
+    "purpose": "sitemap, legal, socials, language, contact"
+   },
+   {
+    "id": "overlay_fx",
+    "layer": "L3",
+    "purpose": "vibe effect layer: grain, scanlines, glow, cursor; pointer-events none, reduced-motion guard"
+   }
+  ],
+  "system": [
+   "cookie_consent",
+   "toasts_modals"
+  ]
+ },
+ "ai": {
+  "ok": false,
+  "base": "https://api.groq.com/openai/v1",
+  "model": "auto",
+  "error": null,
+  "cached": 0,
+  "reason": "no key: set LAB_AI_KEY (or GROQ_API_KEY) before `serve`"
+ },
+ "pi": {
+  "before": {
+   "cursor": 2,
+   "next": "159265358979"
+  },
+  "after": {
+   "cursor": 2,
+   "next": "159265358979"
+  },
+  "log": [
+   {
+    "stream": "bg",
+    "pos": 2,
+    "digit": 1
+   },
+   {
+    "stream": "el",
+    "pos": 3,
+    "digit": 5
+   }
+  ],
+  "served": false
+ },
+ "params": {
+  "w": 0.25,
+  "alpha": 0.5,
+  "lam": 0.3,
+  "beta": 0.5,
+  "eps": 0.25,
+  "E": 0.08,
+  "T": 3,
+  "gamma": 0.3,
+  "pal_cmp": "blend",
+  "pal_mixed": 0,
+  "ignore_card": 1,
+  "pk_pal": "none",
+  "pk_bg": "mod3",
+  "pk_el": "mod3",
+  "pk_fh": "none",
+  "pk_fb": "none",
+  "roles": "code",
+  "snap": 0,
+  "bg_anchor": "both",
+  "bg_types": "abstract art,pattern / texture,3D render",
+  "bg_vis": 1,
+  "bg_use": "mine",
+  "el_cmp": "merge",
+  "beta_el": 0.3,
+  "n_el": 3,
+  "font_ctx": "family",
+  "f1": 1,
+  "f2": 1,
+  "f3": 0,
+  "f4": 1,
+  "f5": 1,
+  "f6": 0,
+  "f7": 1,
+  "wf7": 1.0,
+  "n_typo": 8,
+  "typo_ai": 0,
+  "wf1": 1.0,
+  "wf2": 1.0,
+  "wf3": 1.0,
+  "wf4": 1.0,
+  "wf5": 0.5,
+  "hub": 1,
+  "cap": 1,
+  "pair": "P5",
+  "dist": 0.5,
+  "scale": "T4",
+  "ratio": 1.25,
+  "head_color": "text",
+  "router": "v1",
+  "r2_pool": "all",
+  "r2_fam_text": "slug",
+  "r2_pull": 0,
+  "r2_prior_w": 1.2,
+  "r2_fam_pick": "none",
+  "r2_fam_eps": 0.02,
+  "serve": 0
+ },
+ "payload": {
+  "query": "dreamy ethereal ai website builder landing page",
+  "family": "dreamy-ethereal",
+  "family_locked": true,
+  "vibe": {
+   "name": "Dreamy / ethereal",
+   "cues": "Pastel mesh gradients, blur, film grain, soft italic serifs, slow floating motion",
+   "effect": "grain gradient blur css"
+  },
+  "layout": {
+   "fam": "dreamy-ethereal",
+   "id": "main__c428e68167e26fdb3662.jpg",
+   "cluster": "website",
+   "source": "router"
+  },
+  "palette": {
+   "fam": "dreamy-ethereal",
+   "id": "palette__aae1361275090cf0cef6.avif",
+   "cluster": "palette",
+   "swatches": [
+    "#F6C0E7",
+    "#A6C8FE",
+    "#FFF6FB",
+    "#FBE1FF",
+    "#CFB3FE",
+    "#857397"
+   ]
+  },
+  "family_dna": [
+   "#08060B",
+   "#353B46",
+   "#CCD8D9",
+   "#646B6A",
+   "#842C8D",
+   "#C56A48"
+  ],
+  "color_tokens": {
+   "--bg": "#857397",
+   "--surface": "#A6C8FE",
+   "--text": "#FFF6FB",
+   "--text-muted": "#F6C0E7",
+   "--accent": "#FBE1FF",
+   "--accent-2": "#CFB3FE",
+   "--border": "#685679"
+  },
+  "derived_tokens": {
+   "--accent-hover": "#FFF5FF",
+   "--surface-2": "#B3D5FF",
+   "--focus-ring": "#CFB3FE"
+  },
+  "visuals": [
+   "#FBE1FF",
+   "#CFB3FE"
+  ],
+  "roles_source": "code",
+  "contrast": [
+   {
+    "text/bg": 4.05,
+    "pass": false
+   },
+   {
+    "text/surface": 1.61,
+    "pass": false
+   },
+   {
+    "text_muted/bg": 2.78,
+    "pass": false
+   },
+   {
+    "bg/accent": 3.54,
+    "pass": true
+   },
+   {
+    "accent/bg": 3.54,
+    "pass": true
+   }
+  ],
+  "background": {
+   "approach": "mine",
+   "fam": "dreamy-ethereal",
+   "id": "palette__22f10bb9d6faee7ddff4.webp",
+   "cluster": "abstract art"
+  },
+  "elements": {
+   "comparer": "merge",
+   "beta_el": 0.3,
+   "hero_ref": {
+    "fam": "dreamy-ethereal",
+    "id": "effect__25e68bddd10e9c4c5d50.jpg",
+    "cluster": "website"
+   },
+   "central": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__2cf4dba7b992bd6fb5c4.jpg",
+     "cluster": "abstract art",
+     "type": "abstract art",
+     "role": "primary"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "palette__b874cccb150cd9e7c4fb.jpg",
+     "cluster": "abstract art",
+     "type": "abstract art",
+     "role": "supporting"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "kit__c4526b13bb22d36d875c.jpg",
+     "cluster": "illustration",
+     "type": "illustration",
+     "role": "supporting"
+    }
+   ]
+  },
+  "fonts": {
+   "context": "family",
+   "pairing_source": {
+    "mode": "P5",
+    "used": "P2",
+    "how": "category contrast"
+   },
+   "heading": {
+    "family": "Just Another Hand",
+    "category": "Handwriting",
+    "file": "/font/just-another-hand",
+    "color": "#FFF6FB"
+   },
+   "body": {
+    "family": "Archivo Narrow",
+    "category": "Sans Serif",
+    "file": "/font/archivo-narrow",
+    "color": "#FFF6FB"
+   },
+   "pairing": "P5",
+   "comparers": [
+    "F1",
+    "F2",
+    "F4",
+    "F5"
+   ],
+   "tokens": {
+    "--fs-1": "16.0px",
+    "--fs-2": "18.0px",
+    "--fs-3": "20.2px",
+    "--fs-4": "22.8px",
+    "--fs-5": "25.6px",
+    "--fs-6": "28.8px",
+    "--lh-body": 1.26,
+    "--lh-heading": 1.1,
+    "--tracking-display": "-0.02em",
+    "--case-display": "none",
+    "--ratio": 1.125
+   }
+  },
+  "typography": {
+   "family": "dreamy-ethereal",
+   "used_ai": false,
+   "alignment": {
+    "value": "center",
+    "from": "template sheets' measured alignment (layout text alignment was mixed)"
+   },
+   "measure": 0.66,
+   "leading": 1.26,
+   "divider": false,
+   "roles": {
+    "eyebrow": {
+     "font": "Archivo Narrow",
+     "font_slug": "archivo-narrow",
+     "size_token": "--fs-1",
+     "size_px": 12.0,
+     "case": "upper",
+     "text_transform": "uppercase",
+     "tracking": "wide",
+     "letter_spacing": "0.1em",
+     "weight": 400,
+     "italic": false,
+     "align": "center",
+     "color_token": "--accent",
+     "color": "#FBE1FF",
+     "source": "assumed default + classical size/align"
+    },
+    "h1": {
+     "font": "Just Another Hand",
+     "font_slug": "just-another-hand",
+     "size_token": "--fs-2",
+     "size_px": 18.0,
+     "case": "sentence",
+     "text_transform": "none",
+     "tracking": "tight",
+     "letter_spacing": "-0.02em",
+     "weight": 700,
+     "italic": false,
+     "align": "center",
+     "color_token": "--text",
+     "color": "#FFF6FB",
+     "source": "assumed default + classical size/align"
+    },
+    "h2": {
+     "font": "Just Another Hand",
+     "font_slug": "just-another-hand",
+     "size_token": "--fs-5",
+     "size_px": 25.6,
+     "case": "sentence",
+     "text_transform": "none",
+     "tracking": "normal",
+     "letter_spacing": "0em",
+     "weight": 400,
+     "italic": false,
+     "align": "center",
+     "color_token": "--text",
+     "color": "#FFF6FB",
+     "source": "assumed default + classical size/align"
+    },
+    "body": {
+     "font": "Archivo Narrow",
+     "font_slug": "archivo-narrow",
+     "size_token": "--fs-1",
+     "size_px": 16.0,
+     "case": "sentence",
+     "text_transform": "none",
+     "tracking": "normal",
+     "letter_spacing": "0em",
+     "weight": 400,
+     "italic": false,
+     "align": "center",
+     "color_token": "--text-muted",
+     "color": "#F6C0E7",
+     "source": "assumed default + classical size/align"
+    }
+   },
+   "pairings": [],
+   "notes": [
+    "no AI key: classical-only template, roles use documented defaults",
+    "no AI readings: font wiring uses render lookalikes only"
+   ],
+   "sheets": [
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__0c0827717a0226de9903.jpg",
+     "cluster": "type specimen + icons"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__095dd2ccb5270177b3a7.webp",
+     "cluster": "type specimen + icons"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__8f9e6fdc77e77e590c5f.png",
+     "cluster": "type specimen + icons"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__fcebba4217cae4550f71.webp",
+     "cluster": "type specimen + icons"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__e8602ab38254751e63b0.png",
+     "cluster": "type specimen + icons"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__587e00494f7a758cdba8.webp",
+     "cluster": "type specimen + icons"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__95a9fb5ac048fb7a30c5.webp",
+     "cluster": "type specimen + icons"
+    },
+    {
+     "fam": "dreamy-ethereal",
+     "id": "font__6e78982d6d1b1408957f.png",
+     "cluster": "type specimen + icons"
+    }
+   ]
+  },
+  "layers": {
+   "L0": "background (constant)",
+   "L1": "navigation",
+   "L2": "central + hero content",
+   "L3": "overlay effects + micro-elements"
+  },
+  "sections": [
+   "announce_bar",
+   "nav",
+   "hero",
+   "code_demo",
+   "showcase",
+   "integrations",
+   "pricing",
+   "changelog",
+   "faq",
+   "social_proof",
+   "features",
+   "testimonials",
+   "cta_band",
+   "footer",
+   "overlay_fx"
+  ],
+  "pi_log": [
+   {
+    "stream": "bg",
+    "pos": 2,
+    "digit": 1,
+    "mode": "mod3"
+   },
+   {
+    "stream": "el",
+    "pos": 3,
+    "digit": 5,
+    "mode": "mod3"
+   }
+  ]
+ },
+ "ms": 2163
+}

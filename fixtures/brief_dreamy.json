@@ -1,0 +1,435 @@
+{
+ "meta": {
+  "version": 1,
+  "job_id": null,
+  "query": "a dreamy ethereal ai website builder for small studios",
+  "full_query": "ai website builder for small studios",
+  "vibe_query": "dreamy ethereal",
+  "routed_family": "dreamy-ethereal",
+  "router": "v1",
+  "pi_log": [
+   {
+    "stream": "bg",
+    "pos": 2,
+    "digit": 1,
+    "mode": "mod3"
+   },
+   {
+    "stream": "el",
+    "pos": 3,
+    "digit": 5,
+    "mode": "mod3"
+   }
+  ],
+  "lab_ms": 2163,
+  "created_at": "2026-11-18T21:22:12+00:00"
+ },
+ "taste": {
+  "category": "devsaas",
+  "category_name": "Developer tools, SaaS and AI",
+  "how": "keyword",
+  "niche": "AI dreamy / ethereal",
+  "niche_cues": "soft aurora gradients, slow motion, serif italics",
+  "affinity": 1.0,
+  "clash": false,
+  "avoid": [
+   "Punk / grunge / rock and roll",
+   "Military / tactical / HUD",
+   "Modern rock (stage / tour poster)",
+   "Terminal-finance / data-dense",
+   "Cottagecore / handmade",
+   "Anti-design / Web 1.0"
+  ]
+ },
+ "vibe": {
+  "key": "dreamy",
+  "name": "Dreamy / ethereal",
+  "cues": "Pastel mesh gradients, blur, film grain, soft italic serifs, slow floating motion",
+  "effect": "grain gradient blur css"
+ },
+ "tokens": {
+  "color": {
+   "--bg": "#FFF6FB",
+   "--surface": "#FBE1FF",
+   "--text": "#604E70",
+   "--text-muted": "#72647F",
+   "--accent": "#8569AF",
+   "--accent-2": "#A6C8FE",
+   "--on-accent": "#FFFFFF",
+   "--border": "#DDC5E4",
+   "--accent-soft": "#CFB3FE"
+  },
+  "derived": {
+   "--accent-hover": "#7F65A5",
+   "--surface-2": "#FDECFD",
+   "--focus-ring": "#8569AF"
+  },
+  "type": {
+   "--fs-1": "16.0px",
+   "--fs-2": "20.0px",
+   "--fs-3": "25.0px",
+   "--fs-4": "31.2px",
+   "--fs-5": "39.1px",
+   "--fs-6": "48.8px",
+   "--fs-7": "61.0px",
+   "--fs-8": "76.3px",
+   "--ratio": 1.25,
+   "--lh-body": 1.5,
+   "--lh-heading": 1.1,
+   "--tracking-display": "-0.02em",
+   "--case-display": "none"
+  },
+  "contrast": [
+   {
+    "pair": "text/bg",
+    "ratio": 7.03,
+    "pass": true
+   },
+   {
+    "pair": "text/surface",
+    "ratio": 6.14,
+    "pass": true
+   },
+   {
+    "pair": "text-muted/bg",
+    "ratio": 5.16,
+    "pass": true
+   },
+   {
+    "pair": "text-muted/surface",
+    "ratio": 4.5,
+    "pass": true
+   },
+   {
+    "pair": "on-accent/accent",
+    "ratio": 4.53,
+    "pass": true
+   },
+   {
+    "pair": "accent/bg",
+    "ratio": 4.28,
+    "pass": true
+   }
+  ],
+  "palette": [
+   "#F6C0E7",
+   "#A6C8FE",
+   "#FFF6FB",
+   "#FBE1FF",
+   "#CFB3FE",
+   "#857397"
+  ],
+  "family_dna": [
+   "#08060B",
+   "#353B46",
+   "#CCD8D9",
+   "#646B6A",
+   "#842C8D",
+   "#C56A48"
+  ]
+ },
+ "fonts": {
+  "heading": {
+   "family": "Poltawski Nowy",
+   "category": "Serif",
+   "color": "var(--text)",
+   "google_css": "https://fonts.googleapis.com/css2?family=Poltawski+Nowy:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap"
+  },
+  "body": {
+   "family": "DM Sans",
+   "category": "Sans Serif",
+   "color": "var(--text)",
+   "google_css": "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
+  },
+  "pairing": {
+   "lab": [
+    "Just Another Hand",
+    "Archivo Narrow"
+   ],
+   "heading_italic": true
+  }
+ },
+ "typography": {
+  "alignment": "center",
+  "measure_ch": 66,
+  "roles": {
+   "eyebrow": {
+    "font": "DM Sans",
+    "size_token": "--fs-1",
+    "weight": 500,
+    "italic": false,
+    "text_transform": "uppercase",
+    "letter_spacing": "0.1em",
+    "color_token": "--text-muted"
+   },
+   "h1": {
+    "font": "Poltawski Nowy",
+    "size_token": "--fs-8",
+    "weight": 500,
+    "italic": true,
+    "text_transform": "none",
+    "letter_spacing": "-0.02em",
+    "color_token": "--text"
+   },
+   "h2": {
+    "font": "Poltawski Nowy",
+    "size_token": "--fs-6",
+    "weight": 500,
+    "italic": true,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text"
+   },
+   "h3": {
+    "font": "Poltawski Nowy",
+    "size_token": "--fs-4",
+    "weight": 500,
+    "italic": false,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text"
+   },
+   "body": {
+    "font": "DM Sans",
+    "size_token": "--fs-1",
+    "weight": 400,
+    "italic": false,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text"
+   },
+   "small": {
+    "font": "DM Sans",
+    "size_token": "--fs-1",
+    "weight": 400,
+    "italic": false,
+    "text_transform": "none",
+    "letter_spacing": "0em",
+    "color_token": "--text-muted"
+   }
+  },
+  "overrides": [
+   {
+    "token": "--bg",
+    "from": "#857397",
+    "to": "#FFF6FB",
+    "why": "light theme: background re-seated to the lightest swatch"
+   },
+   {
+    "token": "--surface",
+    "from": "#A6C8FE",
+    "to": "#FBE1FF",
+    "why": "light theme: surface = next swatch by lightness, so cards stay close to the background"
+   },
+   {
+    "token": "--text",
+    "from": "#FFF6FB",
+    "to": "#604E70",
+    "why": "pushed along OKLab lightness to meet WCAG AAA 7:1 on bg / AA on surface"
+   },
+   {
+    "token": "--text-muted",
+    "from": "#F6C0E7",
+    "to": "#72647F",
+    "why": "pushed along OKLab lightness to meet WCAG AA 4.5:1 on bg and surface"
+   },
+   {
+    "token": "--accent",
+    "from": "#FBE1FF",
+    "to": "#8569AF",
+    "why": "pushed along OKLab lightness to meet WCAG 4.5:1 under its button label and 3:1 on the page"
+   },
+   {
+    "token": "heading",
+    "from": "Just Another Hand",
+    "to": "Poltawski Nowy",
+    "why": "vibe cue requires {\"heading_category\": \"Serif\", \"heading_italic\": true}; first match from lab shortlist"
+   },
+   {
+    "token": "body",
+    "from": "Archivo Narrow",
+    "to": "DM Sans",
+    "why": "body text needs a normal-width text face with >= 3 weights (lab pick is narrow/limited)"
+   },
+   {
+    "token": "--ratio",
+    "from": 1.125,
+    "to": 1.25,
+    "why": "landing pages need display contrast; lab ratio gave a 29px top step"
+   },
+   {
+    "token": "--lh-body",
+    "from": 1.26,
+    "to": 1.5,
+    "why": "WCAG 1.4.12 readable body leading"
+   }
+  ],
+  "visuals": [
+   "#F6C0E7",
+   "#A6C8FE",
+   "#FBE1FF",
+   "#CFB3FE",
+   "#857397"
+  ]
+ },
+ "layers": {
+  "L0": "background: mesh gradient from visuals or the background asset",
+  "L1": "navigation + footer",
+  "L2": "hero + content sections",
+  "L3": "overlay effect: grain gradient blur css (pointer-events none, reduced-motion safe)"
+ },
+ "sections": [
+  {
+   "id": "announce_bar",
+   "layer": "L1",
+   "purpose": "thin top strip: launch, offer or status"
+  },
+  {
+   "id": "nav",
+   "layer": "L1",
+   "purpose": "logo, primary links, one CTA; sticky state + mobile drawer"
+  },
+  {
+   "id": "hero",
+   "layer": "L2",
+   "purpose": "headline, subhead, primary + secondary CTA, hero visual"
+  },
+  {
+   "id": "social_proof",
+   "layer": "L2",
+   "purpose": "logo strip, press quotes or rating badge"
+  },
+  {
+   "id": "features",
+   "layer": "L2",
+   "purpose": "value props as grid or bento tiles"
+  },
+  {
+   "id": "code_demo",
+   "layer": "L2",
+   "purpose": "CLI or code block demo"
+  },
+  {
+   "id": "showcase",
+   "layer": "L2",
+   "purpose": "product screens, demo video or interactive preview"
+  },
+  {
+   "id": "integrations",
+   "layer": "L2",
+   "purpose": "ecosystem / partner logos"
+  },
+  {
+   "id": "changelog",
+   "layer": "L2",
+   "purpose": "recent releases"
+  },
+  {
+   "id": "how_it_works",
+   "layer": "L2",
+   "purpose": "3-4 numbered steps"
+  },
+  {
+   "id": "testimonials",
+   "layer": "L2",
+   "purpose": "quotes, avatars, case-study links"
+  },
+  {
+   "id": "pricing",
+   "layer": "L2",
+   "purpose": "plans + comparison table"
+  },
+  {
+   "id": "faq",
+   "layer": "L2",
+   "purpose": "accordion of objections"
+  },
+  {
+   "id": "cta_band",
+   "layer": "L2",
+   "purpose": "final call to action / newsletter"
+  },
+  {
+   "id": "footer",
+   "layer": "L1",
+   "purpose": "sitemap, legal, socials, language, contact"
+  },
+  {
+   "id": "overlay_fx",
+   "layer": "L3",
+   "purpose": "vibe effect layer: grain, scanlines, glow, cursor; pointer-events none, reduced-motion guard"
+  }
+ ],
+ "assets": [
+  {
+   "ref_id": "1ea837879ce3",
+   "role": "layout",
+   "fam": "dreamy-ethereal",
+   "id": "main__c428e68167e26fdb3662.jpg",
+   "cluster": "website",
+   "type": "website",
+   "note": "layout reference: follow its structure, never copy its text",
+   "path": "assets/1ea837879ce3.jpg"
+  },
+  {
+   "ref_id": "e8efec482f71",
+   "role": "background",
+   "fam": "dreamy-ethereal",
+   "id": "palette__22f10bb9d6faee7ddff4.webp",
+   "cluster": "abstract art",
+   "type": "abstract art",
+   "note": "L0 background (mine)",
+   "path": "assets/e8efec482f71.webp"
+  },
+  {
+   "ref_id": "aae7acec49fc",
+   "role": "hero",
+   "fam": "dreamy-ethereal",
+   "id": "effect__25e68bddd10e9c4c5d50.jpg",
+   "cluster": "website",
+   "type": "website",
+   "note": "hero reference",
+   "path": "assets/aae7acec49fc.jpg"
+  },
+  {
+   "ref_id": "b92c81656fe2",
+   "role": "central",
+   "fam": "dreamy-ethereal",
+   "id": "kit__2cf4dba7b992bd6fb5c4.jpg",
+   "cluster": "abstract art",
+   "type": "abstract art",
+   "note": "primary central graphic",
+   "path": "assets/b92c81656fe2.jpg"
+  },
+  {
+   "ref_id": "adc355ed2ce4",
+   "role": "central",
+   "fam": "dreamy-ethereal",
+   "id": "palette__b874cccb150cd9e7c4fb.jpg",
+   "cluster": "abstract art",
+   "type": "abstract art",
+   "note": "supporting central graphic",
+   "path": "assets/adc355ed2ce4.jpg"
+  },
+  {
+   "ref_id": "97075ed9cf78",
+   "role": "central",
+   "fam": "dreamy-ethereal",
+   "id": "kit__c4526b13bb22d36d875c.jpg",
+   "cluster": "illustration",
+   "type": "illustration",
+   "note": "supporting central graphic",
+   "path": "assets/97075ed9cf78.jpg"
+  },
+  {
+   "ref_id": "5e9af2ea5fa9",
+   "role": "palette",
+   "fam": "dreamy-ethereal",
+   "id": "palette__aae1361275090cf0cef6.avif",
+   "cluster": "palette",
+   "type": "palette",
+   "note": "palette source image",
+   "path": "assets/5e9af2ea5fa9.avif"
+  }
+ ]
+}

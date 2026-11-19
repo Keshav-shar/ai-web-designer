@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.env
+.env.*
+__pycache__/
+*.pyc
+fixtures/*.log
+.vercel
+.site-build/

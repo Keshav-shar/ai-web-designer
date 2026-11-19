@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://serpman.studio/contracts/split.v1.json",
+  "title": "Split v1",
+  "description": "One user prompt split into the domain axis (full_query -> sections, copy) and the vibe axis (vibe_query -> lab router).",
+  "type": "object",
+  "required": ["full_query", "vibe_query", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "full_query": {"type": "string", "minLength": 1, "maxLength": 300},
+    "vibe_query": {"type": "string", "minLength": 1, "maxLength": 300},
+    "category_hint": {"type": ["string", "null"]},
+    "brand_name": {"type": ["string", "null"], "maxLength": 80},
+    "audience": {"type": ["string", "null"], "maxLength": 160},
+    "must_sections": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9_]+$"}, "maxItems": 8},
+    "source": {"enum": ["qwen", "fallback"]}
+  }
+}
