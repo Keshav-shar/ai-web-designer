@@ -2,11 +2,40 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteMockup } from "@/components/site-mockup";
+import { cx } from "@/components/ui";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 type Job = { id: string; prompt: string; status: string };
 type Ev = { id: number; stage: string; message: string; data: Record<string, any> | null };
 type Site = { id: string; title: string | null };
+export type Engine = { state: string; last_seen: string } | null;
+
+const ONLINE_MS = 2 * 60 * 1000;   // the worker beats every ~25 s; 2 min of silence = offline
+const isOnline = (e: Engine) => !!e && e.state !== "offline" && Date.now() - new Date(e.last_seen).getTime() < ONLINE_MS;
+
+/** "Engine online / offline" from the worker's heartbeat row (engine_status), refreshed every 30 s. */
+function EngineBadge({ initial }: { initial: Engine }) {
+  const [engine, setEngine] = useState<Engine>(initial);
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const sb = supabaseBrowser();
+    const load = async () => {
+      const { data } = await sb.from("engine_status").select("state, last_seen").order("last_seen", { ascending: false }).limit(1).maybeSingle();
+      setEngine((data as Engine) ?? null);
+      tick((n) => n + 1);
+    };
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const on = isOnline(engine);
+  return (
+    <p className="flex items-center gap-2 text-[14px] text-muted" title={engine ? `last seen ${new Date(engine.last_seen).toLocaleTimeString()}` : "no heartbeat yet"}>
+      <span aria-hidden="true" className={cx("inline-block h-2.5 w-2.5 rounded-full", on ? "bg-accent" : "border border-line bg-surface")} />
+      {on ? (engine?.state === "busy" ? "Engine online · working on a request" : "Engine online")
+        : "Engine offline · your request will wait in the queue until it's back"}
+    </p>
+  );
+}
 
 const STATUS: Record<string, string> = {
   queued: "Waiting for the engine. It runs on one machine, so this can take a moment.",
@@ -17,7 +46,7 @@ const STATUS: Record<string, string> = {
 };
 
 /** Minimal studio: one prompt in, the generated website shown inline as a mockup. */
-export function Studio({ signedIn, initialJob, latest }: { signedIn: boolean; initialJob: Job | null; latest: Site | null }) {
+export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boolean; initialJob: Job | null; latest: Site | null; engine: Engine }) {
   const [prompt, setPrompt] = useState("");
   const [job, setJob] = useState<Job | null>(initialJob);
   const [events, setEvents] = useState<Ev[]>([]);
@@ -90,6 +119,8 @@ export function Studio({ signedIn, initialJob, latest }: { signedIn: boolean; in
           {busy ? "Queuing…" : running ? "Working…" : "Generate"}
         </button>
       </form>
+
+      {signedIn && <EngineBadge initial={engine} />}
 
       {error === "signin" ? (
         <p role="alert" className="text-ink">

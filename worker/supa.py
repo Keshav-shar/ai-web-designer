@@ -49,6 +49,19 @@ class Supa:
                                headers=h)
         return self._ok(r).json()[0]
 
+    def heartbeat(self, worker_id: str, state: str, section_mode: str | None = None) -> None:
+        """Upsert this worker's engine_status row (state idle|busy|offline). Never raises: a missed beat only
+        makes the studio badge show offline for a moment."""
+        from datetime import datetime, timezone
+        row = {"worker_id": worker_id, "state": state, "last_seen": datetime.now(timezone.utc).isoformat()}
+        if section_mode:
+            row["section_mode"] = section_mode
+        try:
+            self.http.post(f"{self.url}/rest/v1/engine_status", json=row,
+                           headers={**self.h, "Prefer": "resolution=merge-duplicates,return=minimal"}, timeout=15)
+        except httpx.HTTPError:
+            pass
+
     def upload(self, path: str, data: bytes, content_type: str) -> None:
         self._ok(self.http.post(f"{self.url}/storage/v1/object/sites/{quote(path)}", content=data,
                                 headers={**self.h, "Content-Type": content_type, "x-upsert": "true",

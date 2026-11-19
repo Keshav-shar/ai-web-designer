@@ -1,47 +1,51 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
+/** Email + password only: accounts are created by the admin and handed out; there is no sign-up here. */
 export function LoginForm({ next }: { next: string }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [msg, setMsg] = useState("");
-  const redirect = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function magic(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setState("sending");
-    // shouldCreateUser: false -> only invited accounts get a link (sign-ups are also disabled server-side)
-    const { error } = await supabaseBrowser().auth.signInWithOtp({ email, options: { emailRedirectTo: redirect(), shouldCreateUser: false } });
+    setBusy(true);
+    setError(null);
+    const { error } = await supabaseBrowser().auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
-      setState("error");
-      setMsg("That email has no invite, or too many links were requested. Try again in a minute.");
-    } else {
-      setState("sent");
+      setBusy(false);
+      // one message for every failure: never reveal whether an email has an account
+      setError(error.status === 429 ? "Too many attempts. Wait a minute and try again." : "Email or password is incorrect.");
+      return;
     }
+    router.replace(next);
+    router.refresh();
   }
 
-  async function github() {
-    await supabaseBrowser().auth.signInWithOAuth({ provider: "github", options: { redirectTo: redirect() } });
-  }
-
-  if (state === "sent") return <p className="mt-8 text-ink">Check your inbox. The link signs you in on this device.</p>;
   return (
-    <div className="mt-8 space-y-4">
-      <form onSubmit={magic} className="space-y-3">
-        <label htmlFor="email" className="eyebrow block">email</label>
+    <form onSubmit={submit} className="mt-8 space-y-4">
+      <div className="space-y-2">
+        <label htmlFor="email" className="eyebrow block" style={{ marginBottom: 0 }}>email</label>
         <input
-          id="email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
+          id="email" type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)}
           className="w-full rounded-2xl border border-line bg-surface/60 px-4 py-3 text-ink placeholder:text-muted"
           placeholder="you@studio.com"
         />
-        <button className="btn btn-primary w-full" disabled={state === "sending"}>
-          {state === "sending" ? "Sending…" : "Email me a sign-in link"}
-        </button>
-      </form>
-      {state === "error" && <p role="alert" className="text-ink">{msg}</p>}
-      <div className="flex items-center gap-3 text-muted"><span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" /></div>
-      <button type="button" onClick={github} className="btn btn-ghost w-full">Continue with GitHub</button>
-    </div>
+      </div>
+      <div className="space-y-2">
+        <label htmlFor="password" className="eyebrow block" style={{ marginBottom: 0 }}>password</label>
+        <input
+          id="password" type="password" required autoComplete="current-password" value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded-2xl border border-line bg-surface/60 px-4 py-3 text-ink"
+        />
+      </div>
+      {error && <p role="alert" className="text-ink">{error}</p>}
+      <button className="btn btn-primary w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
+    </form>
   );
 }

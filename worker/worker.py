@@ -192,10 +192,30 @@ def cmd_run(a) -> int:
     from supa import Supa
     sb, qwen = Supa(), Qwen()
     worker_id = f"{socket.gethostname()}-{os.getpid()}"
+    hb_id = socket.gethostname()                   # one engine_status row per machine, reused across restarts
+    mode = agent.section_mode(qwen)
+    last_beat = [0.0]
+
+    def beat(state: str, every: float = 25.0) -> None:
+        if state == "offline" or time.time() - last_beat[0] >= every:
+            sb.heartbeat(hb_id, state, mode)
+            last_beat[0] = time.time()
+
     eng = Engine()
-    print(f"worker {worker_id} polling (sections: {agent.section_mode(qwen)})", flush=True)
+    print(f"worker {worker_id} polling (sections: {mode}); Ctrl+C to stop", flush=True)
+    try:
+        _serve(sb, qwen, eng, worker_id, beat, a.theme)
+    except KeyboardInterrupt:
+        print("stopping", flush=True)
+    finally:
+        beat("offline")                            # the studio badge switches to offline right away
+    return 0
+
+
+def _serve(sb, qwen, eng, worker_id, beat, theme) -> None:
     idle = 2.0
     while True:
+        beat("idle")
         try:
             job = sb.claim(worker_id)
         except Exception as e:  # noqa: BLE001
@@ -207,6 +227,7 @@ def cmd_run(a) -> int:
             idle = min(20.0, idle * 1.5)
             continue
         idle = 2.0
+        beat("busy", every=0)
         jid, uid = job["id"], job["user_id"]
         print(f"job {jid}: {job['prompt']!r}", flush=True)
 
@@ -214,6 +235,7 @@ def cmd_run(a) -> int:
             if stage in ("recipe", "generating", "assembling"):
                 sb.update_job(jid, status=stage)
             sb.event(job, stage, message, data)
+            beat("busy", every=10)
 
         base = f"{uid}/{jid}"
 
@@ -223,7 +245,7 @@ def cmd_run(a) -> int:
                 sb.upload(f"{base}/{rel}", data, "image/webp")
 
         try:
-            out = run_job(eng, qwen, job["prompt"], job["split"], jid, a.theme, emit, publish)
+            out = run_job(eng, qwen, job["prompt"], job["split"], jid, theme, emit, publish)
             sb.upload(f"{base}/styles.css", out["css"].encode(), "text/css")
             sb.upload(f"{base}/index.html", out["page"].encode(), "text/html")
             row = {"job_id": jid, "user_id": uid, "html_path": f"{base}/index.html", "css_path": f"{base}/styles.css",
