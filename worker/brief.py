@@ -3,8 +3,8 @@
 What this adds on top of route_engine.payload():
   * sections come from the FULL query (domain axis), not the vibe query the lab was given, and follow a
     landing-page narrative order;
-  * a `taste` block from taste_affinity at runtime: the category's best niche for the routed vibe, its score,
-    a clash flag and the vibes to avoid (the matrix was only used offline before);
+  * a `taste` block: the niche the request names (prompt_context / niche_scores; else the category's niche closest
+    to the routed vibe), the routed vibe's taste_affinity score for it, a clash flag and the vibes to avoid;
   * guardrails (worker/guardrails.py) on colour roles, fonts and type scale, each change logged in
     `typography.overrides` (token, from, to, why);
   * portable assets: ref_id = sha1(fam/id)[:12], served as assets/<ref_id>.<ext>; local paths never leave here.
@@ -66,20 +66,78 @@ def sections_for(category_key: str, must: list[str]) -> list[dict]:
     return [{"id": s, "layer": sp.SECTIONS[s][0], "purpose": sp.SECTIONS[s][1]} for s in ids]
 
 
-def taste_block(category_key: str, category_name: str, how: str, family: str) -> dict:
+# ---------------------------------------------------------------- the request's niche
+# A niche is read from the REQUEST (CLIP: full query vs each niche's own example search queries + its cues), not
+# from the routed family. Picking it from the family's affinity alone made a mis-routed family choose a niche that
+# agreed with it (sports-high-energy -> "Street food / cloud kitchen", sticker-style, for a banana-bread bakery).
+NICHE_MARGIN = 0.03        # the request's best niche must beat its runner-up by this much (cosine) to be trusted
+_niche_ex = None
+
+
+def _niche_exemplars(enc):
+    global _niche_ex
+    if _niche_ex is None:
+        rows, texts = [], []
+        for c in tc.CATEGORIES:
+            for i, v in enumerate(c.values):
+                for t in (v.main, v.alt, f"{v.name}: {v.cues}"):
+                    rows.append((c.key, i))
+                    texts.append(t)
+        _niche_ex = (rows, enc(texts))
+    return _niche_ex
+
+
+def niche_scores(enc, full_query: str) -> dict[str, list[float]]:
+    """{category: [best exemplar similarity of the request, per niche]} for every category (the split's
+    category_hint may still change the category after this)."""
+    rows, T = _niche_exemplars(enc)
+    sims = T @ enc([full_query])[0]
+    out = {c.key: [-1.0] * len(c.values) for c in tc.CATEGORIES}
+    for (k, i), s in zip(rows, sims):
+        out[k][i] = max(out[k][i], round(float(s), 4))
+    return out
+
+
+def prompt_context(enc, full_query: str) -> dict:
+    """What the request itself says, for build_brief's `sections_src`: section_plan's category (keyword / CLIP)
+    plus the request's niche scores. Every caller (worker, lab bench, tools) builds the brief through this."""
+    src = sp.suggest(enc, full_query)
+    src["niche_scores"] = niche_scores(enc, full_query)
+    return src
+
+
+def request_niche(scores: list[float] | None) -> int | None:
+    """Index of the niche the request clearly names, or None when it is ambiguous / unknown."""
+    if not scores:
+        return None
+    order = sorted(range(len(scores)), key=lambda j: -scores[j])
+    if len(order) == 1 or scores[order[0]] - scores[order[1]] >= NICHE_MARGIN:
+        return order[0]
+    return None
+
+
+def taste_block(category_key: str, category_name: str, how: str, family: str,
+                niche_scores: list[float] | None = None) -> dict:
+    """The niche = the one the request names (niche_how 'prompt'); when the request is ambiguous, the category's
+    niche closest to the routed family (niche_how 'family'). affinity / clash / avoid always rate the routed family
+    against THAT niche, so a family that fights the request shows up as a clash."""
     v = VIBE_BY_FAMILY.get(family)
     cat = CATEGORY[category_key]
+    i = request_niche(niche_scores)
+    niche_how = "prompt" if i is not None else "family"
     if v is None:
-        return {"category": category_key, "category_name": category_name, "how": how, "niche": None,
-                "niche_cues": None, "affinity": 0.0, "clash": False, "avoid": []}
+        niche = cat.values[i] if i is not None else None
+        return {"category": category_key, "category_name": category_name, "how": how,
+                "niche": niche.name if niche else None, "niche_cues": niche.cues if niche else None,
+                "niche_how": niche_how, "affinity": 0.0, "clash": False, "avoid": []}
     A = affinity()
-    scores = [(A[(v.key, f"{cat.key}/{i}")], val) for i, val in enumerate(cat.values)]
-    best, niche = max(scores, key=lambda t: t[0])
-    i = cat.values.index(niche)
+    if i is None:
+        i = max(range(len(cat.values)), key=lambda j: A[(v.key, f"{cat.key}/{j}")])
+    niche, best = cat.values[i], A[(v.key, f"{cat.key}/{i}")]
     avoid = sorted(((A[(k, f"{cat.key}/{i}")], k) for k in VIBE_NAME if k != v.key), key=lambda t: t[0])
     return {"category": cat.key, "category_name": cat.name, "how": how, "niche": niche.name,
-            "niche_cues": niche.cues, "affinity": round(float(best), 2), "clash": bool(best < 0),
-            "avoid": [VIBE_NAME[k] for s, k in avoid if s <= -0.3][:6]}
+            "niche_cues": niche.cues, "niche_how": niche_how, "affinity": round(float(best), 2),
+            "clash": bool(best < 0), "avoid": [VIBE_NAME[k] for s, k in avoid if s <= -0.3][:6]}
 
 
 def ref_id(fam: str, id_: str) -> str:
@@ -125,6 +183,18 @@ MAX_TEXT_HEIGHT = 0.15  # one text box taller than 15% of the image = a headline
 # abstract art -0.060; the three known text-baked listing graphics from the Dew run scored -0.001..+0.017.
 # The pixel detector (lines/hmax) flagged ~80% of 3D renders, so CLIP is used whenever the worker provides it.
 CLIP_TEXT_T = -0.02
+TEXT_POS = ["a graphic with a large text headline", "a poster with big typography",
+            "a product listing image with a title banner", "a screenshot of a page full of text",
+            "a flyer with printed words"]
+TEXT_NEG = ["a 3d render with no text", "an illustration with no words", "an abstract artwork without any text",
+            "a photograph without any text", "a clean image with no lettering"]
+
+
+def clip_text_scores(enc, E):
+    """CLIP zero-shot 'contains text' score per image row of E (unit CLIP image embeddings); enc = the same CLIP's
+    text tower. Shared by worker.Engine and the serpman lab's compose bench, so both filter identically."""
+    P, N = enc(TEXT_POS), enc(TEXT_NEG)
+    return (E @ P.T).mean(1) - (E @ N.T).mean(1)
 
 
 def texty(reading) -> str | None:
@@ -175,7 +245,8 @@ FOLDER_MAX = 18
 def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id: str | None = None,
                 theme: str = "auto", resolve=None, text_lines=None, folder_sections: list | None = None,
                 sections_override: list[str] | None = None) -> tuple[dict, dict[str, Path]]:
-    """-> (brief, {ref_id: local file}). `sections_src` = section_plan.suggest(enc, full_query).
+    """-> (brief, {ref_id: local file}). `sections_src` = prompt_context(enc, full_query) (section_plan's category +
+    the request's niche scores; a bare section_plan.suggest dict still works and falls back to the family niche).
     text_lines(fam, id) (the worker passes the lab's ColorStore reading) enables the baked-in-text filter.
     folder_sections = route_engine.route(...)["in_family"]: the best images of each cluster folder of the routed
     family; they become `section` assets the composer places by cluster type."""
@@ -197,12 +268,27 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
     else:
         sections = sections_for(cat_key, split.get("must_sections") or [])
 
-    roles, derived, visuals, o_col = g.colour_roles(p["palette"]["swatches"], p["color_tokens"], theme)
-    f = o.get("fonts", {})
-    heading, body, italic, o_font = g.pick_fonts([s["name"] for s in f.get("shortlist", [])],
-                                                 [s["name"] for s in f.get("body_cands", [])],
-                                                 p["fonts"]["heading"]["family"], p["fonts"]["body"]["family"], v["cues"])
-    scale, o_scale = g.type_scale(p["fonts"]["tokens"], landing=True)
+    # Palette: at least two valid swatches, padded from the family's colour DNA, then neutrals.
+    hexok = lambda s: isinstance(s, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", s)  # noqa: E731
+    swatches = [s for s in ((p.get("palette") or {}).get("swatches") or []) if hexok(s)]
+    if len(swatches) < 2:
+        pad = [s for s in (p.get("family_dna") or []) if hexok(s)] + ["#FFFFFF", "#111111"]
+        over.append({"token": "palette", "from": len(swatches), "to": "padded",
+                     "why": "the lab returned fewer than 2 usable swatches; padded from the family DNA / neutrals"})
+        swatches = list(dict.fromkeys(swatches + pad))[:6]
+    roles, derived, visuals, o_col = g.colour_roles(swatches, p.get("color_tokens") or {}, theme)
+    # Fonts: the lab's pair when it produced one, else a safe serif/sans pair (logged).
+    f = o.get("fonts") or {}
+    lab_fonts = p.get("fonts") or {}
+    lab_head = (lab_fonts.get("heading") or {}).get("family") or "Fraunces"
+    lab_body = (lab_fonts.get("body") or {}).get("family") or "DM Sans"
+    if not lab_fonts:
+        over.append({"token": "fonts", "from": None, "to": f"{lab_head} / {lab_body}",
+                     "why": "the lab returned no font pair for this run; using a safe default pair"})
+    heading, body, italic, o_font = g.pick_fonts([s["name"] for s in f.get("shortlist", []) if "name" in s],
+                                                 [s["name"] for s in f.get("body_cands", []) if "name" in s],
+                                                 lab_head, lab_body, v.get("cues") or "")
+    scale, o_scale = g.type_scale(lab_fonts.get("tokens") or {}, landing=True)
     over += o_col + o_font + o_scale
 
     files: dict[str, Path] = {}
@@ -225,7 +311,7 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
         assets.append(item)
         files[rid] = local
 
-    add(p["layout"], "layout", "website", "layout reference: follow its structure, never copy its text")
+    add(p.get("layout"), "layout", "website", "layout reference: follow its structure, never copy its text")
     bg = p.get("background") or {}
     add(bg if bg.get("id") else None, "background", bg.get("cluster"), f"L0 background ({bg.get('approach')})")
     el = p.get("elements") or {}
@@ -249,16 +335,16 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
                  "vibe_query": split["vibe_query"][:300], "routed_family": fam,
                  "router": (p.get("router") or {}).get("version", "v1"), "pi_log": p.get("pi_log", []),
                  "lab_ms": int(o.get("ms", 0)), "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds")},
-        "taste": taste_block(cat_key, cat_name, how, fam),
+        "taste": taste_block(cat_key, cat_name, how, fam, (sections_src.get("niche_scores") or {}).get(cat_key)),
         "vibe": {"key": vibe.key if vibe else fam, "name": v["name"], "cues": v["cues"], "effect": v["effect"]},
         "tokens": {"color": {k: val for k, val in roles.items()}, "derived": derived, "type": scale,
-                   "contrast": g.contrast_report(roles), "palette": [s.upper() for s in p["palette"]["swatches"]],
-                   "family_dna": [s.upper() for s in p.get("family_dna", [])]},
+                   "contrast": g.contrast_report(roles), "palette": [s.upper() for s in swatches],
+                   "family_dna": [s.upper() for s in (p.get("family_dna") or []) if hexok(s)]},
         "fonts": {"heading": {"family": heading, "category": g.font_catalog().get(heading, {}).get("category", ""),
                               "color": "var(--text)", "google_css": g.google_css(heading, italic)},
                   "body": {"family": body, "category": g.font_catalog().get(body, {}).get("category", ""),
                            "color": "var(--text)", "google_css": g.google_css(body, False)},
-                  "pairing": {"lab": [p["fonts"]["heading"]["family"], p["fonts"]["body"]["family"]],
+                  "pairing": {"lab": [lab_head, lab_body],
                               "heading_italic": italic}},
         "typography": {**typography_roles(p.get("typography"), heading, body, italic, scale), "overrides": over,
                        "visuals": visuals},

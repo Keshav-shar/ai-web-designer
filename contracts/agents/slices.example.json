@@ -1,0 +1,550 @@
+{
+ "digest": {
+  "design_system": "Cyberpunk / synthwave landing",
+  "aesthetic_direction": "Cyberpunk / synthwave: Neon magenta and cyan, glitch effects, perspective grids, HUD frames. glitch text css",
+  "query_context": "neon synthwave music festival. Look: Cyberpunk / synthwave (Neon magenta and cyan, glitch effects, perspective grids, HUD frames).",
+  "palette": [
+   "Headline ink #FDEE05 (text): headlines and the wordmark",
+   "Label ink #B8AE27 (text): navigation and small labels",
+   "Body ink #FDEE05 (text): running text",
+   "Inverse ink #0A0A0F (text): text on the action fill",
+   "Muted accent #FE007F (muted accent): quiet accents",
+   "Second accent #00F0FE (muted accent): secondary decoration",
+   "Page ground #0A0A0F (background element): the page ground behind every section",
+   "Card surface #12023A (background element): card and panel surfaces",
+   "Primary accent #FE007F (overlay elements): decoration and highlights",
+   "Action fill #FE007F (overlay elements): buttons"
+  ],
+  "type": {
+   "wordmark": "Space Grotesk 700 · Sans Serif",
+   "display": "Space Grotesk 500 · Sans Serif",
+   "subheading": "Noto Serif Hentaigana 500 · Serif",
+   "accent": "Offside 400 · Display",
+   "body": "Noto Serif Hentaigana 400 · Serif"
+  },
+  "composition": {
+   "grid": "12-column centred container, 1200 px",
+   "permitted_overlaps": [],
+   "prohibited_overlaps": [
+    "decoration never sits on text or on the central graphic"
+   ]
+  }
+ },
+ "a1": {
+  "user_query": "neon synthwave music festival",
+  "vibe_query": "neon synthwave music festival",
+  "brand": null,
+  "audience": null,
+  "family": "cyberpunk-synthwave",
+  "niche": "Electronic / club",
+  "niche_cues": "neon, strobe motion, minimal info, tickets-first",
+  "avoid": [
+   "Clinical calm",
+   "Cottagecore / handmade",
+   "Institutional trust",
+   "Terminal-finance / data-dense",
+   "Civic / accessibility-first",
+   "Vintage print / apothecary"
+  ],
+  "vibe": {
+   "name": "Cyberpunk / synthwave",
+   "cues": "Neon magenta and cyan, glitch effects, perspective grids, HUD frames",
+   "effect": "glitch text css"
+  },
+  "measured": {
+   "alignment": "left",
+   "type_roles": {
+    "eyebrow": {
+     "size_token": "--fs-1",
+     "weight": 500,
+     "text_transform": "uppercase",
+     "letter_spacing": "0.1em"
+    },
+    "h1": {
+     "size_token": "--fs-8",
+     "weight": 500,
+     "text_transform": "none",
+     "letter_spacing": "-0.02em"
+    },
+    "h2": {
+     "size_token": "--fs-6",
+     "weight": 500,
+     "text_transform": "none",
+     "letter_spacing": "0em"
+    },
+    "h3": {
+     "size_token": "--fs-4",
+     "weight": 500,
+     "text_transform": "none",
+     "letter_spacing": "0em"
+    },
+    "body": {
+     "size_token": "--fs-1",
+     "weight": 400,
+     "text_transform": "none",
+     "letter_spacing": "0em"
+    },
+    "small": {
+     "size_token": "--fs-1",
+     "weight": 400,
+     "text_transform": "none",
+     "letter_spacing": "0em"
+    }
+   },
+   "lab_font_pair": {
+    "heading": "Space Grotesk",
+    "body": "Noto Serif Hentaigana"
+   }
+  },
+  "allowed_hexes": {
+   "#0A0A0F": "--bg",
+   "#12023A": "--surface",
+   "#FDEE05": "--text",
+   "#B8AE27": "--text-muted",
+   "#FE007F": "--accent",
+   "#00F0FE": "--accent-2",
+   "#302E48": "--border",
+   "#F95A7E": "--accent-hover",
+   "#0D0924": "--surface-2",
+   "#E49133": "measured from palette-image",
+   "#19181B": "measured from palette-image",
+   "#251940": "measured from palette-image",
+   "#ECEDEE": "measured from palette-image",
+   "#82878D": "measured from palette-image",
+   "#972F95": "measured from palette-image",
+   "#F6EF0B": "measured from palette-image",
+   "#FFFFFF": "measured from palette-image",
+   "#000000": "measured from palette-image"
+  },
+  "font_pool": {
+   "Space Grotesk": {
+    "source": "lab heading face",
+    "category": "Sans Serif",
+    "weights": [
+     300,
+     400,
+     500,
+     600,
+     700
+    ],
+    "italic": false,
+    "tags": [
+     "neo grotesque",
+     "techno",
+     "grotesque",
+     "vintage",
+     "awkward"
+    ]
+   },
+   "Noto Serif Hentaigana": {
+    "source": "lab body face",
+    "category": "Serif",
+    "weights": [
+     200,
+     300,
+     400,
+     500,
+     600,
+     700,
+     800,
+     900
+    ],
+    "italic": false,
+    "tags": [
+     "brush",
+     "rugged",
+     "vintage"
+    ]
+   },
+   "Changa": {
+    "source": "buffer",
+    "category": "Sans Serif",
+    "weights": [
+     200,
+     300,
+     400,
+     500,
+     600,
+     700,
+     800
+    ],
+    "italic": false,
+    "tags": [
+     "superellipse",
+     "techno",
+     "vintage",
+     "awkward",
+     "geometric"
+    ]
+   },
+   "Offside": {
+    "source": "buffer",
+    "category": "Display",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "tags": [
+     "superellipse",
+     "techno",
+     "futuristic",
+     "stiff",
+     "rugged"
+    ]
+   },
+   "Ubuntu Mono": {
+    "source": "buffer",
+    "category": "Monospace",
+    "weights": [
+     400,
+     700
+    ],
+    "italic": true,
+    "tags": [
+     "monospace",
+     "neo grotesque",
+     "futuristic",
+     "calm",
+     "rugged"
+    ]
+   },
+   "Rokkitt": {
+    "source": "buffer",
+    "category": "Serif",
+    "weights": [
+     100,
+     200,
+     300,
+     400,
+     500,
+     600,
+     700,
+     800,
+     900
+    ],
+    "italic": true,
+    "tags": [
+     "geometric"
+    ]
+   },
+   "Syncopate": {
+    "source": "buffer",
+    "category": "Sans Serif",
+    "weights": [
+     400,
+     700
+    ],
+    "italic": false,
+    "tags": [
+     "futuristic",
+     "geometric",
+     "awkward",
+     "humanist",
+     "rugged"
+    ]
+   },
+   "Goldman": {
+    "source": "buffer",
+    "category": "Display",
+    "weights": [
+     400,
+     700
+    ],
+    "italic": false,
+    "tags": [
+     "techno",
+     "superellipse",
+     "rugged",
+     "futuristic",
+     "stiff"
+    ]
+   },
+   "Ubuntu Sans Mono": {
+    "source": "buffer",
+    "category": "Monospace",
+    "weights": [
+     400,
+     500,
+     600,
+     700
+    ],
+    "italic": true,
+    "tags": [
+     "monospace",
+     "neo grotesque",
+     "vintage",
+     "loud"
+    ]
+   },
+   "Ancizar Serif": {
+    "source": "buffer",
+    "category": "Serif",
+    "weights": [
+     300,
+     400,
+     500,
+     600,
+     700,
+     800,
+     900
+    ],
+    "italic": true,
+    "tags": [
+     "humanist venetian"
+    ]
+   },
+   "Zeyada": {
+    "source": "buffer",
+    "category": "Handwriting",
+    "weights": [
+     400
+    ],
+    "italic": false,
+    "tags": [
+     "informal",
+     "artistic",
+     "awkward",
+     "vintage",
+     "playful"
+    ]
+   }
+  },
+  "page_assets": {
+   "central_graphic_available": true,
+   "background_image_available": true
+  },
+  "image_roles": {
+   "background": {
+    "image": "background-image",
+    "label": "BACKGROUND_REF",
+    "position": 1,
+    "present": true,
+    "cluster": "abstract art",
+    "baked_in_text": true,
+    "use": "backdrop reference: decide exact_adapt vs nuance_extract; never copy its subjects"
+   },
+   "layout": {
+    "image": "layout-image",
+    "label": "LAYOUT_REF",
+    "position": 2,
+    "present": true,
+    "cluster": "website",
+    "baked_in_text": true,
+    "use": "a website screenshot: read only its structure (nav, hero arrangement, grid, cards), never its text or colours"
+   },
+   "palette": {
+    "image": "palette-image",
+    "label": "PALETTE_REF",
+    "position": 3,
+    "present": true,
+    "cluster": "palette + abstract art",
+    "baked_in_text": false,
+    "use": "the colour source: allowed_hexes were measured from it; use it to judge which hex fits which role"
+   },
+   "elements": {
+    "image": "elements-image",
+    "label": "ELEMENTS_REF",
+    "position": 4,
+    "present": true,
+    "cluster": "illustration + abstract art",
+    "baked_in_text": false,
+    "use": "the primary central graphic: motifs, shapes and rhythm for design_elements"
+   },
+   "typography": {
+    "image": "typography-image",
+    "label": "TYPOGRAPHY_REF",
+    "position": 5,
+    "present": true,
+    "cluster": "type specimen",
+    "baked_in_text": true,
+    "use": "the family's type-specimen sheet: hierarchy, case, tracking, weight contrast (the font_pool lists its faces)"
+   }
+  }
+ },
+ "a2": {
+  "content_sections": [
+   {
+    "section_id": "nav",
+    "role": "nav",
+    "where": "top bar",
+    "what": [
+     "wordmark",
+     "links",
+     "action"
+    ]
+   },
+   {
+    "section_id": "hero",
+    "role": "hero",
+    "where": "first screen",
+    "what": [
+     "eyebrow",
+     "headline",
+     "supporting line",
+     "action",
+     "the central graphic"
+    ]
+   },
+   {
+    "section_id": "intro",
+    "role": "intro",
+    "where": "below the hero, centred",
+    "what": [
+     "statement heading",
+     "short paragraph"
+    ]
+   },
+   {
+    "section_id": "cards",
+    "role": "cards",
+    "where": "lower band",
+    "what": [
+     "3 strategic cards"
+    ]
+   }
+  ],
+  "centerpiece": {
+   "use": true,
+   "description": "Cyberpunk / synthwave artwork",
+   "where": "beside the hero text"
+  },
+  "background_layer": {
+   "use_background_image": false,
+   "treatment": "none",
+   "rendered_abstract": false,
+   "base_surface": "Cyberpunk / synthwave surface from the family palette",
+   "elements": [
+    {
+     "id": "bg-ground",
+     "what": "Page ground ground with perspective_grid, radial_glow",
+     "where": "the whole page, fixed behind everything"
+    },
+    {
+     "id": "bg-glow",
+     "what": "a soft radial glow in Primary accent",
+     "where": "behind the hero, upper right"
+    }
+   ]
+  },
+  "midground_decor": [
+   {
+    "id": "decor-1",
+    "what": "perspective grid: perspective grid; Neon magenta and cyan, glitch effects, perspective grids, HUD frames",
+    "where": "behind the hero image"
+   }
+  ],
+  "foreground_overlays": [],
+  "layout_hints": {
+   "nav": "bar_left_logo",
+   "hero": "split_left_text",
+   "intro": "centered_statement",
+   "cards": "grid3",
+   "density": "balanced",
+   "notes": "measured alignment: left"
+  },
+  "strategic_cards": 3,
+  "canvas": "desktop 1440 px wide, content about 1200 px, 12 columns; one column under 1024 px"
+ },
+ "a3": {
+  "brand": null,
+  "audience": null,
+  "niche": "Electronic / club",
+  "sections": [
+   {
+    "section_id": "nav",
+    "role": "nav",
+    "what": [
+     "wordmark",
+     "links",
+     "action"
+    ],
+    "layout": "one row: wordmark left, links and the action right"
+   },
+   {
+    "section_id": "hero",
+    "role": "hero",
+    "what": [
+     "eyebrow",
+     "headline",
+     "supporting line",
+     "action",
+     "the central graphic"
+    ],
+    "layout": "12 columns: the text block in cols 1-6, the central graphic in cols 7-12, centred vertically"
+   },
+   {
+    "section_id": "intro",
+    "role": "intro",
+    "what": [
+     "statement heading",
+     "short paragraph"
+    ],
+    "layout": "centred column, max-width 760px"
+   },
+   {
+    "section_id": "cards",
+    "role": "cards",
+    "what": [
+     "3 strategic cards"
+    ],
+    "layout": "a 12-column grid of equal cards"
+   }
+  ],
+  "cards": [
+   {
+    "card_id": "card_1",
+    "heading": "The new record"
+   },
+   {
+    "card_id": "card_2",
+    "heading": "On tour"
+   },
+   {
+    "card_id": "card_3",
+    "heading": "Merch and vinyl"
+   }
+  ],
+  "has_centerpiece": true
+ },
+ "a4": {
+  "decor_elements": [
+   {
+    "element_id": "bg-ground",
+    "z": 0,
+    "what": "Page ground ground with perspective_grid, radial_glow",
+    "where": "the whole page, fixed behind everything",
+    "placement": "the whole page, fixed behind everything",
+    "anchor": "hero"
+   },
+   {
+    "element_id": "bg-glow",
+    "z": 0,
+    "what": "a soft radial glow in Primary accent",
+    "where": "behind the hero, upper right",
+    "placement": "behind the hero, upper right",
+    "anchor": "hero"
+   },
+   {
+    "element_id": "decor-1",
+    "z": 5,
+    "what": "perspective grid: perspective grid; Neon magenta and cyan, glitch effects, perspective grids, HUD frames",
+    "where": "behind the hero image",
+    "placement": "behind the hero image",
+    "anchor": "hero"
+   }
+  ],
+  "palette_vars": [
+   "var(--c-headline-ink) = Headline ink #FDEE05",
+   "var(--c-label-ink) = Label ink #B8AE27",
+   "var(--c-body-ink) = Body ink #FDEE05",
+   "var(--c-inverse-ink) = Inverse ink #0A0A0F",
+   "var(--c-muted-accent) = Muted accent #FE007F",
+   "var(--c-second-accent) = Second accent #00F0FE",
+   "var(--c-page-ground) = Page ground #0A0A0F",
+   "var(--c-card-surface) = Card surface #12023A",
+   "var(--c-primary-accent) = Primary accent #FE007F",
+   "var(--c-action-fill) = Action fill #FE007F"
+  ],
+  "limits": "one asset per element; svg up to ~2500 characters each, viewBox-based; colours only from palette_vars (or their hexes); no text that repeats the page copy"
+ }
+}

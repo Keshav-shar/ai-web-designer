@@ -26,24 +26,24 @@ export function SiteMockup({ src, label, poster }: { src: string; label: string;
   const left = mode === "phone" ? Math.max(0, (w - v.w * scale) / 2) : 0;
 
   return (
-    <div className="glass overflow-hidden" style={{ padding: 0 }}>
-      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+    <div className="card overflow-hidden">
+      <div className="flex items-center gap-3 border-b-2 border-line bg-parch px-4 py-3">
         <span aria-hidden="true" className="flex gap-1.5">
-          <i className="h-3 w-3 rounded-full bg-v1" /><i className="h-3 w-3 rounded-full bg-v2" /><i className="h-3 w-3 rounded-full bg-v4" />
+          <i className="h-3 w-3 rounded-full bg-gold" /><i className="h-3 w-3 rounded-full bg-rust" /><i className="h-3 w-3 rounded-full bg-teal" />
         </span>
-        <span className="min-w-0 flex-1 truncate rounded-full border border-line bg-surface/60 px-4 py-1 text-center text-[13px] text-muted">
+        <span className="min-w-0 flex-1 truncate rounded-full border-2 border-line bg-cream px-4 py-1 text-center text-[0.8rem] text-muted">
           {label}
         </span>
-        <div role="group" aria-label="Viewport" className="flex rounded-full border border-line p-0.5 text-[13px]">
+        <div role="group" aria-label="Viewport" className="flex rounded-full border-2 border-line bg-cream p-0.5 font-ui text-[0.7rem] font-bold uppercase tracking-[0.1em]">
           {(Object.keys(VIEW) as (keyof typeof VIEW)[]).map((m) => (
             <button key={m} type="button" onClick={() => { setMode(m); }} aria-pressed={mode === m}
-              className={cx("rounded-full px-3 py-1 capitalize", mode === m ? "bg-accent text-on-accent" : "text-muted hover:text-ink")}>
+              className={cx("rounded-full px-3 py-1", mode === m ? "bg-charcoal text-cream" : "text-muted hover:text-charcoal")}>
               {m}
             </button>
           ))}
         </div>
       </div>
-      <div ref={box} className="relative overflow-hidden bg-surface/40" style={{ height: v.h }}>
+      <div ref={box} className="relative overflow-hidden bg-linen" style={{ height: v.h }}>
         {poster && !loaded && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={poster} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-top opacity-80" />

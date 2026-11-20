@@ -1,74 +1,55 @@
 @import "tailwindcss";
-@import "./theme/tokens.css";
-/* the same component classes every engine-composed site uses (copied from contracts/site-components.css) */
-@import "./theme/site-components.css" layer(components);
-/* the About page is engine-composed HTML: let Tailwind see its classes */
-@source "../content/about.generated.ts";
+/* Cosmogon Labs design system (hand-designed): tokens, type, buttons, cards, print furniture, floating decor.
+   The engine's generated theme (theme/tokens.css, theme/site-components.css, written by tools/build_shell.py) is
+   kept for engine demos but no longer skins the app. */
+@import "./theme/cosmogon.css" layer(components);
 
-/* Everything visual comes from one engine run (tools/build_shell.py on a dreamy ethereal query):
-   app/theme/tokens.css + app/fonts.ts. Rebuild the shell and the whole app re-skins. */
 @theme inline {
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-ink: var(--text);
-  --color-muted: var(--text-muted);
-  --color-accent: var(--accent);
-  --color-accent-soft: var(--accent-soft);
-  --color-on-accent: var(--on-accent);
-  --color-line: var(--border);
-  --color-v1: var(--visual-1);
-  --color-v2: var(--visual-2);
-  --color-v3: var(--visual-3);
-  --color-v4: var(--visual-4);
-  --font-heading: var(--nf-heading), ui-serif, Georgia, serif;
-  --font-body: var(--nf-body), ui-sans-serif, system-ui, sans-serif;
-  --text-step-1: var(--fs-1);
-  --text-step-2: var(--fs-2);
-  --text-step-3: var(--fs-3);
-  --text-step-4: var(--fs-4);
-  --text-step-5: var(--fs-5);
-  --text-step-6: var(--fs-6);
-  --text-step-7: var(--fs-7);
-  --text-step-8: var(--fs-8);
+  --color-linen: var(--linen);
+  --color-cream: var(--cream);
+  --color-parch: var(--parch);
+  --color-charcoal: var(--charcoal);
+  --color-espresso: var(--espresso);
+  --color-muted: var(--muted);
+  --color-sienna: var(--sienna);
+  --color-coral: var(--coral);
+  --color-cta: var(--cta);
+  --color-rust: var(--rust);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-cerulean: var(--cerulean);
+  --color-teal: var(--teal);
+  --color-teal-ink: var(--teal-ink);
+  --color-avocado: var(--avocado);
+  --color-avocado-ink: var(--avocado-ink);
+  --color-chocolate: var(--chocolate);
+  --color-line: var(--hairline);
+  --color-rule: var(--rule);
+  --color-ink: var(--charcoal);
+  --font-display: var(--display);
+  --font-ui: var(--ui);
+  --font-body: var(--body);
+  --font-script: var(--script);
 }
 
 @layer base {
-  html { scroll-behavior: smooth; background: var(--bg); }
+  html { scroll-behavior: smooth; background: var(--linen); }
   body {
     min-height: 100dvh;
-    background: transparent;
-    color: var(--text);
-    font-family: var(--nf-body), ui-sans-serif, system-ui, sans-serif;
-    font-size: var(--fs-1);
-    line-height: var(--lh-body);
+    background: var(--linen);
+    color: var(--espresso);
+    font-family: var(--body);
+    font-size: 1rem;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
-  h1, h2, h3 {
-    font-family: var(--nf-heading), ui-serif, Georgia, serif;
-    line-height: var(--lh-heading);
-    letter-spacing: var(--tracking-display);
-    font-weight: 500;
-    text-wrap: balance;
-  }
-  h1, h2 { font-style: var(--heading-style); }
+  h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
   p { text-wrap: pretty; }
-  ::selection { background: var(--accent-soft); color: var(--text); }
-  :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; border-radius: 8px; }
+  ::selection { background: var(--gold-light); color: var(--charcoal); }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
 }
-
-@layer components {
-  .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
-  .display { font-style: var(--heading-style); }
-  .shimmer { background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--visual-1) 70%, transparent), transparent);
-             background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
-}
-
-@keyframes drift-a { from { transform: translate3d(-6%, -4%, 0) scale(1); } to { transform: translate3d(6%, 5%, 0) scale(1.12); } }
-@keyframes drift-b { from { transform: translate3d(5%, 3%, 0) scale(1.1); } to { transform: translate3d(-5%, -6%, 0) scale(.95); } }
-@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
   html { scroll-behavior: auto; }
 }

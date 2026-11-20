@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlanetGlyph } from "@/components/cosmos";
 import { usernameOf } from "@/lib/auth/username";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -15,28 +16,30 @@ export async function SiteNav() {
       signedIn = false;
     }
   }
-  const link = "whitespace-nowrap rounded-full px-2 py-2 hover:text-ink sm:px-3";
+  const link = "whitespace-nowrap no-underline transition-colors hover:text-sienna";
   return (
-    <header className="sticky top-0 z-40 pt-4">
-      <nav aria-label="Main" className="container-x glass flex items-center justify-between gap-2 rounded-full py-2 pl-5 pr-2 sm:gap-4">
-        <Link href="/" className="display whitespace-nowrap font-heading text-step-2 text-ink sm:text-step-3">
-          serpman <span className="hidden text-accent sm:inline">studio</span>
+    <header className="relative z-30">
+      {/* phones: wordmark + account on one row, links on a second; wider: one row */}
+      <nav aria-label="Main" className="container-x flex min-h-[88px] flex-wrap items-center justify-between gap-x-3 gap-y-3 py-4 sm:gap-x-8">
+        <Link href="/" className="flex items-center gap-2 no-underline sm:gap-2.5" aria-label="Cosmogon Labs, home">
+          <PlanetGlyph className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+          <span className="wordmark text-[1.2rem] min-[400px]:text-[1.4rem] sm:text-[1.75rem]">Cosmogon Labs</span>
         </Link>
-        <ul className="flex items-center gap-0.5 text-[15px] text-muted sm:gap-2">
+        <ul className="order-last flex w-full items-center justify-between gap-x-6 border-t border-dashed pt-3 font-ui text-[0.75rem] font-bold uppercase tracking-[0.12em] text-charcoal sm:order-none sm:ml-auto sm:w-auto sm:justify-end sm:border-0 sm:pt-0 sm:text-[0.8rem]"
+          style={{ borderColor: "var(--rule)" }}>
           <li><Link className={link} href="/">Studio</Link></li>
           {signedIn && <li><Link className={link} href="/sites">Sites</Link></li>}
           <li><Link className={link} href="/about">About</Link></li>
-          {signedIn && username && <li className="hidden px-2 text-ink md:block" title="signed in">{username}</li>}
-          <li>
-            {signedIn ? (
-              <form action="/auth/signout" method="post">
-                <button className="btn btn-ghost whitespace-nowrap px-3 py-2 sm:px-4" type="submit">Sign out</button>
-              </form>
-            ) : (
-              <Link className="btn btn-primary whitespace-nowrap px-3 py-2 sm:px-4" href="/login">Sign in</Link>
-            )}
-          </li>
+          <li><Link className={link} href="/evidence">Evidence</Link></li>
+          {signedIn && username && <li className="hidden normal-case tracking-normal text-muted lg:block" title="signed in">@{username}</li>}
         </ul>
+        {signedIn ? (
+          <form action="/auth/signout" method="post">
+            <button className="btn btn-ghost btn-sm" type="submit">Sign out</button>
+          </form>
+        ) : (
+          <Link className="btn btn-primary btn-sm" href="/login">Sign in</Link>
+        )}
       </nav>
     </header>
   );

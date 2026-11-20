@@ -154,6 +154,12 @@
             "null"
           ]
         },
+        "niche_how": {
+          "enum": [
+            "prompt",
+            "family"
+          ]
+        },
         "affinity": {
           "type": "number",
           "minimum": -1,

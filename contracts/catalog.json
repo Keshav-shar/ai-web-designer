@@ -297,35 +297,76 @@
    "niches": [
     {
      "name": "Dreamy fintech",
-     "cues": "pastel gradients, soft serif, floating cards, calm copy"
+     "cues": "pastel gradients, soft serif, floating cards, calm copy",
+     "words": [
+      "dreamy",
+      "fintech"
+     ],
+     "vibe": "dreamy"
     },
     {
      "name": "Neobank playful",
-     "cues": "rounded type, bright candy colors, emoji-friendly microcopy"
+     "cues": "rounded type, bright candy colors, emoji-friendly microcopy",
+     "words": [
+      "neobank",
+      "playful"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "Private banking quiet luxury",
-     "cues": "monochrome, thin serif, invitation-only tone"
+     "cues": "monochrome, thin serif, invitation-only tone",
+     "words": [
+      "banking",
+      "luxury",
+      "private",
+      "quiet"
+     ],
+     "vibe": "luxury"
     },
     {
      "name": "Trading terminal",
-     "cues": "Bloomberg-style density, amber/black, keyboard shortcuts"
+     "cues": "Bloomberg-style density, amber/black, keyboard shortcuts",
+     "words": [
+      "terminal",
+      "trading"
+     ],
+     "vibe": "termfin"
     },
     {
      "name": "DeFi hacker",
-     "cues": "mono type, on-chain data feeds, neon accents"
+     "cues": "mono type, on-chain data feeds, neon accents",
+     "words": [
+      "defi",
+      "hacker"
+     ],
+     "vibe": "hacker"
     },
     {
      "name": "Web3 maximalist",
-     "cues": "holographic gradients, NFT-style cards, sticker overload"
+     "cues": "holographic gradients, NFT-style cards, sticker overload",
+     "words": [
+      "maximalist"
+     ],
+     "vibe": "maximal"
     },
     {
      "name": "Institutional trust",
-     "cues": "navy, serif, compliance-forward"
+     "cues": "navy, serif, compliance-forward",
+     "words": [
+      "institutional",
+      "trust"
+     ],
+     "vibe": "institutional"
     },
     {
      "name": "Insurtech friendly",
-     "cues": "warm illustrations, plain-language reassurance"
+     "cues": "warm illustrations, plain-language reassurance",
+     "words": [
+      "friendly",
+      "insurtech"
+     ],
+     "vibe": "playful"
     }
    ]
   },
@@ -349,35 +390,75 @@
    "niches": [
     {
      "name": "Hacker / terminal devtool",
-     "cues": "CLI demos, mono type, green on black"
+     "cues": "CLI demos, mono type, green on black",
+     "words": [
+      "devtool",
+      "hacker",
+      "terminal"
+     ],
+     "vibe": "hacker"
     },
     {
      "name": "Linear-style B2B SaaS",
-     "cues": "dark, precise, subtle glow"
+     "cues": "dark, precise, subtle glow",
+     "words": [
+      "linear",
+      "saas"
+     ],
+     "vibe": "linear"
     },
     {
      "name": "AI dreamy / ethereal",
-     "cues": "soft aurora gradients, slow motion, serif italics"
+     "cues": "soft aurora gradients, slow motion, serif italics",
+     "words": [
+      "dreamy",
+      "ethereal"
+     ],
+     "vibe": "dreamy"
     },
     {
      "name": "AI lab research",
-     "cues": "editorial, paper-like, arXiv-adjacent"
+     "cues": "editorial, paper-like, arXiv-adjacent",
+     "words": [
+      "research"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Open-source brutalist",
-     "cues": "raw, link-heavy, GitHub-native"
+     "cues": "raw, link-heavy, GitHub-native",
+     "words": [
+      "brutalist",
+      "open",
+      "source"
+     ],
+     "vibe": "brutal"
     },
     {
      "name": "Cybersecurity HUD",
-     "cues": "threat maps, red alerts, dark panels"
+     "cues": "threat maps, red alerts, dark panels",
+     "words": [
+      "cybersecurity"
+     ],
+     "vibe": "military"
     },
     {
      "name": "Playful productivity",
-     "cues": "bouncy UI, mascots, bright color blocking"
+     "cues": "bouncy UI, mascots, bright color blocking",
+     "words": [
+      "playful",
+      "productivity"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "Enterprise corporate",
-     "cues": "structured, blue, long-form trust content"
+     "cues": "structured, blue, long-form trust content",
+     "words": [
+      "corporate",
+      "enterprise"
+     ],
+     "vibe": "institutional"
     }
    ]
   },
@@ -410,43 +491,97 @@
    "niches": [
     {
      "name": "Modern rock band",
-     "cues": "high-contrast tour photography, condensed type, grain"
+     "cues": "high-contrast tour photography, condensed type, grain",
+     "words": [
+      "band",
+      "modern",
+      "rock"
+     ],
+     "vibe": "rock"
     },
     {
      "name": "Punk / indie zine",
-     "cues": "photocopy texture, torn edges, hand-lettering"
+     "cues": "photocopy texture, torn edges, hand-lettering",
+     "words": [
+      "indie",
+      "punk",
+      "zine"
+     ],
+     "vibe": "punk"
     },
     {
      "name": "Metal / gothic",
-     "cues": "blackletter, deep red, ornate"
+     "cues": "blackletter, deep red, ornate",
+     "words": [
+      "gothic",
+      "metal"
+     ],
+     "vibe": "gothic"
     },
     {
      "name": "Electronic / club",
-     "cues": "neon, strobe motion, minimal info, tickets-first"
+     "cues": "neon, strobe motion, minimal info, tickets-first",
+     "words": [
+      "club",
+      "electronic"
+     ],
+     "vibe": "cyber"
     },
     {
      "name": "Hip-hop / streetwear drop",
-     "cues": "oversized type, monochrome, countdown"
+     "cues": "oversized type, monochrome, countdown",
+     "words": [
+      "drop",
+      "streetwear"
+     ],
+     "vibe": "streetwear"
     },
     {
      "name": "Jazz / lounge noir",
-     "cues": "low-light photography, serif, warm amber"
+     "cues": "low-light photography, serif, warm amber",
+     "words": [
+      "jazz",
+      "lounge",
+      "noir"
+     ],
+     "vibe": "cinematic"
     },
     {
      "name": "K-pop / J-pop fandom",
-     "cues": "pastel or neon, stickers, member cards"
+     "cues": "pastel or neon, stickers, member cards",
+     "words": [
+      "fandom"
+     ],
+     "vibe": "kawaii"
     },
     {
      "name": "Festival maximalist",
-     "cues": "collage, bold color, lineup posters"
+     "cues": "collage, bold color, lineup posters",
+     "words": [
+      "festival",
+      "maximalist"
+     ],
+     "vibe": "maximal"
     },
     {
      "name": "Record label editorial",
-     "cues": "Swiss grid, catalog numbers"
+     "cues": "Swiss grid, catalog numbers",
+     "words": [
+      "editorial",
+      "label",
+      "record"
+     ],
+     "vibe": "swiss"
     },
     {
      "name": "Film and streaming cinematic",
-     "cues": "full-bleed trailers, letterboxing"
+     "cues": "full-bleed trailers, letterboxing",
+     "words": [
+      "cinematic",
+      "film",
+      "streaming"
+     ],
+     "vibe": "cinematic"
     }
    ]
   },
@@ -468,35 +603,73 @@
    "niches": [
     {
      "name": "Quiet luxury maison",
-     "cues": "whitespace, thin serif, slow transitions"
+     "cues": "whitespace, thin serif, slow transitions",
+     "words": [
+      "luxury",
+      "maison",
+      "quiet"
+     ],
+     "vibe": "luxury"
     },
     {
      "name": "Streetwear",
-     "cues": "drop culture, stark black and white"
+     "cues": "drop culture, stark black and white",
+     "words": [
+      "streetwear"
+     ],
+     "vibe": "streetwear"
     },
     {
      "name": "Editorial fashion",
-     "cues": "magazine grid, oversized serifs"
+     "cues": "magazine grid, oversized serifs",
+     "words": [
+      "editorial",
+      "fashion"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Y2K revival",
-     "cues": "chrome, glitter, glossy bubbles"
+     "cues": "chrome, glitter, glossy bubbles",
+     "words": [
+      "revival"
+     ],
+     "vibe": "y2k"
     },
     {
      "name": "Clean beauty",
-     "cues": "soft neutrals, dewy photography, ingredient transparency"
+     "cues": "soft neutrals, dewy photography, ingredient transparency",
+     "words": [
+      "beauty",
+      "clean"
+     ],
+     "vibe": "luxury"
     },
     {
      "name": "Cottagecore boutique",
-     "cues": "hand-drawn, floral, craft paper"
+     "cues": "hand-drawn, floral, craft paper",
+     "words": [
+      "boutique",
+      "cottagecore"
+     ],
+     "vibe": "cottage"
     },
     {
      "name": "Sustainable fashion",
-     "cues": "organic textures, earth tones, impact stats"
+     "cues": "organic textures, earth tones, impact stats",
+     "words": [
+      "fashion",
+      "sustainable"
+     ],
+     "vibe": "organic"
     },
     {
      "name": "Jewelry",
-     "cues": "macro photography, dark velvet backgrounds, gold accents"
+     "cues": "macro photography, dark velvet backgrounds, gold accents",
+     "words": [
+      "jewelry"
+     ],
+     "vibe": "luxury"
     }
    ]
   },
@@ -527,43 +700,95 @@
    "niches": [
     {
      "name": "Craft coffee",
-     "cues": "minimal, kraft paper, mono labels"
+     "cues": "minimal, kraft paper, mono labels",
+     "words": [
+      "coffee",
+      "craft"
+     ],
+     "vibe": "organic"
     },
     {
      "name": "Whiskey / speakeasy",
-     "cues": "vintage print, dark wood, ornamental rules"
+     "cues": "vintage print, dark wood, ornamental rules",
+     "words": [
+      "speakeasy",
+      "whiskey"
+     ],
+     "vibe": "vintage"
     },
     {
      "name": "Natural wine / bar",
-     "cues": "hand-drawn, loud color, playful type"
+     "cues": "hand-drawn, loud color, playful type",
+     "words": [
+      "natural",
+      "wine"
+     ],
+     "vibe": "maximal"
     },
     {
      "name": "Fine dining",
-     "cues": "quiet luxury, cinematic food photography"
+     "cues": "quiet luxury, cinematic food photography",
+     "words": [
+      "dining",
+      "fine"
+     ],
+     "vibe": "luxury"
     },
     {
      "name": "Bakery / cottagecore",
-     "cues": "warm cream, script fonts, handmade feel"
+     "cues": "warm cream, script fonts, handmade feel",
+     "words": [
+      "bakery",
+      "cottagecore"
+     ],
+     "vibe": "cottage"
     },
     {
      "name": "Street food / cloud kitchen",
-     "cues": "bold, bright, sticker-style"
+     "cues": "bold, bright, sticker-style",
+     "words": [
+      "cloud",
+      "food",
+      "kitchen",
+      "street"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "Boutique hotel",
-     "cues": "editorial, slow scroll, sensory copy"
+     "cues": "editorial, slow scroll, sensory copy",
+     "words": [
+      "boutique",
+      "hotel"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Retro diner",
-     "cues": "50s-70s type, checkerboards, neon signs"
+     "cues": "50s-70s type, checkerboards, neon signs",
+     "words": [
+      "diner",
+      "retro"
+     ],
+     "vibe": "retro70"
     },
     {
      "name": "Brewery",
-     "cues": "hand-lettered labels, industrial-craft hybrid"
+     "cues": "hand-lettered labels, industrial-craft hybrid",
+     "words": [
+      "brewery"
+     ],
+     "vibe": "vintage"
     },
     {
      "name": "Tea ceremony / wabi-sabi",
-     "cues": "asymmetry, muted earth, stillness"
+     "cues": "asymmetry, muted earth, stillness",
+     "words": [
+      "ceremony",
+      "sabi",
+      "wabi"
+     ],
+     "vibe": "wabi"
     }
    ]
   },
@@ -594,35 +819,79 @@
    "niches": [
     {
      "name": "Clinical calm",
-     "cues": "blues and greens, large type, reassurance"
+     "cues": "blues and greens, large type, reassurance",
+     "words": [
+      "calm",
+      "clinical"
+     ],
+     "vibe": "clinical"
     },
     {
      "name": "Mental health soft",
-     "cues": "pastel gradients, rounded shapes, gentle motion"
+     "cues": "pastel gradients, rounded shapes, gentle motion",
+     "words": [
+      "health",
+      "mental",
+      "soft"
+     ],
+     "vibe": "dreamy"
     },
     {
      "name": "Longevity / biohacking",
-     "cues": "dark lab aesthetic, data overlays, biopunk"
+     "cues": "dark lab aesthetic, data overlays, biopunk",
+     "words": [
+      "biohacking",
+      "longevity"
+     ],
+     "vibe": "biopunk"
     },
     {
      "name": "Yoga / meditation ethereal",
-     "cues": "dreamy, breathing animations, whitespace"
+     "cues": "dreamy, breathing animations, whitespace",
+     "words": [
+      "ethereal",
+      "meditation",
+      "yoga"
+     ],
+     "vibe": "dreamy"
     },
     {
      "name": "Pediatric / kids health",
-     "cues": "bright, friendly mascots, large buttons"
+     "cues": "bright, friendly mascots, large buttons",
+     "words": [
+      "health",
+      "kids",
+      "pediatric"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "Biotech editorial",
-     "cues": "scientific illustration, molecular visuals"
+     "cues": "scientific illustration, molecular visuals",
+     "words": [
+      "biotech",
+      "editorial"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Fitness high-energy",
-     "cues": "italic condensed, motion, progress rings"
+     "cues": "italic condensed, motion, progress rings",
+     "words": [
+      "energy",
+      "fitness",
+      "high"
+     ],
+     "vibe": "sports"
     },
     {
      "name": "Pharma institutional",
-     "cues": "structured, compliance-heavy, accessible"
+     "cues": "structured, compliance-heavy, accessible",
+     "words": [
+      "institutional",
+      "pharma"
+     ],
+     "vibe": "institutional"
     }
    ]
   },
@@ -644,31 +913,68 @@
    "niches": [
     {
      "name": "Architecture Swiss / brutalist",
-     "cues": "raw grid, concrete tones, mono labels"
+     "cues": "raw grid, concrete tones, mono labels",
+     "words": [
+      "architecture",
+      "brutalist",
+      "swiss"
+     ],
+     "vibe": "swiss"
     },
     {
      "name": "Luxury real estate",
-     "cues": "cinematic video, quiet serif, discreet CTAs"
+     "cues": "cinematic video, quiet serif, discreet CTAs",
+     "words": [
+      "estate",
+      "luxury",
+      "real"
+     ],
+     "vibe": "luxury"
     },
     {
      "name": "Proptech modern",
-     "cues": "map-first, clean cards, friendly sans"
+     "cues": "map-first, clean cards, friendly sans",
+     "words": [
+      "modern",
+      "proptech"
+     ],
+     "vibe": "bento"
     },
     {
      "name": "Interior design Scandinavian",
-     "cues": "light wood tones, soft neutrals"
+     "cues": "light wood tones, soft neutrals",
+     "words": [
+      "interior",
+      "scandinavian"
+     ],
+     "vibe": "scandi"
     },
     {
      "name": "Mid-century / retro design",
-     "cues": "mustard, teal, geometric"
+     "cues": "mustard, teal, geometric",
+     "words": [
+      "century",
+      "retro"
+     ],
+     "vibe": "scandi"
     },
     {
      "name": "Construction industrial",
-     "cues": "blueprint cues, safety orange"
+     "cues": "blueprint cues, safety orange",
+     "words": [
+      "construction",
+      "industrial"
+     ],
+     "vibe": "blueprint"
     },
     {
      "name": "Furniture studio",
-     "cues": "large product photography, bento tiles"
+     "cues": "large product photography, bento tiles",
+     "words": [
+      "furniture",
+      "studio"
+     ],
+     "vibe": "bento"
     }
    ]
   },
@@ -695,31 +1001,70 @@
    "niches": [
     {
      "name": "Kids / early learning",
-     "cues": "claymorphism, mascots, primary colors"
+     "cues": "claymorphism, mascots, primary colors",
+     "words": [
+      "early",
+      "kids",
+      "learning"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "University editorial",
-     "cues": "institutional serif, long-form stories"
+     "cues": "institutional serif, long-form stories",
+     "words": [
+      "editorial",
+      "university"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Bootcamp / coding school",
-     "cues": "terminal-adjacent, bold color"
+     "cues": "terminal-adjacent, bold color",
+     "words": [
+      "bootcamp",
+      "coding",
+      "school"
+     ],
+     "vibe": "hacker"
     },
     {
      "name": "Language learning playful",
-     "cues": "gamified streaks, bright characters"
+     "cues": "gamified streaks, bright characters",
+     "words": [
+      "language",
+      "learning",
+      "playful"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "Museum / culture",
-     "cues": "editorial grid, artwork-first, restrained UI"
+     "cues": "editorial grid, artwork-first, restrained UI",
+     "words": [
+      "culture",
+      "museum"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Library / archive vintage",
-     "cues": "catalog-card aesthetics, serif"
+     "cues": "catalog-card aesthetics, serif",
+     "words": [
+      "archive",
+      "library",
+      "vintage"
+     ],
+     "vibe": "vintage"
     },
     {
      "name": "Student org / club",
-     "cues": "neo-brutalist or maximalist, high energy"
+     "cues": "neo-brutalist or maximalist, high energy",
+     "words": [
+      "club",
+      "student"
+     ],
+     "vibe": "brutal"
     }
    ]
   },
@@ -740,31 +1085,67 @@
    "niches": [
     {
      "name": "Cyberpunk / neon",
-     "cues": "HUD frames, glitch type"
+     "cues": "HUD frames, glitch type",
+     "words": [
+      "cyberpunk",
+      "neon"
+     ],
+     "vibe": "cyber"
     },
     {
      "name": "Dark fantasy RPG",
-     "cues": "blackletter, parchment, ornate borders"
+     "cues": "blackletter, parchment, ornate borders",
+     "words": [
+      "dark",
+      "fantasy"
+     ],
+     "vibe": "gothic"
     },
     {
      "name": "Retro pixel / 8-bit",
-     "cues": "pixel fonts, CRT effects"
+     "cues": "pixel fonts, CRT effects",
+     "words": [
+      "pixel",
+      "retro"
+     ],
+     "vibe": "vapor"
     },
     {
      "name": "Esports high-energy",
-     "cues": "italic condensed, stat tickers, diagonal cuts"
+     "cues": "italic condensed, stat tickers, diagonal cuts",
+     "words": [
+      "energy",
+      "esports",
+      "high"
+     ],
+     "vibe": "sports"
     },
     {
      "name": "Cozy games",
-     "cues": "pastel, hand-drawn, soft shadows"
+     "cues": "pastel, hand-drawn, soft shadows",
+     "words": [
+      "cozy",
+      "games"
+     ],
+     "vibe": "cottage"
     },
     {
      "name": "Space / sci-fi strategy",
-     "cues": "mission-control panels, starfields"
+     "cues": "mission-control panels, starfields",
+     "words": [
+      "space",
+      "strategy"
+     ],
+     "vibe": "cosmic"
     },
     {
      "name": "Fan wiki / community",
-     "cues": "dense, utilitarian, Web 1.0 leaning"
+     "cues": "dense, utilitarian, Web 1.0 leaning",
+     "words": [
+      "community",
+      "wiki"
+     ],
+     "vibe": "antidesign"
     }
    ]
   },
@@ -787,35 +1168,77 @@
    "niches": [
     {
      "name": "Designer neo-brutalist",
-     "cues": "raw grid, oversized type"
+     "cues": "raw grid, oversized type",
+     "words": [
+      "brutalist",
+      "designer"
+     ],
+     "vibe": "brutal"
     },
     {
      "name": "Developer terminal portfolio",
-     "cues": "boot sequence, CLI navigation"
+     "cues": "boot sequence, CLI navigation",
+     "words": [
+      "developer",
+      "portfolio",
+      "terminal"
+     ],
+     "vibe": "hacker"
     },
     {
      "name": "Photographer minimal",
-     "cues": "image-first, no chrome"
+     "cues": "image-first, no chrome",
+     "words": [
+      "minimal",
+      "photographer"
+     ],
+     "vibe": "swiss"
     },
     {
      "name": "Illustrator maximalist / collage",
-     "cues": "stickers, hand-drawn, layered"
+     "cues": "stickers, hand-drawn, layered",
+     "words": [
+      "collage",
+      "illustrator",
+      "maximalist"
+     ],
+     "vibe": "maximal"
     },
     {
      "name": "Motion / 3D artist immersive",
-     "cues": "WebGL scenes, custom cursor"
+     "cues": "WebGL scenes, custom cursor",
+     "words": [
+      "artist",
+      "immersive",
+      "motion"
+     ],
+     "vibe": "webgl"
     },
     {
      "name": "Writer editorial",
-     "cues": "typography-first, reading-optimized"
+     "cues": "typography-first, reading-optimized",
+     "words": [
+      "editorial",
+      "writer"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Anti-design personal site",
-     "cues": "Web 1.0 homage, playful chaos"
+     "cues": "Web 1.0 homage, playful chaos",
+     "words": [
+      "anti",
+      "personal"
+     ],
+     "vibe": "antidesign"
     },
     {
      "name": "Musician EPK",
-     "cues": "tour dates, press kit, bold visuals"
+     "cues": "tour dates, press kit, bold visuals",
+     "words": [
+      "musician"
+     ],
+     "vibe": "rock"
     }
    ]
   },
@@ -842,31 +1265,66 @@
    "niches": [
     {
      "name": "Minimal premium",
-     "cues": "product-first, whitespace, restrained palette"
+     "cues": "product-first, whitespace, restrained palette",
+     "words": [
+      "minimal",
+      "premium"
+     ],
+     "vibe": "luxury"
     },
     {
      "name": "Drop culture",
-     "cues": "countdowns, scarcity messaging"
+     "cues": "countdowns, scarcity messaging",
+     "words": [
+      "culture",
+      "drop"
+     ],
+     "vibe": "streetwear"
     },
     {
      "name": "Playful snack / CPG",
-     "cues": "bright colors, bubbly type, mascot"
+     "cues": "bright colors, bubbly type, mascot",
+     "words": [
+      "playful",
+      "snack"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "Wellness DTC",
-     "cues": "soft gradients, calm copy, ingredient focus"
+     "cues": "soft gradients, calm copy, ingredient focus",
+     "words": [
+      "wellness"
+     ],
+     "vibe": "dreamy"
     },
     {
      "name": "Outdoor / adventure",
-     "cues": "topographic lines, earth tones, rugged type"
+     "cues": "topographic lines, earth tones, rugged type",
+     "words": [
+      "adventure",
+      "outdoor"
+     ],
+     "vibe": "organic"
     },
     {
      "name": "Handmade marketplace",
-     "cues": "paper textures, maker stories"
+     "cues": "paper textures, maker stories",
+     "words": [
+      "handmade",
+      "marketplace"
+     ],
+     "vibe": "cottage"
     },
     {
      "name": "Tech hardware launch",
-     "cues": "bento tiles, scroll-driven renders"
+     "cues": "bento tiles, scroll-driven renders",
+     "words": [
+      "hardware",
+      "launch",
+      "tech"
+     ],
+     "vibe": "bento"
     }
    ]
   },
@@ -897,31 +1355,65 @@
    "niches": [
     {
      "name": "Performance car cinematic",
-     "cues": "dark, motion blur, spec overlays"
+     "cues": "dark, motion blur, spec overlays",
+     "words": [
+      "cinematic",
+      "performance"
+     ],
+     "vibe": "cinematic"
     },
     {
      "name": "EV minimal futurist",
-     "cues": "white space, floating product, calm motion"
+     "cues": "white space, floating product, calm motion",
+     "words": [
+      "futurist",
+      "minimal"
+     ],
+     "vibe": "bento"
     },
     {
      "name": "Motorcycle / garage",
-     "cues": "grit, oil-stain textures, stencil type"
+     "cues": "grit, oil-stain textures, stencil type",
+     "words": [
+      "garage",
+      "motorcycle"
+     ],
+     "vibe": "punk"
     },
     {
      "name": "Aviation / MRO",
-     "cues": "technical drawings, instrument-panel cues"
+     "cues": "technical drawings, instrument-panel cues",
+     "words": [
+      "aviation"
+     ],
+     "vibe": "blueprint"
     },
     {
      "name": "Manufacturing blueprint",
-     "cues": "diagrammatic, orange/steel palette"
+     "cues": "diagrammatic, orange/steel palette",
+     "words": [
+      "blueprint",
+      "manufacturing"
+     ],
+     "vibe": "blueprint"
     },
     {
      "name": "Defense / tactical",
-     "cues": "olive, stencil, coordinates"
+     "cues": "olive, stencil, coordinates",
+     "words": [
+      "defense",
+      "tactical"
+     ],
+     "vibe": "military"
     },
     {
      "name": "Heavy equipment B2B",
-     "cues": "bold, high-contrast, spec-focused"
+     "cues": "bold, high-contrast, spec-focused",
+     "words": [
+      "equipment",
+      "heavy"
+     ],
+     "vibe": "blueprint"
     }
    ]
   },
@@ -948,27 +1440,59 @@
    "niches": [
     {
      "name": "Civic accessibility-first",
-     "cues": "high contrast, plain language"
+     "cues": "high contrast, plain language",
+     "words": [
+      "accessibility",
+      "civic",
+      "first"
+     ],
+     "vibe": "civic"
     },
     {
      "name": "Nonprofit storytelling",
-     "cues": "documentary photography, warm tone"
+     "cues": "documentary photography, warm tone",
+     "words": [
+      "nonprofit",
+      "storytelling"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Climate / environmental",
-     "cues": "earthy, data-forward, urgent but hopeful"
+     "cues": "earthy, data-forward, urgent but hopeful",
+     "words": [
+      "climate",
+      "environmental"
+     ],
+     "vibe": "organic"
     },
     {
      "name": "Political campaign",
-     "cues": "bold type, patriotic or modern palette, donate-first"
+     "cues": "bold type, patriotic or modern palette, donate-first",
+     "words": [
+      "campaign",
+      "political"
+     ],
+     "vibe": "institutional"
     },
     {
      "name": "Healthcare public service",
-     "cues": "clarity, multilingual, mobile-first"
+     "cues": "clarity, multilingual, mobile-first",
+     "words": [
+      "healthcare",
+      "public",
+      "service"
+     ],
+     "vibe": "civic"
     },
     {
      "name": "Research institute",
-     "cues": "editorial, citation-friendly"
+     "cues": "editorial, citation-friendly",
+     "words": [
+      "institute",
+      "research"
+     ],
+     "vibe": "editorial"
     }
    ]
   },
@@ -992,35 +1516,79 @@
    "niches": [
     {
      "name": "Mission-control dashboard",
-     "cues": "dark, telemetry panels, glow accents"
+     "cues": "dark, telemetry panels, glow accents",
+     "words": [
+      "control",
+      "dashboard",
+      "mission"
+     ],
+     "vibe": "cosmic"
     },
     {
      "name": "Bloomberg-style analytics",
-     "cues": "dense, mono numerals, amber highlights"
+     "cues": "dense, mono numerals, amber highlights",
+     "words": [
+      "analytics",
+      "bloomberg"
+     ],
+     "vibe": "termfin"
     },
     {
      "name": "Calm wellness dashboard",
-     "cues": "soft cards, gentle charts, generous spacing"
+     "cues": "soft cards, gentle charts, generous spacing",
+     "words": [
+      "calm",
+      "dashboard",
+      "wellness"
+     ],
+     "vibe": "clinical"
     },
     {
      "name": "SOC / cyber HUD",
-     "cues": "red-teal alerts, map-centric"
+     "cues": "red-teal alerts, map-centric",
+     "words": [
+      "cyber"
+     ],
+     "vibe": "military"
     },
     {
      "name": "Playful fintech dashboard",
-     "cues": "rounded charts, confetti on milestones"
+     "cues": "rounded charts, confetti on milestones",
+     "words": [
+      "dashboard",
+      "fintech",
+      "playful"
+     ],
+     "vibe": "playful"
     },
     {
      "name": "Industrial SCADA",
-     "cues": "high-contrast status colors, schematic diagrams"
+     "cues": "high-contrast status colors, schematic diagrams",
+     "words": [
+      "industrial",
+      "scada"
+     ],
+     "vibe": "blueprint"
     },
     {
      "name": "Editorial data journalism",
-     "cues": "annotated charts, narrative scroll"
+     "cues": "annotated charts, narrative scroll",
+     "words": [
+      "data",
+      "editorial",
+      "journalism"
+     ],
+     "vibe": "editorial"
     },
     {
      "name": "Retro-terminal ops dashboard",
-     "cues": "CRT green, ASCII charts"
+     "cues": "CRT green, ASCII charts",
+     "words": [
+      "dashboard",
+      "retro",
+      "terminal"
+     ],
+     "vibe": "hacker"
     }
    ]
   }

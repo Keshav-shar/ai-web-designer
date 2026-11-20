@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { RingedPlanet, Sparkle } from "@/components/cosmos";
+import { BARS, Tag } from "@/components/ui";
 import { signedMockups } from "@/lib/site";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -19,28 +21,32 @@ export default async function SitesPage() {
   const rows = data ?? [];
   const shots = await signedMockups(supabase, rows);
   return (
-    <section className="container-x py-14 md:py-20">
+    <section className="container-x relative py-10 md:py-14">
+      <Sparkle className="drift hide-sm right-[6%] top-8 w-7" />
+      <RingedPlanet className="bob hide-sm right-[13%] top-2 w-[96px]" />
       <p className="eyebrow">your sites</p>
-      <h1 className="font-heading text-step-7 text-ink">Gallery</h1>
+      <h1 className="display display-1">The gallery</h1>
+      <p className="lede mt-4">Every page the studio has composed for you, newest first.</p>
       {!rows.length ? (
-        <p className="mt-8 text-muted">Nothing yet. <Link className="underline" href="/">Make the first one.</Link></p>
+        <div className="notice mt-10">Nothing yet. <Link className="font-bold text-sienna underline" href="/">Make the first one.</Link></div>
       ) : (
-        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {rows.map((s) => (
+        <ul className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {rows.map((s, i) => (
             <li key={s.id}>
-              <Link href={`/sites/${s.id}`} className="glass block overflow-hidden transition-transform duration-500 hover:-translate-y-1" style={{ padding: 0 }}>
-                <div className="aspect-[4/3] overflow-hidden border-b border-line bg-surface/50">
+              <Link href={`/sites/${s.id}`} className="card card-lift block h-full overflow-hidden no-underline">
+                <div aria-hidden="true" className={`card-bar bar-${BARS[i % BARS.length]}`} />
+                <div className="aspect-[4/3] overflow-hidden border-b-2 border-line bg-parch">
                   {shots.get(s.id) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={shots.get(s.id)} alt={`Mockup of ${s.title ?? "a generated site"}`} className="h-full w-full object-cover object-top" />
                   ) : (
-                    <div className="grid h-full place-items-center text-muted">no mockup yet</div>
+                    <div className="meta grid h-full place-items-center">no mockup yet</div>
                   )}
                 </div>
-                <div className="space-y-1 p-5">
-                  <p className="eyebrow" style={{ marginBottom: 0 }}>{s.job?.family ?? "site"}</p>
-                  <h2 className="font-heading text-step-3 text-ink">{s.title ?? s.job?.prompt}</h2>
-                  <p className="text-[13px] text-muted">{new Date(s.created_at).toLocaleString()}</p>
+                <div className="space-y-3 p-6">
+                  <Tag tone={(["avocado", "rust", "teal"] as const)[i % 3]}>{s.job?.family?.replace(/-/g, " ") ?? "site"}</Tag>
+                  <h2 className="font-display text-[1.35rem] font-black leading-snug text-charcoal">{s.title ?? s.job?.prompt}</h2>
+                  <p className="meta rule-dashed pt-3">{new Date(s.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</p>
                 </div>
               </Link>
             </li>

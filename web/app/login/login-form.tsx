@@ -34,24 +34,24 @@ export function LoginForm({ next }: { next: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-8 space-y-4">
+    <form onSubmit={submit} className="mt-8 space-y-5">
       <div className="space-y-2">
-        <label htmlFor="username" className="eyebrow block" style={{ marginBottom: 0 }}>username</label>
+        <label htmlFor="username" className="title-sm block text-[0.78rem]">Username</label>
         <input
           id="username" name="username" type="text" required autoComplete="username" autoCapitalize="none"
           spellCheck={false} maxLength={24} value={username} onChange={(e) => setUsername(e.target.value)}
-          className="w-full rounded-2xl border border-line bg-surface/60 px-4 py-3 text-ink"
+          className="field"
         />
       </div>
       <div className="space-y-2">
-        <label htmlFor="password" className="eyebrow block" style={{ marginBottom: 0 }}>password</label>
+        <label htmlFor="password" className="title-sm block text-[0.78rem]">Password</label>
         <input
           id="password" name="password" type="password" required autoComplete="current-password" value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-2xl border border-line bg-surface/60 px-4 py-3 text-ink"
+          className="field"
         />
       </div>
-      {error && <p role="alert" className="text-ink">{error}</p>}
+      {error && <p role="alert" className="notice">{error}</p>}
       <button className="btn btn-primary w-full" disabled={busy}>{busy ? "Signing in…" : "Sign in"}</button>
     </form>
   );

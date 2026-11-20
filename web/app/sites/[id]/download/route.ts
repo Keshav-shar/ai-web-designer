@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   };
   await Promise.all([get("index.html"), get("styles.css")]);
   const { data: list } = await supabase.storage.from("sites").list(`${base}/assets`, { limit: 100 });
-  await Promise.all((list ?? []).filter((f) => /^[a-z0-9]{12}\.webp$/.test(f.name)).map((f) => get(`assets/${f.name}`)));
+  await Promise.all((list ?? []).filter((f) => /^[a-z0-9]{12}(-soft)?\.webp$/.test(f.name)).map((f) => get(`assets/${f.name}`)));
   const body = await zip.generateAsync({ type: "arraybuffer" });
   const name = (site.title ?? "site").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "site";
   return new NextResponse(body, {

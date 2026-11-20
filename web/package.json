@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "check:brief": "node --experimental-strip-types scripts/check-brief.ts"
+    "check:brief": "node --experimental-strip-types scripts/check-brief.ts",
+    "check:prompt": "node --experimental-strip-types scripts/check-prompt.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

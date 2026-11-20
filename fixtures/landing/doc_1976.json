@@ -1,0 +1,90 @@
+{
+ "$comment": "A1-style design document transcribed from the user's hand-run 1976 example (tests: budgets, the doc path, A5 freedom).",
+ "design_system_name": "1976 Analog Retro Editorial & Event Landing Page",
+ "aesthetic_direction": "Mid-to-late 1970s tactile print, warm analog interiors, groovy swash typography, die-cut sticker badges, and balanced geometric ribbon framing.",
+ "query_context": "A landing page for a 1976-flavoured analog synth and vinyl festival: warm linen paper, swash serif headlines, rainbow ribbons and a sunburst behind a cassette illustration; tactile, joyful and collectible.",
+ "color_palette_distribution": {
+  "text_color": [
+   {"name": "Vintage Tape Charcoal", "hex": "#2B2B2B", "usage": "Main uppercase section headers, high-contrast UI labels, cassette hardware framing"},
+   {"name": "Deep Burnt Sienna", "hex": "#A74623", "usage": "Hero swash-serif display typography and editorial pull-quotes"},
+   {"name": "Deep Espresso Brown", "hex": "#3D2214", "usage": "Long-form paragraphs, card descriptions, footer links"},
+   {"name": "Muted Charcoal Ink", "hex": "#3A3A3A", "usage": "Top navigation links, secondary metadata, micro-labels"},
+   {"name": "Warm Cream Ink", "hex": "#FBF4EA", "usage": "Text inside dark badges and coral CTA buttons"}
+  ],
+  "muted_accent_color": [
+   {"name": "Avocado Green", "hex": "#699022", "usage": "Feature card headers, organic tags, vertical stripe accents"},
+   {"name": "Weathered Vintage Teal", "hex": "#6CA6A1", "usage": "Split-panel feature cards, secondary badges, stripe borders"},
+   {"name": "Dusty Pastel Rose", "hex": "#E59BA7", "usage": "Alternating full-width highlight band background"},
+   {"name": "Muted Peach Blush", "hex": "#EEA686", "usage": "Outer rings of the semi-circular sun arch behind the hero"}
+  ],
+  "background_element_color": [
+   {"name": "Soft Linen Off-White", "hex": "#F4F3F0", "usage": "Primary page background with a subtle linen weave"},
+   {"name": "Warm Textured Parchment", "hex": "#F3ECE0", "usage": "Card interiors and alternating content bands"},
+   {"name": "Sun-Baked Cream", "hex": "#F2DFB9", "usage": "Alternating light rays in the hero sunburst"}
+  ],
+  "overlay_elements_color": [
+   {"name": "Vintage Coral Red", "hex": "#E05A47", "usage": "Pill CTA buttons, inner ribbon stripe, script shadow layer"},
+   {"name": "Harvest Gold", "hex": "#DA9100", "usage": "Middle ribbon stripe, sticker lettering, tape divider"},
+   {"name": "Rust Burnt Orange", "hex": "#B7410E", "usage": "Diagonal racing stripes and sun inner rings"},
+   {"name": "Retro Cerulean Blue", "hex": "#4DA2D6", "usage": "Outer track of the flanking rainbow ribbons"},
+   {"name": "Roasted Chocolate", "hex": "#5B3B28", "usage": "Circular sticker badge base"}
+  ]
+ },
+ "role_map": {"bg_primary": "#F4F3F0", "bg_secondary": "#F3ECE0", "text_top_heading": "#A74623", "text_subheading": "#3A3A3A",
+              "text_body": "#3D2214", "text_inverse": "#FBF4EA", "accent_muted": "#6CA6A1", "overlay_primary": "#DA9100",
+              "overlay_secondary": "#4DA2D6", "cta_fill": "#E05A47"},
+ "typography": {
+  "wordmark": {"family": "Shrikhand", "weight": "400", "case": "none", "letter_spacing": "0em", "italic": false,
+               "classification": "bold retro brush script", "visual_traits": "connected rounded heavy cursive with a cream fill and stacked shadow",
+               "reference_style": "Retro Burger Bar Script", "size_css": "clamp(1.8rem, 2.6vw, 2.4rem)", "line_height": "1"},
+  "display": {"family": "Fraunces", "weight": "900", "case": "none", "letter_spacing": "-0.03em", "italic": false,
+              "classification": "1970s high-contrast calligraphic swash serif", "visual_traits": "thick stems, razor-thin hairlines, sweeping swashes",
+              "reference_style": "Souvenir Swash", "size_css": "clamp(3.5rem, 6vw, 5.5rem)", "line_height": "0.95", "shadow_treatment": "hard_offset"},
+  "subheading": {"family": "Montserrat", "weight": "700", "case": "uppercase", "letter_spacing": "0.18em", "italic": false,
+                 "classification": "clean geometric mid-century sans", "visual_traits": "all-caps, wide tracking, crisp rounded terminals",
+                 "reference_style": "Futura Bold wide-tracked", "size_css": "0.9rem", "line_height": "1.2"},
+  "accent": {"family": "Montserrat", "weight": "800", "case": "uppercase", "letter_spacing": "0.12em", "italic": false,
+             "classification": "geometric sans label", "visual_traits": "bold small caps feel", "reference_style": "Futura", "size_css": "0.8rem", "line_height": "1.2"},
+  "body": {"family": "DM Sans", "weight": "400", "case": "none", "letter_spacing": "0em", "italic": false,
+           "classification": "neutral humanist sans", "visual_traits": "medium x-height, relaxed leading", "reference_style": "DM Sans",
+           "size_css": "1rem", "line_height": "1.65"},
+  "text_treatment_rules": "Display headlines use swashes or a 3D multi-layer drop shadow; UI headings and body stay flat for legibility."
+ },
+ "background_layer": {"alignment_mode": "nuance_extract", "use_background_image": false, "treatment": "none",
+  "ignored_irrelevant_subjects": ["people", "storefront signage"], "base_surface": "Soft linen off-white paper with a fine dot-matrix weave",
+  "elements": [
+   {"id": "bg-linen-canvas", "what": "Seamless fine dot-matrix / linen paper texture in Soft Linen Off-White", "where": "covers the whole page"},
+   {"id": "bg-hero-sunburst", "what": "Radial 24-ray retro sunburst in Sun-Baked Cream and Muted Slate rays at 14% opacity with a soft radial fade", "where": "centred behind the hero focal zone, top 80px, diameter 760px"}
+  ]},
+ "centerpiece": {"use": true, "description": "Vintage cassette tape illustration with a cream paper label and twin reels", "where": "centred under the hero headline, about 480px wide"},
+ "midground_decor": [
+  {"id": "decor-left-rainbow-loop", "what": "U-turn stadium-curve ribbon of 4 bands: Retro Cerulean Blue outer, Harvest Gold, Rust Burnt Orange, parchment inner", "where": "flush to the left viewport edge, top 240px, width 22vw, max 310px"},
+  {"id": "decor-right-rainbow-loop", "what": "Mirrored U-turn ribbon with the same four bands", "where": "flush to the right viewport edge, 64px clear of the hero graphic"},
+  {"id": "decor-hero-sun-arch", "what": "5-band concentric semi-circular rainbow arch from gold core to peach outer ring", "where": "centred directly behind the hero h1, 340 x 170px"}
+ ],
+ "foreground_overlays": [
+  {"id": "overlay-die-cut-sticker", "what": "Circular Roasted Chocolate badge with a thick white die-cut outline and gold script '76", "where": "overlapping the bottom-right corner of the hero illustration, rotated -6deg"},
+  {"id": "overlay-golden-tape-strip", "what": "Horizontal crinkled Harvest Gold masking-tape strip", "where": "full-bleed divider between the about section and the highlights"}
+ ],
+ "content_sections": [
+  {"section_id": "nav", "role": "nav", "where": "top, 88px, max-width 1200px", "what": ["navigation links", "pill BUY TICKETS button"]},
+  {"section_id": "hero", "role": "hero", "where": "upper centre, single centred column", "what": ["swash serif title over the sun arch", "groovy script subtitle badge", "cassette illustration"]},
+  {"section_id": "about", "role": "intro", "where": "below the hero, centred max-width 760px", "what": ["uppercase ABOUT heading", "3-4 line paragraph", "coral pill CTA"]},
+  {"section_id": "highlights", "role": "cards", "where": "parchment band, 3-column grid", "what": ["three framed cards with coloured top accent bars"]},
+  {"section_id": "footer", "role": "footer", "where": "espresso band at the bottom", "what": ["diagonal accent stripe", "cream links and colophon"]}
+ ],
+ "composition_and_overlap_rules": {
+  "alignment_grid": "12-column centred container (max-width 1200px) with full-bleed graphic wings outside the central 720px hero column",
+  "permitted_overlaps": [
+   {"a": "die-cut sticker", "b": "cassette illustration corner", "why": "circle vs rectangle, white die-cut edge vs dark bevel"},
+   {"a": "swash headline", "b": "sun arch baseline", "why": "sharp serif strokes against soft concentric arcs"}
+  ],
+  "prohibited_overlaps": ["the ribbons never touch the cassette or the sunburst rays", "racing stripes and sunburst rays never share a box"]
+ },
+ "layout_spec": {"nav": "bar_left_logo", "hero": "centered", "intro": "centered_statement", "cards": "grid3", "density": "balanced", "notes": "centred hero with flanking wings"},
+ "strategic_cards": [
+  {"card_id": "card_1", "tag": "Synths", "heading": "Analog synth row", "body": "Forty restored machines to play, patch and record on site.", "accent_color_key": "overlay_primary"},
+  {"card_id": "card_2", "tag": "Vinyl", "heading": "The crate market", "body": "Dealers from twelve countries with first pressings and rare promos.", "accent_color_key": "cta_fill"},
+  {"card_id": "card_3", "tag": "Live", "heading": "Tape-loop nights", "body": "Evening sets recorded straight to reel-to-reel.", "accent_color_key": "accent_muted"}
+ ]
+}

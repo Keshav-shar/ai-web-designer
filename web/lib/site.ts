@@ -44,13 +44,20 @@ export async function renderSite(supabase: SupabaseClient, siteId: string): Prom
   if (error || !blob) return null;
   let html = await blob.text();
   const base = site.html_path.replace(/\/index\.html$/, "");
-  const rel = [...new Set([...html.matchAll(/(?:src|href)="((?:assets\/[a-z0-9]{12}\.webp)|styles\.css)"/g)].map((m) => m[1]))];
+  // asset references as attributes (src="assets/x.webp", href="styles.css") and inside CSS (url(assets/x.webp),
+  // url('…'), url("…"): agent-compiled landing pages may put an image in a stylesheet)
+  // (a "-soft" asset is the blurred backdrop derivative an off-subject background photo is shown as)
+  const attr = [...html.matchAll(/(?:src|href)="((?:assets\/[a-z0-9]{12}(?:-soft)?\.webp)|styles\.css)"/g)].map((m) => m[1]);
+  const css = [...html.matchAll(/url\(\s*['"]?(assets\/[a-z0-9]{12}(?:-soft)?\.webp)['"]?\s*\)/g)].map((m) => m[1]);
+  const rel = [...new Set([...attr, ...css])];
   if (rel.length) {
     const { data: signed } = await supabase.storage.from("sites").createSignedUrls(rel.map((r) => `${base}/${r}`), TTL);
     const byPath = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
     for (const r of rel) {
       const url = byPath.get(`${base}/${r}`);
-      if (url) html = html.replaceAll(`"${r}"`, `"${url}"`);
+      if (!url) continue;
+      html = html.replaceAll(`"${r}"`, `"${url}"`);
+      for (const form of [`url(${r})`, `url('${r}')`]) html = html.replaceAll(form, `url("${url}")`);
     }
   }
   html = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/i,

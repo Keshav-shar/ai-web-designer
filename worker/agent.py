@@ -30,7 +30,12 @@ content_sections = compose.content_sections
 
 
 def section_mode(qwen) -> str:
-    return "qwen" if os.getenv("SECTION_MODE", "compose") == "qwen" and qwen is not None and qwen.ok else "compose"
+    """compose (default, no model) | qwen (Qwen writes sections) | agents (worker/landing: the 5-agent pipeline that
+    makes one thematic landing page instead of the section plan; every agent falls back to its deterministic default)."""
+    m = os.getenv("SECTION_MODE", "compose")
+    if m == "agents":
+        return "agents"
+    return "qwen" if m == "qwen" and qwen is not None and qwen.ok else "compose"
 
 
 def plan_images(brief: dict) -> dict[str, list[dict]]:

@@ -1,0 +1,599 @@
+{
+ "title": "Neon synthwave music festival",
+ "family": "cyberpunk-synthwave",
+ "query_context": "neon synthwave music festival. Look: Cyberpunk / synthwave (Neon magenta and cyan, glitch effects, perspective grids, HUD frames).",
+ "palette": {
+  "bg_primary": "#0A0A0F",
+  "bg_secondary": "#12023A",
+  "text_top_heading": "#FDEE05",
+  "text_subheading": "#B8AE27",
+  "text_body": "#FDEE05",
+  "text_inverse": "#0A0A0F",
+  "accent_muted": "#FE007F",
+  "overlay_primary": "#FE007F",
+  "overlay_secondary": "#00F0FE",
+  "cta_fill": "#FE007F"
+ },
+ "css_vars": {
+  "--bg-primary": "#0A0A0F",
+  "--bg-secondary": "#12023A",
+  "--text-top-heading": "#FDEE05",
+  "--text-subheading": "#B8AE27",
+  "--text-body": "#FDEE05",
+  "--text-inverse": "#0A0A0F",
+  "--accent-muted": "#FE007F",
+  "--overlay-primary": "#FE007F",
+  "--overlay-secondary": "#00F0FE",
+  "--cta-fill": "#FE007F"
+ },
+ "fonts": [
+  "Space Grotesk",
+  "Noto Serif Hentaigana",
+  "Offside"
+ ],
+ "fonts_css": [
+  "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Noto+Serif+Hentaigana:wght@400;500;600;700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Offside:wght@400&display=swap"
+ ],
+ "levels": {
+  "wordmark": {
+   "family": "Space Grotesk",
+   "stack": "\"Space Grotesk\", sans-serif",
+   "weight": "700",
+   "letter_spacing": "-0.02em",
+   "case": "none",
+   "italic": false,
+   "used": true,
+   "scale": "l",
+   "size_token": "--fs-4"
+  },
+  "display": {
+   "family": "Space Grotesk",
+   "stack": "\"Space Grotesk\", sans-serif",
+   "weight": "500",
+   "letter_spacing": "-0.02em",
+   "case": "none",
+   "italic": false,
+   "used": true,
+   "shadow_treatment": "none"
+  },
+  "subheading": {
+   "family": "Noto Serif Hentaigana",
+   "stack": "\"Noto Serif Hentaigana\", serif",
+   "weight": "500",
+   "letter_spacing": "0.08em",
+   "case": "uppercase",
+   "italic": false,
+   "used": true
+  },
+  "accent": {
+   "family": "Offside",
+   "stack": "\"Offside\", sans-serif",
+   "weight": "400",
+   "letter_spacing": "0.04em",
+   "case": "none",
+   "italic": false,
+   "used": true
+  },
+  "body": {
+   "family": "Noto Serif Hentaigana",
+   "stack": "\"Noto Serif Hentaigana\", serif",
+   "weight": "400",
+   "letter_spacing": "0em",
+   "case": "none",
+   "italic": false,
+   "used": true,
+   "line_height": "1.5"
+  }
+ },
+ "type_scale": {
+  "--fs-1": "16.0px",
+  "--fs-2": "20.0px",
+  "--fs-3": "25.0px",
+  "--fs-4": "31.2px",
+  "--fs-5": "39.1px",
+  "--fs-6": "48.8px",
+  "--fs-7": "61.0px",
+  "--fs-8": "76.3px"
+ },
+ "canvas": {
+  "max_width_px": 1440,
+  "content_width_px": 1200,
+  "gutter_px": 24,
+  "columns": 12
+ },
+ "layout": {
+  "nav": "bar_left_logo",
+  "hero": "split_left_text",
+  "cards": "grid3",
+  "density": "balanced",
+  "hero_arrangement": "side"
+ },
+ "background": {
+  "layers": [
+   {
+    "kind": "solid",
+    "roles": [
+     "bg_primary"
+    ],
+    "opacity": 1,
+    "angle_deg": 0,
+    "position": "full",
+    "blend": "normal",
+    "scale": "medium"
+   },
+   {
+    "kind": "radial_glow",
+    "roles": [
+     "overlay_primary"
+    ],
+    "opacity": 0.3,
+    "angle_deg": 0,
+    "position": "top_right",
+    "blend": "screen",
+    "scale": "bold"
+   },
+   {
+    "kind": "radial_glow",
+    "roles": [
+     "overlay_secondary"
+    ],
+    "opacity": 0.22,
+    "angle_deg": 0,
+    "position": "bottom_left",
+    "blend": "screen",
+    "scale": "bold"
+   },
+   {
+    "kind": "grid",
+    "roles": [
+     "overlay_secondary"
+    ],
+    "opacity": 0.16,
+    "angle_deg": 135,
+    "position": "full",
+    "blend": "normal",
+    "scale": "medium"
+   }
+  ],
+  "image": null,
+  "treatment": "none",
+  "fixed": true,
+  "abstract": false,
+  "grain": false
+ },
+ "bands": [
+  {
+   "band_id": "nav",
+   "padding_top_px": 20,
+   "padding_bottom_px": 20,
+   "min_height_px": 0,
+   "surface_role": "transparent",
+   "gap_after_px": 0
+  },
+  {
+   "band_id": "hero",
+   "padding_top_px": 96,
+   "padding_bottom_px": 96,
+   "min_height_px": 600,
+   "surface_role": "transparent",
+   "gap_after_px": 0
+  },
+  {
+   "band_id": "intro",
+   "padding_top_px": 64,
+   "padding_bottom_px": 64,
+   "min_height_px": 0,
+   "surface_role": "transparent",
+   "gap_after_px": 0
+  },
+  {
+   "band_id": "cards",
+   "padding_top_px": 64,
+   "padding_bottom_px": 64,
+   "min_height_px": 0,
+   "surface_role": "transparent",
+   "gap_after_px": 0
+  }
+ ],
+ "groups": [
+  {
+   "group_id": "nav",
+   "band_id": "nav",
+   "backing": "none",
+   "surface_role": "bg_primary",
+   "align": "start",
+   "col_start": 1,
+   "col_span": 12
+  },
+  {
+   "group_id": "hero_text",
+   "band_id": "hero",
+   "backing": "none",
+   "surface_role": "bg_primary",
+   "align": "start",
+   "col_start": 1,
+   "col_span": 6
+  },
+  {
+   "group_id": "hero_media",
+   "band_id": "hero",
+   "backing": "none",
+   "surface_role": "bg_primary",
+   "align": "center",
+   "col_start": 7,
+   "col_span": 6
+  },
+  {
+   "group_id": "intro",
+   "band_id": "intro",
+   "backing": "none",
+   "surface_role": "bg_primary",
+   "align": "center",
+   "col_start": 3,
+   "col_span": 8
+  },
+  {
+   "group_id": "cards",
+   "band_id": "cards",
+   "backing": "solid",
+   "surface_role": "bg_secondary",
+   "align": "start",
+   "col_start": 1,
+   "col_span": 12
+  }
+ ],
+ "items": [
+  {
+   "item_id": "logo",
+   "group": "nav",
+   "band_id": "nav",
+   "kind": "logo",
+   "level": "wordmark",
+   "text_role": "text_top_heading",
+   "align": "left",
+   "text": "Neon synthwave music",
+   "href": "#top",
+   "row": 1,
+   "col_start": 1,
+   "col_span": 4,
+   "surface_role": "bg_primary",
+   "width_pct": 33.3
+  },
+  {
+   "item_id": "nav_1",
+   "group": "nav",
+   "band_id": "nav",
+   "kind": "nav_link",
+   "level": "subheading",
+   "text_role": "text_subheading",
+   "align": "left",
+   "text": "About",
+   "href": "#intro",
+   "row": 1,
+   "col_start": 5,
+   "col_span": 2,
+   "surface_role": "bg_primary",
+   "width_pct": 16.7
+  },
+  {
+   "item_id": "nav_2",
+   "group": "nav",
+   "band_id": "nav",
+   "kind": "nav_link",
+   "level": "subheading",
+   "text_role": "text_subheading",
+   "align": "left",
+   "text": "Highlights",
+   "href": "#cards",
+   "row": 1,
+   "col_start": 7,
+   "col_span": 2,
+   "surface_role": "bg_primary",
+   "width_pct": 16.7
+  },
+  {
+   "item_id": "nav_3",
+   "group": "nav",
+   "band_id": "nav",
+   "kind": "nav_link",
+   "level": "subheading",
+   "text_role": "text_subheading",
+   "align": "left",
+   "text": "Join",
+   "href": "#cards",
+   "row": 1,
+   "col_start": 9,
+   "col_span": 2,
+   "surface_role": "bg_primary",
+   "width_pct": 16.7
+  },
+  {
+   "item_id": "nav_cta",
+   "group": "nav",
+   "band_id": "nav",
+   "kind": "cta",
+   "level": "subheading",
+   "text_role": "text_inverse",
+   "align": "left",
+   "text": "Get tickets",
+   "href": "#cards",
+   "row": 1,
+   "col_start": 11,
+   "col_span": 2,
+   "surface_role": "cta_fill",
+   "width_pct": 16.7
+  },
+  {
+   "item_id": "eyebrow",
+   "group": "hero_text",
+   "band_id": "hero",
+   "kind": "eyebrow",
+   "level": "accent",
+   "text_role": "text_subheading",
+   "align": "left",
+   "text": "Electronic / club",
+   "href": "#top",
+   "row": 1,
+   "col_start": 1,
+   "col_span": 6,
+   "surface_role": "bg_primary",
+   "width_pct": 100
+  },
+  {
+   "item_id": "h1",
+   "group": "hero_text",
+   "band_id": "hero",
+   "kind": "h1",
+   "level": "display",
+   "text_role": "text_top_heading",
+   "align": "left",
+   "text": "Neon synthwave music festival",
+   "href": "#top",
+   "row": 2,
+   "col_start": 1,
+   "col_span": 6,
+   "surface_role": "bg_primary",
+   "width_pct": 100
+  },
+  {
+   "item_id": "sub",
+   "group": "hero_text",
+   "band_id": "hero",
+   "kind": "subheading",
+   "level": "body",
+   "text_role": "text_body",
+   "align": "left",
+   "text": "New record out now. Come hear it loud.",
+   "href": "#top",
+   "row": 3,
+   "col_start": 1,
+   "col_span": 6,
+   "surface_role": "bg_primary",
+   "width_pct": 100
+  },
+  {
+   "item_id": "hero_cta",
+   "group": "hero_text",
+   "band_id": "hero",
+   "kind": "cta",
+   "level": "subheading",
+   "text_role": "text_inverse",
+   "align": "left",
+   "text": "Get tickets",
+   "href": "#cards",
+   "row": 4,
+   "col_start": 1,
+   "col_span": 6,
+   "surface_role": "cta_fill",
+   "width_pct": 100
+  },
+  {
+   "item_id": "centerpiece",
+   "group": "hero_media",
+   "band_id": "hero",
+   "kind": "centerpiece",
+   "level": "body",
+   "text_role": "text_body",
+   "align": "left",
+   "text": "Cyberpunk / synthwave artwork",
+   "href": "#top",
+   "row": 1,
+   "col_start": 7,
+   "col_span": 6,
+   "surface_role": "bg_primary",
+   "width_pct": 100,
+   "src": "assets/09f3473518f0.webp",
+   "alt": "Cyberpunk / synthwave artwork"
+  },
+  {
+   "item_id": "intro_h",
+   "group": "intro",
+   "band_id": "intro",
+   "kind": "intro_heading",
+   "level": "display",
+   "text_role": "text_top_heading",
+   "align": "center",
+   "text": "Ready when you are",
+   "href": "#top",
+   "row": 1,
+   "col_start": 3,
+   "col_span": 8,
+   "surface_role": "bg_primary",
+   "width_pct": 100
+  },
+  {
+   "item_id": "intro_p",
+   "group": "intro",
+   "band_id": "intro",
+   "kind": "intro_body",
+   "level": "body",
+   "text_role": "text_body",
+   "align": "center",
+   "text": "Start today and see the difference in a week.",
+   "href": "#top",
+   "row": 2,
+   "col_start": 3,
+   "col_span": 8,
+   "surface_role": "bg_primary",
+   "width_pct": 100
+  },
+  {
+   "item_id": "card_1",
+   "group": "cards",
+   "band_id": "cards",
+   "kind": "card",
+   "level": "display",
+   "text_role": "text_body",
+   "align": "left",
+   "text": "",
+   "href": "#top",
+   "row": 1,
+   "col_start": 1,
+   "col_span": 4,
+   "surface_role": "bg_secondary",
+   "width_pct": 33.3,
+   "card": {
+    "tag": "Electronic",
+    "heading": "The new record",
+    "body": "Ten songs written on the road and recorded live to tape.",
+    "tag_fill_role": "overlay_primary",
+    "tag_text_role": "text_inverse"
+   }
+  },
+  {
+   "item_id": "card_2",
+   "group": "cards",
+   "band_id": "cards",
+   "kind": "card",
+   "level": "display",
+   "text_role": "text_body",
+   "align": "left",
+   "text": "",
+   "href": "#top",
+   "row": 1,
+   "col_start": 5,
+   "col_span": 4,
+   "surface_role": "bg_secondary",
+   "width_pct": 33.3,
+   "card": {
+    "tag": "Club",
+    "heading": "On tour",
+    "body": "Twenty nights across the spring, small rooms and big ones.",
+    "tag_fill_role": "overlay_secondary",
+    "tag_text_role": "text_inverse"
+   }
+  },
+  {
+   "item_id": "card_3",
+   "group": "cards",
+   "band_id": "cards",
+   "kind": "card",
+   "level": "display",
+   "text_role": "text_body",
+   "align": "left",
+   "text": "",
+   "href": "#top",
+   "row": 1,
+   "col_start": 9,
+   "col_span": 4,
+   "surface_role": "bg_secondary",
+   "width_pct": 33.3,
+   "card": {
+    "tag": "Electronic",
+    "heading": "Merch and vinyl",
+    "body": "Pressed in small batches, shipped worldwide.",
+    "tag_fill_role": "cta_fill",
+    "tag_text_role": "text_inverse"
+   }
+  }
+ ],
+ "motifs": [
+  {
+   "motif_id": "m1",
+   "relation": "behind_element",
+   "layer": "z5",
+   "primitive": "blob",
+   "rotation_deg": 0.0,
+   "opacity": 0.55,
+   "band_id": "hero",
+   "svg": "<svg data-motif=\"m1\" viewBox=\"0 0 558.6 387.6\" width=\"100%\" height=\"100%\" preserveAspectRatio=\"xMidYMid meet\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M429.9 141 Q454.6 193.8 422 240 Q389.3 286.1 349.8 327.5 Q310.2 368.9 256.5 347.6 Q202.8 326.3 155.7 291.1 Q108.5 256 103.7 192 Q98.9 128.1 154 100.3 Q209.2 72.4 257 60.6 Q304.9 48.7 355.1 68.4 Q405.2 88.1 429.9 141 Z\" fill=\"var(--overlay-primary)\" stroke=\"none\" stroke-width=\"2\"/></svg>",
+   "target": "centerpiece",
+   "target_kind": "item",
+   "edge": "none",
+   "left_pct": 18.5,
+   "top_pct": 16.5,
+   "width_pct": 95.0,
+   "height_pct": 95.0
+  },
+  {
+   "motif_id": "m2",
+   "relation": "in_free_area",
+   "layer": "z5",
+   "primitive": "dots",
+   "rotation_deg": 0.0,
+   "opacity": 0.45,
+   "band_id": "hero",
+   "svg": "<svg data-motif=\"m2\" viewBox=\"0 0 78.4 420\" width=\"100%\" height=\"100%\" preserveAspectRatio=\"xMidYMid meet\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"6.5\" cy=\"6.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"19.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"32.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"45.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"58.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"71.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"84.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"98\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"111.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"124.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"137.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"150.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"163.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"176.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"189.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"202.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"215.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"228.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"241.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"254.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"267.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"280.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"294\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"307.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"320.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"333.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"346.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"359.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"372.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"385.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"398.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"6.5\" cy=\"411.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"6.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"19.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"32.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"45.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"58.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"71.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"84.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"98\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"111.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"124.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"137.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"150.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"163.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"176.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"189.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"202.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"215.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"228.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"241.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"254.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"267.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"280.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"294\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"307.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"320.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"333.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"346.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"359.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"372.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"385.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"398.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"19.6\" cy=\"411.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"6.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"19.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"32.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"45.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"58.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"71.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"84.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"98\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"111.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"124.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"137.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"150.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"163.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"176.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"189.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"202.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"215.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"228.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"241.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"254.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"267.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"280.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"294\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"307.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"320.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"333.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"346.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"359.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"372.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"385.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"398.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"32.7\" cy=\"411.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"6.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"19.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"32.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"45.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"58.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"71.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"84.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"98\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"111.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"124.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"137.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"150.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"163.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"176.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"189.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"202.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"215.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"228.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"241.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"254.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"267.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"280.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"294\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"307.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"320.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"333.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"346.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"359.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"372.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"385.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"398.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"45.7\" cy=\"411.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"6.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"19.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"32.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"45.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"58.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"71.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"84.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"98\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"111.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"124.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"137.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"150.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"163.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"176.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"189.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"202.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"215.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"228.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"241.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"254.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"267.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"280.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"294\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"307.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"320.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"333.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"346.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"359.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"372.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"385.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"398.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"58.8\" cy=\"411.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"6.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"19.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"32.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"45.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"58.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"71.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"84.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"98\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"111.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"124.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"137.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"150.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"163.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"176.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"189.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"202.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"215.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"228.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"241.7\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"254.8\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"267.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"280.9\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"294\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"307.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"320.1\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"333.2\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"346.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"359.3\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"372.4\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"385.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"398.5\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/><circle cx=\"71.9\" cy=\"411.6\" r=\"2.4\" fill=\"var(--overlay-secondary)\"/></svg>",
+   "left_pct": 1.17,
+   "top_pct": 15.0,
+   "width_pct": 5.44,
+   "height_pct": 70.0
+  }
+ ],
+ "assets": [
+  {
+   "path": "assets/09f3473518f0.webp",
+   "role": "centerpiece",
+   "alt": "Cyberpunk / synthwave artwork"
+  }
+ ],
+ "copy": [
+  "Neon synthwave music",
+  "About",
+  "Highlights",
+  "Join",
+  "Get tickets",
+  "Electronic / club",
+  "Neon synthwave music festival",
+  "New record out now. Come hear it loud.",
+  "Get tickets",
+  "Ready when you are",
+  "Start today and see the difference in a week.",
+  "The new record",
+  "Ten songs written on the road and recorded live to tape.",
+  "On tour",
+  "Twenty nights across the spring, small rooms and big ones.",
+  "Merch and vinyl",
+  "Pressed in small batches, shipped worldwide."
+ ],
+ "item_ids": [
+  "logo",
+  "nav_1",
+  "nav_2",
+  "nav_3",
+  "nav_cta",
+  "eyebrow",
+  "h1",
+  "sub",
+  "hero_cta",
+  "centerpiece",
+  "intro_h",
+  "intro_p",
+  "card_1",
+  "card_2",
+  "card_3"
+ ],
+ "group_ids": [
+  "nav",
+  "hero_text",
+  "hero_media",
+  "intro",
+  "cards"
+ ],
+ "motif_ids": [
+  "m1",
+  "m2"
+ ]
+}

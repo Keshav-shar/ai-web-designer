@@ -1,0 +1,665 @@
+{
+ "title": "Neon synthwave music festival",
+ "family": "cyberpunk-synthwave",
+ "design_system_name": "Cyberpunk / synthwave landing",
+ "aesthetic_direction": "Cyberpunk / synthwave: Neon magenta and cyan, glitch effects, perspective grids, HUD frames. glitch text css",
+ "query_context": "neon synthwave music festival. Look: Cyberpunk / synthwave (Neon magenta and cyan, glitch effects, perspective grids, HUD frames).",
+ "colors": [
+  {
+   "name": "Headline ink",
+   "var": "--c-headline-ink",
+   "hex": "#FDEE05",
+   "group": "text_color",
+   "usage": "headlines and the wordmark"
+  },
+  {
+   "name": "Label ink",
+   "var": "--c-label-ink",
+   "hex": "#B8AE27",
+   "group": "text_color",
+   "usage": "navigation and small labels"
+  },
+  {
+   "name": "Body ink",
+   "var": "--c-body-ink",
+   "hex": "#FDEE05",
+   "group": "text_color",
+   "usage": "running text"
+  },
+  {
+   "name": "Inverse ink",
+   "var": "--c-inverse-ink",
+   "hex": "#0A0A0F",
+   "group": "text_color",
+   "usage": "text on the action fill"
+  },
+  {
+   "name": "Muted accent",
+   "var": "--c-muted-accent",
+   "hex": "#FE007F",
+   "group": "muted_accent_color",
+   "usage": "quiet accents"
+  },
+  {
+   "name": "Second accent",
+   "var": "--c-second-accent",
+   "hex": "#00F0FE",
+   "group": "muted_accent_color",
+   "usage": "secondary decoration"
+  },
+  {
+   "name": "Page ground",
+   "var": "--c-page-ground",
+   "hex": "#0A0A0F",
+   "group": "background_element_color",
+   "usage": "the page ground behind every section"
+  },
+  {
+   "name": "Card surface",
+   "var": "--c-card-surface",
+   "hex": "#12023A",
+   "group": "background_element_color",
+   "usage": "card and panel surfaces"
+  },
+  {
+   "name": "Primary accent",
+   "var": "--c-primary-accent",
+   "hex": "#FE007F",
+   "group": "overlay_elements_color",
+   "usage": "decoration and highlights"
+  },
+  {
+   "name": "Action fill",
+   "var": "--c-action-fill",
+   "hex": "#FE007F",
+   "group": "overlay_elements_color",
+   "usage": "buttons"
+  }
+ ],
+ "roles": {
+  "bg_primary": "var(--bg-primary)",
+  "bg_secondary": "var(--bg-secondary)",
+  "text_top_heading": "var(--text-top-heading)",
+  "text_subheading": "var(--text-subheading)",
+  "text_body": "var(--text-body)",
+  "text_inverse": "var(--text-inverse)",
+  "accent_muted": "var(--accent-muted)",
+  "overlay_primary": "var(--overlay-primary)",
+  "overlay_secondary": "var(--overlay-secondary)",
+  "cta_fill": "var(--cta-fill)"
+ },
+ "palette": {
+  "Headline ink": "#FDEE05",
+  "Label ink": "#B8AE27",
+  "Body ink": "#FDEE05",
+  "Inverse ink": "#0A0A0F",
+  "Muted accent": "#FE007F",
+  "Second accent": "#00F0FE",
+  "Page ground": "#0A0A0F",
+  "Card surface": "#12023A",
+  "Primary accent": "#FE007F",
+  "Action fill": "#FE007F",
+  "bg_primary": "#0A0A0F",
+  "bg_secondary": "#12023A",
+  "text_top_heading": "#FDEE05",
+  "text_subheading": "#B8AE27",
+  "text_body": "#FDEE05",
+  "text_inverse": "#0A0A0F",
+  "accent_muted": "#FE007F",
+  "overlay_primary": "#FE007F",
+  "overlay_secondary": "#00F0FE",
+  "cta_fill": "#FE007F"
+ },
+ "css_vars": {
+  "--c-headline-ink": "#FDEE05",
+  "--c-label-ink": "#B8AE27",
+  "--c-body-ink": "#FDEE05",
+  "--c-inverse-ink": "#0A0A0F",
+  "--c-muted-accent": "#FE007F",
+  "--c-second-accent": "#00F0FE",
+  "--c-page-ground": "#0A0A0F",
+  "--c-card-surface": "#12023A",
+  "--c-primary-accent": "#FE007F",
+  "--c-action-fill": "#FE007F",
+  "--bg-primary": "#0A0A0F",
+  "--bg-secondary": "#12023A",
+  "--text-top-heading": "#FDEE05",
+  "--text-subheading": "#B8AE27",
+  "--text-body": "#FDEE05",
+  "--text-inverse": "#0A0A0F",
+  "--accent-muted": "#FE007F",
+  "--overlay-primary": "#FE007F",
+  "--overlay-secondary": "#00F0FE",
+  "--cta-fill": "#FE007F"
+ },
+ "typography": {
+  "wordmark": {
+   "family": "Space Grotesk",
+   "weight": "700",
+   "case": "none",
+   "letter_spacing": "-0.02em",
+   "italic": false,
+   "classification": "Sans Serif",
+   "visual_traits": "neo grotesque, techno, grotesque",
+   "reference_style": "Space Grotesk",
+   "size_css": "clamp(1.6rem, 2.4vw, 2.2rem)",
+   "line_height": "1",
+   "stack": "\"Space Grotesk\", sans-serif"
+  },
+  "display": {
+   "family": "Space Grotesk",
+   "weight": "500",
+   "case": "none",
+   "letter_spacing": "-0.02em",
+   "italic": false,
+   "classification": "Sans Serif",
+   "visual_traits": "neo grotesque, techno, grotesque",
+   "reference_style": "Space Grotesk",
+   "size_css": "clamp(2.6rem, 5.2vw, 4.75rem)",
+   "line_height": "1.05",
+   "stack": "\"Space Grotesk\", sans-serif",
+   "shadow_treatment": "none"
+  },
+  "subheading": {
+   "family": "Noto Serif Hentaigana",
+   "weight": "500",
+   "case": "uppercase",
+   "letter_spacing": "0.08em",
+   "italic": false,
+   "classification": "Serif",
+   "visual_traits": "brush, rugged, vintage",
+   "reference_style": "Noto Serif Hentaigana",
+   "size_css": "1.05rem",
+   "line_height": "1.6",
+   "stack": "\"Noto Serif Hentaigana\", serif"
+  },
+  "accent": {
+   "family": "Offside",
+   "weight": "400",
+   "case": "none",
+   "letter_spacing": "0.04em",
+   "italic": false,
+   "classification": "Display",
+   "visual_traits": "superellipse, techno, futuristic",
+   "reference_style": "Offside",
+   "size_css": "0.85rem",
+   "line_height": "1.6",
+   "stack": "\"Offside\", sans-serif"
+  },
+  "body": {
+   "family": "Noto Serif Hentaigana",
+   "weight": "400",
+   "case": "none",
+   "letter_spacing": "0em",
+   "italic": false,
+   "classification": "Serif",
+   "visual_traits": "brush, rugged, vintage",
+   "reference_style": "Noto Serif Hentaigana",
+   "size_css": "1.05rem",
+   "line_height": "1.5",
+   "stack": "\"Noto Serif Hentaigana\", serif"
+  },
+  "text_treatment_rules": "display type carries the mood; labels and body stay flat and readable"
+ },
+ "levels": {
+  "wordmark": {
+   "family": "Space Grotesk",
+   "weight": "700",
+   "used": true,
+   "size_px": 34.56
+  },
+  "display": {
+   "family": "Space Grotesk",
+   "weight": "500",
+   "used": true,
+   "size_px": 74.88000000000001
+  },
+  "subheading": {
+   "family": "Noto Serif Hentaigana",
+   "weight": "500",
+   "used": true,
+   "size_px": 16.8
+  },
+  "accent": {
+   "family": "Offside",
+   "weight": "400",
+   "used": true,
+   "size_px": 13.6
+  },
+  "body": {
+   "family": "Noto Serif Hentaigana",
+   "weight": "400",
+   "used": true,
+   "size_px": 16.8
+  }
+ },
+ "fonts": [
+  "Space Grotesk",
+  "Noto Serif Hentaigana",
+  "Offside"
+ ],
+ "fonts_css": [
+  "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Noto+Serif+Hentaigana:wght@400;500;600;700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Offside:wght@400&display=swap"
+ ],
+ "type_scale": {
+  "--fs-1": "16.0px",
+  "--fs-2": "20.0px",
+  "--fs-3": "25.0px",
+  "--fs-4": "31.2px",
+  "--fs-5": "39.1px",
+  "--fs-6": "48.8px",
+  "--fs-7": "61.0px",
+  "--fs-8": "76.3px"
+ },
+ "canvas": {
+  "max_width_px": 1440,
+  "content_width_px": 1200,
+  "gutter_px": 24,
+  "canvas_use": "the hero's text and graphic share the full width"
+ },
+ "composition": {
+  "alignment_grid": "12-column centred container, 1200 px",
+  "permitted_overlaps": [],
+  "prohibited_overlaps": [
+   "decoration never sits on text or on the central graphic"
+  ],
+  "canvas_use": "the hero's text and graphic share the full width"
+ },
+ "background": {
+  "image": null,
+  "treatment": "none",
+  "abstract": false,
+  "base_surface": "Cyberpunk / synthwave surface from the family palette"
+ },
+ "sections": [
+  {
+   "section_id": "nav",
+   "role": "nav",
+   "what": [
+    "wordmark",
+    "links",
+    "action"
+   ],
+   "where": "top bar",
+   "layout": "one row: wordmark left, links and the action right",
+   "size": "about 88px tall",
+   "responsive": "one column under 1024px",
+   "colors": {
+    "surface": "--c-inverse-ink",
+    "text": "--c-headline-ink",
+    "heading": "--c-headline-ink",
+    "accent": "--c-muted-accent"
+   },
+   "items": [
+    {
+     "item_id": "logo",
+     "kind": "logo",
+     "level": "wordmark",
+     "text": "Neon synthwave music",
+     "href": "#top"
+    },
+    {
+     "item_id": "nav-1",
+     "kind": "nav_link",
+     "level": "subheading",
+     "text": "About",
+     "href": "#intro"
+    },
+    {
+     "item_id": "nav-2",
+     "kind": "nav_link",
+     "level": "subheading",
+     "text": "Highlights",
+     "href": "#cards"
+    },
+    {
+     "item_id": "nav-3",
+     "kind": "nav_link",
+     "level": "subheading",
+     "text": "Join",
+     "href": "#cards"
+    },
+    {
+     "item_id": "nav-cta",
+     "kind": "cta",
+     "level": "subheading",
+     "text": "Get tickets",
+     "href": "#cards"
+    }
+   ]
+  },
+  {
+   "section_id": "hero",
+   "role": "hero",
+   "what": [
+    "eyebrow",
+    "headline",
+    "supporting line",
+    "action",
+    "the central graphic"
+   ],
+   "where": "first screen",
+   "layout": "12 columns: the text block in cols 1-6, the central graphic in cols 7-12, centred vertically",
+   "size": "min-height 640px; padding 96px 0",
+   "responsive": "one column under 1024px",
+   "colors": {
+    "surface": "--c-inverse-ink",
+    "text": "--c-headline-ink",
+    "heading": "--c-headline-ink",
+    "accent": "--c-muted-accent"
+   },
+   "items": [
+    {
+     "item_id": "eyebrow",
+     "kind": "eyebrow",
+     "level": "accent",
+     "text": "Electronic / club",
+     "href": "#top"
+    },
+    {
+     "item_id": "h1",
+     "kind": "h1",
+     "level": "display",
+     "text": "Neon synthwave music festival",
+     "href": "#top"
+    },
+    {
+     "item_id": "sub",
+     "kind": "paragraph",
+     "level": "body",
+     "text": "New record out now. Come hear it loud.",
+     "href": "#top"
+    },
+    {
+     "item_id": "hero-cta",
+     "kind": "cta",
+     "level": "subheading",
+     "text": "Get tickets",
+     "href": "#cards"
+    },
+    {
+     "item_id": "centerpiece",
+     "kind": "image",
+     "src": "assets/09f3473518f0.webp",
+     "alt": "Cyberpunk / synthwave artwork",
+     "where": "beside the hero text"
+    }
+   ]
+  },
+  {
+   "section_id": "intro",
+   "role": "intro",
+   "what": [
+    "statement heading",
+    "short paragraph"
+   ],
+   "where": "below the hero, centred",
+   "layout": "centred column, max-width 760px",
+   "size": "padding 80px 0",
+   "responsive": "one column under 1024px",
+   "colors": {
+    "surface": "--c-inverse-ink",
+    "text": "--c-headline-ink",
+    "heading": "--c-headline-ink",
+    "accent": "--c-muted-accent"
+   },
+   "items": [
+    {
+     "item_id": "intro-h",
+     "kind": "h2",
+     "level": "display",
+     "text": "Ready when you are",
+     "href": "#top"
+    },
+    {
+     "item_id": "intro-p",
+     "kind": "paragraph",
+     "level": "body",
+     "text": "Start today and see the difference in a week.",
+     "href": "#top"
+    }
+   ]
+  },
+  {
+   "section_id": "cards",
+   "role": "cards",
+   "what": [
+    "3 strategic cards"
+   ],
+   "where": "lower band",
+   "layout": "a 12-column grid of equal cards",
+   "size": "padding 80px 0",
+   "responsive": "one column under 1024px",
+   "colors": {
+    "surface": "--c-inverse-ink",
+    "text": "--c-headline-ink",
+    "heading": "--c-headline-ink",
+    "accent": "--c-muted-accent"
+   },
+   "items": [
+    {
+     "item_id": "card-1",
+     "kind": "card",
+     "level": "display",
+     "text": "",
+     "href": "#top",
+     "card": {
+      "tag": "Electronic",
+      "heading": "The new record",
+      "body": "Ten songs written on the road and recorded live to tape.",
+      "accent": "var(--overlay-primary)"
+     }
+    },
+    {
+     "item_id": "card-2",
+     "kind": "card",
+     "level": "display",
+     "text": "",
+     "href": "#top",
+     "card": {
+      "tag": "Club",
+      "heading": "On tour",
+      "body": "Twenty nights across the spring, small rooms and big ones.",
+      "accent": "var(--overlay-secondary)"
+     }
+    },
+    {
+     "item_id": "card-3",
+     "kind": "card",
+     "level": "display",
+     "text": "",
+     "href": "#top",
+     "card": {
+      "tag": "Electronic",
+      "heading": "Merch and vinyl",
+      "body": "Pressed in small batches, shipped worldwide.",
+      "accent": "var(--cta-fill)"
+     }
+    }
+   ]
+  }
+ ],
+ "decor": [
+  {
+   "element_id": "bg-ground",
+   "layer": "z0",
+   "what": "Page ground ground with perspective_grid, radial_glow",
+   "where": "the whole page, fixed behind everything",
+   "anchor": "hero",
+   "placement": "the whole page, fixed behind everything",
+   "asset": null
+  },
+  {
+   "element_id": "bg-glow",
+   "layer": "z0",
+   "what": "a soft radial glow in Primary accent",
+   "where": "behind the hero, upper right",
+   "anchor": "hero",
+   "placement": "behind the hero, upper right",
+   "asset": null
+  },
+  {
+   "element_id": "decor-1",
+   "layer": "z5",
+   "what": "perspective grid: perspective grid; Neon magenta and cyan, glitch effects, perspective grids, HUD frames",
+   "where": "behind the hero image",
+   "anchor": "hero",
+   "placement": "behind the hero image",
+   "asset": {
+    "kind": "svg",
+    "svg": "<svg preserveaspectratio=\"xMidYMid meet\" viewBox=\"0 0 240 240\" width=\"100%\" height=\"100%\" data-motif=\"decor-1\" aria-hidden=\"true\" focusable=\"false\"><line x1=\"0\" y1=\"2.7\" x2=\"240\" y2=\"2.7\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"9.5\" x2=\"240\" y2=\"9.5\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"19.8\" x2=\"240\" y2=\"19.8\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"33.2\" x2=\"240\" y2=\"33.2\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"49.6\" x2=\"240\" y2=\"49.6\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"68.9\" x2=\"240\" y2=\"68.9\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"91\" x2=\"240\" y2=\"91\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"115.7\" x2=\"240\" y2=\"115.7\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"143\" x2=\"240\" y2=\"143\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"172.9\" x2=\"240\" y2=\"172.9\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"205.2\" x2=\"240\" y2=\"205.2\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"0\" y1=\"240\" x2=\"240\" y2=\"240\" stroke=\"var(--overlay-primary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"-120\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"-100\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"-80\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"-60\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"-40\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"-20\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"0\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"20\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"40\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"60\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"80\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"100\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"120\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"140\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"160\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"180\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"200\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"220\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"240\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"260\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"280\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"300\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"320\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"340\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/><line x1=\"120\" y1=\"0\" x2=\"360\" y2=\"240\" stroke=\"var(--overlay-secondary)\" stroke-width=\"1\"/></svg>",
+    "opacity": 0.55
+   }
+  }
+ ],
+ "assets": [
+  {
+   "path": "assets/09f3473518f0.webp",
+   "role": "centerpiece",
+   "alt": "Cyberpunk / synthwave artwork",
+   "description": "Cyberpunk / synthwave artwork"
+  }
+ ],
+ "layout": {
+  "hero_section": "hero"
+ },
+ "items": [
+  {
+   "item_id": "logo",
+   "kind": "logo",
+   "section_id": "nav",
+   "level": "wordmark"
+  },
+  {
+   "item_id": "nav-1",
+   "kind": "nav_link",
+   "section_id": "nav",
+   "level": "subheading"
+  },
+  {
+   "item_id": "nav-2",
+   "kind": "nav_link",
+   "section_id": "nav",
+   "level": "subheading"
+  },
+  {
+   "item_id": "nav-3",
+   "kind": "nav_link",
+   "section_id": "nav",
+   "level": "subheading"
+  },
+  {
+   "item_id": "nav-cta",
+   "kind": "cta",
+   "section_id": "nav",
+   "level": "subheading"
+  },
+  {
+   "item_id": "eyebrow",
+   "kind": "eyebrow",
+   "section_id": "hero",
+   "level": "accent"
+  },
+  {
+   "item_id": "h1",
+   "kind": "h1",
+   "section_id": "hero",
+   "level": "display"
+  },
+  {
+   "item_id": "sub",
+   "kind": "paragraph",
+   "section_id": "hero",
+   "level": "body"
+  },
+  {
+   "item_id": "hero-cta",
+   "kind": "cta",
+   "section_id": "hero",
+   "level": "subheading"
+  },
+  {
+   "item_id": "centerpiece",
+   "kind": "centerpiece",
+   "section_id": "hero",
+   "level": "body"
+  },
+  {
+   "item_id": "intro-h",
+   "kind": "h2",
+   "section_id": "intro",
+   "level": "display"
+  },
+  {
+   "item_id": "intro-p",
+   "kind": "paragraph",
+   "section_id": "intro",
+   "level": "body"
+  },
+  {
+   "item_id": "card-1",
+   "kind": "card",
+   "section_id": "cards",
+   "level": "display"
+  },
+  {
+   "item_id": "card-2",
+   "kind": "card",
+   "section_id": "cards",
+   "level": "display"
+  },
+  {
+   "item_id": "card-3",
+   "kind": "card",
+   "section_id": "cards",
+   "level": "display"
+  }
+ ],
+ "copy": [
+  "Neon synthwave music",
+  "About",
+  "Highlights",
+  "Join",
+  "Get tickets",
+  "Electronic / club",
+  "Neon synthwave music festival",
+  "New record out now. Come hear it loud.",
+  "Get tickets",
+  "Ready when you are",
+  "Start today and see the difference in a week.",
+  "The new record",
+  "Ten songs written on the road and recorded live to tape.",
+  "On tour",
+  "Twenty nights across the spring, small rooms and big ones.",
+  "Merch and vinyl",
+  "Pressed in small batches, shipped worldwide."
+ ],
+ "item_ids": [
+  "logo",
+  "nav-1",
+  "nav-2",
+  "nav-3",
+  "nav-cta",
+  "eyebrow",
+  "h1",
+  "sub",
+  "hero-cta",
+  "centerpiece",
+  "intro-h",
+  "intro-p",
+  "card-1",
+  "card-2",
+  "card-3"
+ ],
+ "section_ids": [
+  "nav",
+  "hero",
+  "intro",
+  "cards"
+ ],
+ "motif_ids": [
+  "decor-1"
+ ]
+}

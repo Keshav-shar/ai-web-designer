@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseConfigured } from "@/lib/supabase/config";
 
-// "/" (the studio) and "/about" are public; generating and viewing sites need an invited account.
+// "/" (the studio), "/about" and "/evidence" are public; generating and viewing sites need an invited account.
 const PROTECTED = ["/sites", "/api/generate"];
 const NOT_CONFIGURED = "This deployment has no Supabase project configured (NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY).";
 

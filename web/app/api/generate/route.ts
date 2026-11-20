@@ -1,14 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { splitPrompt } from "@/lib/split";
+import { MAX_PROMPT, Prompt } from "@/lib/prompt";
 import { supabaseServer } from "@/lib/supabase/server";
 
-const Body = z.object({ prompt: z.string().trim().min(3, "Say a little more").max(300, "Keep it under 300 characters") });
+const Body = z.object({ prompt: Prompt });
+
+/** Database refusals -> what the person should do next (never the raw database text). */
+function queueError(message: string): { error: string; status: number } {
+  if (/quota/i.test(message)) return { error: "You've reached today's limit. Try again tomorrow.", status: 429 };
+  if (/already running/i.test(message))
+    return { error: "You already have a site in progress. Wait for it, or cancel it first.", status: 409 };
+  if (/jobs_prompt_check|char_length/i.test(message))
+    return { error: `Keep it between 3 and ${MAX_PROMPT} characters.`, status: 400 };
+  if (/profile/i.test(message)) return { error: "Your account isn't fully set up yet. Ask the admin.", status: 403 };
+  return { error: "Couldn't queue that request. Please try again.", status: 400 };
+}
 
 /**
- * The simple API: authenticate, validate, split the prompt into {full_query, vibe_query}, queue the job.
- * The insert runs with the user's own session, so RLS + the quota trigger are the rate limiter; this route
- * holds no privileged key. The PC worker picks the job up from the queue.
+ * The simple API: authenticate, validate (<= 200 characters, normalized), queue the prompt. The insert runs with the
+ * user's own session, so RLS + the quota trigger are the rate limiter; this route holds no privileged key. The PC
+ * worker picks the job up, splits the prompt itself (worker/split.py, the only implementation) and writes the split
+ * it routed on back to the job.
  */
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -21,14 +33,13 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "sign in first" }, { status: 401 });
 
   const parsed = Body.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "invalid prompt" }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid request." }, { status: 400 });
+  const prompt = parsed.data.prompt;
 
-  const split = await splitPrompt(parsed.data.prompt);
-  const { data, error } = await supabase.from("jobs").insert({ prompt: parsed.data.prompt, split }).select("id").single();
+  const { data, error } = await supabase.from("jobs").insert({ prompt }).select("id").single();
   if (error) {
-    const msg = error.message || "could not queue the job";
-    const status = /quota/.test(msg) ? 429 : /already running/.test(msg) ? 409 : 400;
-    return NextResponse.json({ error: msg }, { status });
+    const e = queueError(error.message ?? "");
+    return NextResponse.json({ error: e.error }, { status: e.status });
   }
-  return NextResponse.json({ job_id: data.id, split }, { status: 201 });
+  return NextResponse.json({ job_id: data.id, prompt }, { status: 201 });
 }

@@ -66,7 +66,12 @@ def main(argv=None) -> int:
         print("password must be at least 10 characters", file=sys.stderr)
         return 2
 
-    h = {"apikey": key, "Authorization": f"Bearer {key}"}
+    if key.startswith("sb_publishable_"):
+        print("SUPABASE_SERVICE_ROLE_KEY holds the PUBLISHABLE key. Use the secret key instead: Supabase -> Project "
+              "Settings -> API Keys -> Secret keys (sb_secret_...), or the legacy service_role key.", file=sys.stderr)
+        return 2
+    # new sb_secret_ keys are not JWTs: send them only as `apikey`; legacy service_role JWTs also go in Authorization
+    h = {"apikey": key, **({"Authorization": f"Bearer {key}"} if key.startswith("eyJ") else {})}
     r = httpx.post(f"{url}/auth/v1/admin/users", headers=h, timeout=30,
                    json={"email": f"{username}@{domain}", "password": password, "email_confirm": True,
                          "user_metadata": {"username": username}})
@@ -88,7 +93,8 @@ def main(argv=None) -> int:
                     headers={**h, "Prefer": "return=minimal"}, timeout=30)
     if q.status_code >= 300:
         print(f"account created, but updating its profile failed: {q.status_code} {q.text[:200]} "
-              "(run supabase/migrations/20261123000000_usernames.sql)", file=sys.stderr)
+              "(run supabase/migrations/20261124000000_service_role_grants.sql; the username is still set by the "
+              "account trigger, so sign-in works)", file=sys.stderr)
     print(f"created username '{username}'" + (f", quota {a.quota}/day" if a.quota is not None else ""))
     if not a.password:
         print(f"password (shown once, not stored): {password}")
