@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlanetGlyph } from "@/components/cosmos";
+import { Monogram, Strip } from "@/components/cosmos";
 import { usernameOf } from "@/lib/auth/username";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -16,17 +16,16 @@ export async function SiteNav() {
       signedIn = false;
     }
   }
-  const link = "whitespace-nowrap no-underline transition-colors hover:text-sienna";
+  const link = "whitespace-nowrap no-underline transition-colors hover:text-cta";
   return (
-    <header className="relative z-30">
+    <header className="relative z-30 bg-cream">
       {/* phones: wordmark + account on one row, links on a second; wider: one row */}
-      <nav aria-label="Main" className="container-x flex min-h-[88px] flex-wrap items-center justify-between gap-x-3 gap-y-3 py-4 sm:gap-x-8">
-        <Link href="/" className="flex items-center gap-2 no-underline sm:gap-2.5" aria-label="Cosmogon Labs, home">
-          <PlanetGlyph className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
-          <span className="wordmark text-[1.2rem] min-[400px]:text-[1.4rem] sm:text-[1.75rem]">Cosmogon Labs</span>
+      <nav aria-label="Main" className="container-x flex min-h-[84px] flex-wrap items-center justify-between gap-x-3 gap-y-3 py-4 sm:gap-x-8">
+        <Link href="/" className="flex items-center gap-2.5 no-underline" aria-label="Cosmogon Labs, home">
+          <Monogram className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
+          <span className="wordmark stacked-sm text-[1.3rem] min-[400px]:text-[1.5rem] sm:text-[1.8rem]">Cosmogon Labs</span>
         </Link>
-        <ul className="order-last flex w-full items-center justify-between gap-x-6 border-t border-dashed pt-3 font-ui text-[0.75rem] font-bold uppercase tracking-[0.12em] text-charcoal sm:order-none sm:ml-auto sm:w-auto sm:justify-end sm:border-0 sm:pt-0 sm:text-[0.8rem]"
-          style={{ borderColor: "var(--rule)" }}>
+        <ul className="order-last flex w-full items-center justify-between gap-x-6 border-t-2 border-ink pt-3 font-ui text-[0.85rem] font-semibold uppercase tracking-[0.16em] text-ink sm:order-none sm:ml-auto sm:w-auto sm:justify-end sm:gap-x-9 sm:border-0 sm:pt-0 sm:text-[0.95rem]">
           <li><Link className={link} href="/">Studio</Link></li>
           {signedIn && <li><Link className={link} href="/sites">Sites</Link></li>}
           <li><Link className={link} href="/about">About</Link></li>
@@ -41,6 +40,7 @@ export async function SiteNav() {
           <Link className="btn btn-primary btn-sm" href="/login">Sign in</Link>
         )}
       </nav>
+      <Strip />
     </header>
   );
 }

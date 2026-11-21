@@ -8,13 +8,13 @@ export const ABOUT = {
   how: {
     title: "Three steps, each one inspectable",
     steps: [
-      { n: "01", name: "Split", body: "Your sentence becomes two queries: what the site is for, and how it should feel.", bar: "avocado" },
-      { n: "02", name: "Taste", body: "The feeling is routed through 39 aesthetic families to a palette, a type pairing, a scale and imagery from that family's folders.", bar: "rust" },
-      { n: "03", name: "Compose", body: "A design document is written from those references and the page is composed from it, then checked: contrast, fonts, overlaps, no scripts, no stray colours.", bar: "teal" },
+      { n: "01", name: "Split", body: "Your provided sentence is split into two queries: what the site is structurally for, and how it should feel.", bar: "avocado" },
+      { n: "02", name: "Taste", body: "The feeling is routed through 39 specialized aesthetic families to Background, Typography, Layout, Elements and Palette from that family's folders, based purely on context similarity with zero AI involvement.", bar: "rust" },
+      { n: "03", name: "Serve", body: "Based on evaluated taste, an agentic workflow uses components designed by the vibes, and organizes them into a well-structured high-taste value Landing Page UI", bar: "teal" },
     ],
   },
   showcase: {
-    title: "Every family keeps its own folders",
+    title: "Families are created to capture diversity in designs and prevent AI slop caused by mixing those",
     sub: "Website captures, UI kits, 3D renders, illustration, type specimens and palettes, grouped by CLIP. The studio pulls from the routed family's folders for each section.",
     images: [
       { src: "/about/assets/adc355ed2ce4.webp", caption: "abstract art", tilt: -3 },
@@ -26,9 +26,9 @@ export const ABOUT = {
   faq: {
     title: "Questions",
     items: [
-      ["Where do the images come from?", "A research corpus of public design references, clustered into 39 aesthetic families. They are shown only to signed-in testers and credited as references."],
-      ["Is any of this written by AI?", "The lab that picks palettes, fonts and imagery makes no AI calls. When the agent pipeline is on, Gemini and Groq models write the design document and compose the page from those picks; every page is then checked by code before it ships."],
-      ["What keeps it from looking generic?", "The recipe decides palette, type, scale, alignment and imagery from real references, and guardrails repair anything that fails contrast or the vibe's own cues."],
+      ["Where do the images come from?", "A SERP based web-crawling corpus fetches public design references, while specialized clustering algorithms classify them into 39 aesthetic families with ~20 semantic divisions each family. They are shown only to signed-in testers and credited as references."],
+      ["Is any of this written by AI?", "The lab that picks palettes, fonts and imagery makes no AI calls, keeping central engine consistent at O(n) updation complexity and high non-agentic feasability. When serving the results, Gemini and Groq models write the design document and compose the page from those picks; every page is then checked by code before it ships."],
+      ["What keeps it from looking generic?", "The recipe decides palette, type, scale, alignment and imagery from real references with grounded taste alignments, and guardrails repair anything that fails contrast or the vibe's own cues. You can read more about it in the Evidences page."],
     ],
   },
   cta: { title: "Bring a sentence", sub: "Invite-only while the engine runs on one machine." },

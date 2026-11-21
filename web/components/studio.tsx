@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SiteMockup } from "@/components/site-mockup";
-import { Sticker, TapePiece } from "@/components/cosmos";
+import { TapePiece } from "@/components/cosmos";
 import { Card, cx } from "@/components/ui";
 import { MAX_PROMPT, normalizePrompt } from "@/lib/prompt";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -33,7 +33,7 @@ function EngineBadge({ initial }: { initial: Engine }) {
   return (
     <>
       <p className="meta flex items-center gap-2.5" title={engine ? `last seen ${new Date(engine.last_seen).toLocaleTimeString()}` : "no heartbeat yet"}>
-        <span aria-hidden="true" className={cx("inline-block h-2.5 w-2.5 rounded-full", on ? "bg-avocado" : "border-2 border-rule bg-cream")} />
+        <span aria-hidden="true" className={cx("inline-block h-2.5 w-2.5 rounded-full", on ? "bg-teal" : "border-2 border-rule bg-cream")} />
         {on ? (engine?.state === "busy" ? "Engine online · working on a request" : "Engine online")
           : "Engine offline · your request waits in the queue until it's back"}
       </p>
@@ -160,7 +160,7 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
             <p id="prompt-help" className="text-[0.9rem] text-muted">What it is, then how it should feel. Enter to send.</p>
             <div className="flex items-center gap-4">
-              <span id="prompt-count" className={cx("meta", prompt.length >= MAX_PROMPT && "text-sienna")}>
+              <span id="prompt-count" className={cx("meta", prompt.length >= MAX_PROMPT && "text-cta")}>
                 {prompt.length}/{MAX_PROMPT}
               </span>
               <button className="btn btn-primary" disabled={busy || running || clean.length < 3}>
@@ -181,14 +181,14 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
         <p role="alert" className="notice">{error}</p>
       ) : null}
       {!signedIn && !error && (
-        <p className="text-center text-muted">Invite-only for now. <Link className="font-bold text-sienna underline" href="/login">Sign in</Link> to generate.</p>
+        <p className="text-center text-muted">Invite-only for now. <Link className="font-bold text-cta underline" href="/login">Sign in</Link> to generate.</p>
       )}
 
       <div aria-live="polite">
         {status && (
           <Card bar="gold" className="overflow-hidden">
             <div className="flex items-center justify-between gap-4 px-5 py-4">
-              <p className="font-ui text-[0.85rem] font-bold uppercase tracking-[0.1em] text-charcoal">{status}</p>
+              <p className="font-ui text-[0.95rem] font-semibold uppercase tracking-[0.12em] text-ink">{status}</p>
               <button type="button" onClick={cancel} disabled={cancelling} className="btn btn-ghost btn-sm shrink-0">
                 {cancelling ? "Cancelling…" : "Cancel"}
               </button>
@@ -213,7 +213,6 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
             </div>
           </div>
           <div className="relative">
-            <Sticker top="COSMOGON" script="Studio" big="Mk I" className="drift hide-sm -right-8 -top-10 z-20 w-[118px]" />
             <SiteMockup src={`/sites/${shown.id}/preview`} label={shown.title ?? "your site"} />
           </div>
         </div>

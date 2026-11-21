@@ -1,43 +1,36 @@
 @import "tailwindcss";
-/* Cosmogon Labs design system (hand-designed): tokens, type, buttons, cards, print furniture, floating decor.
+/* Cosmogon Labs design system (hand-designed): tokens, type, buttons, cards, print furniture, textures.
    The engine's generated theme (theme/tokens.css, theme/site-components.css, written by tools/build_shell.py) is
    kept for engine demos but no longer skins the app. */
 @import "./theme/cosmogon.css" layer(components);
 
 @theme inline {
-  --color-linen: var(--linen);
   --color-cream: var(--cream);
-  --color-parch: var(--parch);
-  --color-charcoal: var(--charcoal);
-  --color-espresso: var(--espresso);
+  --color-sand: var(--sand);
+  --color-paper: var(--paper);
+  --color-forest: var(--forest);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
-  --color-sienna: var(--sienna);
-  --color-coral: var(--coral);
+  --color-gold: var(--gold);
+  --color-orange: var(--orange);
+  --color-vermilion: var(--vermilion);
   --color-cta: var(--cta);
   --color-rust: var(--rust);
-  --color-gold: var(--gold);
-  --color-gold-light: var(--gold-light);
-  --color-cerulean: var(--cerulean);
+  --color-maroon: var(--maroon);
   --color-teal: var(--teal);
-  --color-teal-ink: var(--teal-ink);
-  --color-avocado: var(--avocado);
-  --color-avocado-ink: var(--avocado-ink);
-  --color-chocolate: var(--chocolate);
   --color-line: var(--hairline);
   --color-rule: var(--rule);
-  --color-ink: var(--charcoal);
   --font-display: var(--display);
   --font-ui: var(--ui);
   --font-body: var(--body);
-  --font-script: var(--script);
 }
 
 @layer base {
-  html { scroll-behavior: smooth; background: var(--linen); }
+  html { scroll-behavior: smooth; background: var(--cream); }
   body {
     min-height: 100dvh;
-    background: var(--linen);
-    color: var(--espresso);
+    background: var(--cream);
+    color: var(--ink);
     font-family: var(--body);
     font-size: 1rem;
     line-height: 1.65;
@@ -46,8 +39,8 @@
   }
   h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
   p { text-wrap: pretty; }
-  ::selection { background: var(--gold-light); color: var(--charcoal); }
-  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+  ::selection { background: var(--gold); color: var(--ink); }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; border-radius: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

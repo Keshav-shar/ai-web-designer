@@ -1,4 +1,4 @@
-import { HeroCosmos, SunArch } from "@/components/cosmos";
+import { Poster } from "@/components/cosmos";
 import { Studio, type Engine } from "@/components/studio";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -28,16 +28,28 @@ export default async function StudioPage() {
   const { signedIn, job, latest, engine } = await load();
   return (
     <>
-      <section className="relative overflow-hidden pb-10 pt-6 text-center md:pt-10">
-        <HeroCosmos />
-        <div className="container-x relative z-10">
-          <SunArch className="rise relative mx-auto -mb-9 block h-[150px] w-[300px] max-w-[80vw] sm:-mb-11 sm:h-[170px] sm:w-[340px]" />
-          <h1 className="display display-1 rise relative mx-auto max-w-[14ch]">What should we make?</h1>
-          <div className="rise-2 mt-6"><span className="badge">the Studio</span></div>
-          <p className="lede rise-3 mx-auto mt-7">
-            Name the business and the feeling. Cosmogon Labs routes the feeling to one of 39 aesthetic families,
-            reads its references, and composes the page.
-          </p>
+      {/* the retro web kit's split hero: lockup left, framed print right, a ruled divider between */}
+      <section className="container-x pb-14 pt-12 md:pb-20 md:pt-16">
+        <div className="grid items-center gap-12 md:grid-cols-[1.35fr_1fr] md:gap-0">
+          <div className="rise md:pr-14">
+            <span className="badge">Welcome to the Studio</span>
+            <h1 className="mt-9" aria-label="What should we make?">
+              <span className="inline-caps block text-[clamp(2.1rem,1.3rem+3.4vw,4.1rem)]">
+                What should <span className="hl">we</span>
+              </span>
+              <span className="display stacked mt-3 block text-[clamp(4.6rem,2.6rem+8vw,9.5rem)] italic leading-[.9]"
+                style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>
+                make?
+              </span>
+            </h1>
+            <p className="lede mt-9">
+              Name the business and the feeling. Cosmogon Labs routes the feeling to one of 39 aesthetic families,
+              reads its references, and composes the page.
+            </p>
+          </div>
+          <div className="rise-2 hide-sm md:border-l-2 md:border-ink md:pl-14">
+            <Poster name="arch" caption="Plate 01 · Sunset arches" artClassName="aspect-square" />
+          </div>
         </div>
       </section>
       <section className="container-x relative z-10">

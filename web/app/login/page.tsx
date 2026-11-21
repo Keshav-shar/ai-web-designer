@@ -1,5 +1,5 @@
-import { OrbitRibbon, Sticker, Sunburst, TapePiece } from "@/components/cosmos";
-import { Card, Display, Eyebrow } from "@/components/ui";
+import { Texture } from "@/components/cosmos";
+import { Display, Eyebrow } from "@/components/ui";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { LoginForm } from "./login-form";
 
@@ -16,19 +16,18 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const configured = supabaseConfigured();
   const error = sp.error ? (KNOWN.has(sp.error) ? sp.error : "Sign-in failed. Please try again.") : null;
   return (
-    <section className="relative grid min-h-[70dvh] place-items-center overflow-hidden px-6 py-16">
-      <Sunburst className="spin-slow left-1/2 top-1/2 h-[720px] w-[720px] max-w-none" style={{ marginLeft: -360, marginTop: -360 }} opacity={0.12} />
-      <OrbitRibbon side="left" className="drift hide-sm -left-6 top-24 w-[200px]" />
-      <div className="relative w-full max-w-md">
-        <TapePiece style={{ top: -14, left: "50%", marginLeft: -56, transform: "rotate(2deg)" }} />
-        <Sticker top="INVITE" script="only" big="✦" className="drift hide-sm -right-12 -top-12 z-20 w-[104px]" />
-        <Card bar="rust" className="relative">
-          <div className="p-8 md:p-10">
+    <section className="container-x grid min-h-[70dvh] place-items-center py-16">
+      {/* a print panel beside the form, the form on plain cream */}
+      <div className="card grid w-full max-w-[56rem] overflow-hidden md:grid-cols-[1fr_1.15fr]">
+        <Texture name="stripes" className="hide-sm border-r-2 border-ink" position="20% center" />
+        <div>
+          <div aria-hidden="true" className="card-bar bar-vermilion" />
+          <div className="p-8 md:p-12">
             <Eyebrow>invite only</Eyebrow>
-            <Display as="h1" size={2}>Sign in</Display>
+            <Display as="h1" size={2} className="stacked-sm">Sign in</Display>
             {configured ? (
               <>
-                <p className="mt-4 text-espresso">Use the username and password you were given. Accounts are created by invitation only.</p>
+                <p className="mt-4">Use the username and password you were given. Accounts are created by invitation only.</p>
                 {error && <p role="alert" className="notice mt-5">{error}</p>}
                 <LoginForm next={next} />
               </>
@@ -39,7 +38,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               </p>
             )}
           </div>
-        </Card>
+        </div>
       </div>
     </section>
   );

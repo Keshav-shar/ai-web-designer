@@ -14,7 +14,7 @@ import { cx } from "@/components/ui";
  * wrapper that spans exactly the scale's 0..max, so bars, dots, ticks and reference lines share one x scale.
  */
 export const SERIES = { s1: "#00866A", s2: "#C07A2C", s3: "#A2477E", s4: "#4A68B0", base: "#B9A9A4" } as const;
-export const SURFACE = "#FBF4EA";
+export const SURFACE = "#FBF5EF";
 const GRID = "#E6DCCB";
 const REF = "#6B5547";
 const GUTTER = "pr-16";
@@ -26,8 +26,8 @@ const at = (v: number, { min = 0, max, log }: Scale) => {
   return `${Math.max(0, Math.min(100, f * 100))}%`;
 };
 
-const BAR_OF: Record<string, string> = { curation: "avocado", representation: "rust", routing: "teal", text: "gold",
-  contrast: "cerulean", corrections: "avocado", placement: "rust", gate: "teal" };
+const BAR_OF: Record<string, string> = { curation: "forest", representation: "gold", routing: "vermilion", text: "teal",
+  contrast: "orange", corrections: "forest", placement: "gold", gate: "vermilion" };
 
 export const fmt = (v: number) => v.toLocaleString("en-US");
 export const fmtPct = (v: number, d = 0) => `${(v * 100).toFixed(d)}%`;
@@ -41,7 +41,7 @@ export function ChartCard({ id, kicker, title, shows, n, children, table }: {
       <div className="p-5 sm:p-8">
       <p className="eyebrow">{kicker}</p>
       <h2 id={`${id}-t`} className="display display-3">{title}</h2>
-      <div className="mt-4 max-w-[64ch] text-espresso">{shows}</div>
+      <div className="mt-4 max-w-[64ch] text-ink">{shows}</div>
       <div className="mt-8">{children}</div>
       <p className="mt-6 text-[13px] text-muted">{n}</p>
       {table && (
@@ -269,7 +269,7 @@ export function Stat({ label, value, sub }: { label: string; value: ReactNode; s
   return (
     <div className="min-w-0">
       <p className="text-[13px] text-muted">{label}</p>
-      <p className="mt-2 font-display text-[2.1rem] font-black leading-none text-sienna">{value}</p>
+      <p className="mt-2 font-display text-[2.1rem] font-black leading-none text-cta">{value}</p>
       {sub && <p className="mt-1.5 text-[13px] text-muted">{sub}</p>}
     </div>
   );
