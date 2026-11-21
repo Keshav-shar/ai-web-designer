@@ -37,6 +37,14 @@ LIMITS = {
     "qwen/qwen3.8-27b": {"rpm": 30, "rpd": 1000, "tpm": 8000, "tpd": 200_000},
 }
 DEFAULT = {"rpm": 10, "rpd": 200, "tpm": 8000}
+# OpenRouter (openrouter.ai/docs/api-reference/limits, read 2026-11-22): free ':free' models allow 20 requests/min and
+# a per-ACCOUNT daily pool shared by every free model: 50 requests, or 1000 once $10 of credit was ever bought.
+# GET /key reports the pool (free_model_daily_requests); pipeline.Ctx adopts it with set_free_daily() / Ledger.sync().
+OR_PREFIX = "openrouter/"               # pipeline ids: 'openrouter/<vendor>/<model>' (Groq ids contain '/' too)
+OR_FREE_POOL = OR_PREFIX + ":free"      # the one ledger slot every free OpenRouter model counts against
+OPENROUTER_FREE = {"rpm": 20, "rpd": 50, "tpm": 2_000_000}      # no token window on the free tier; context is large
+OPENROUTER_PAID = {"rpm": 60, "rpd": 100_000, "tpm": 2_000_000}
+OR_IMAGE = {"low": 1300, "medium": 2000, "high": 3200}           # rough per-image token estimate at detail 'high'
 GEMINI_IMAGE = {"low": 280, "medium": 560, "high": 1120, "ultra_high": 2240}
 MISTRAL_IMAGE = {"low": 1000, "medium": 1000, "high": 2200}   # measured: a 1024 px image ~950 tokens on Ministral
 QWEN_IMAGE = 2048                     # Groq: each image counts as 2048 input tokens
@@ -47,9 +55,21 @@ LEDGER = Path(os.getenv("LANDING_LEDGER", r"D:\serpman-studio\out\_agents\quota.
 MISTRAL_DEFAULT = {"rpm": 2, "rpd": 2000, "tpm": 40_000}
 
 
+def is_or_free(model: str) -> bool:
+    return model.startswith(OR_PREFIX) and model.endswith(":free")
+
+
+def set_free_daily(limit: int | None) -> None:
+    """The account's real daily pool of free OpenRouter requests (50 or 1000), as GET /key reports it."""
+    if isinstance(limit, int) and limit > 0:
+        OPENROUTER_FREE["rpd"] = limit
+
+
 def limits(model: str) -> dict:
     if model in LIMITS:
         return LIMITS[model]
+    if model.startswith(OR_PREFIX):
+        return OPENROUTER_FREE if model.endswith(":free") else OPENROUTER_PAID
     if model.startswith(("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")):
         return MISTRAL_DEFAULT
     return DEFAULT
@@ -94,6 +114,11 @@ def slot(model: str, kid: str = "") -> str:
     return f"{model}|{kid}" if kid else model
 
 
+def day_slot(model: str, kid: str = "") -> str:
+    """The daily ledger's key: like slot(), except that every free OpenRouter model shares one per-account pool."""
+    return slot(OR_FREE_POOL if is_or_free(model) else model, kid)
+
+
 class Ledger:
     """Requests and tokens per model per key per Pacific day, persisted on D: (shared by the lab and the worker).
     Keys appear only as short hashes (keys.kid)."""
@@ -120,7 +145,7 @@ class Ledger:
         with self.lock:
             d = self._load()
             day = d.setdefault(pacific_day(), {})
-            m = day.setdefault(slot(model, kid), {"req": 0, "tok": 0})
+            m = day.setdefault(day_slot(model, kid), {"req": 0, "tok": 0})
             m["req"] += 1
             m["tok"] += int(tokens)
             for k in sorted(d)[:-7]:                  # keep a week
@@ -130,11 +155,20 @@ class Ledger:
     def exhaust(self, model: str, why: str, kid: str = "") -> None:
         with self.lock:
             d = self._load()
-            d.setdefault(pacific_day(), {}).setdefault(slot(model, kid), {"req": 0, "tok": 0})["exhausted"] = why[:200]
+            d.setdefault(pacific_day(), {}).setdefault(day_slot(model, kid), {"req": 0, "tok": 0})["exhausted"] = why[:200]
             self._save(d)
 
+    def sync(self, model: str, used: int, kid: str = "") -> None:
+        """Adopt a provider-reported count of today's requests when it is higher than ours (other apps on the account)."""
+        with self.lock:
+            d = self._load()
+            m = d.setdefault(pacific_day(), {}).setdefault(day_slot(model, kid), {"req": 0, "tok": 0})
+            if int(used) > m["req"]:
+                m["req"] = int(used)
+                self._save(d)
+
     def left(self, model: str, kid: str = "") -> dict:
-        m = self.today().get(slot(model, kid), {})
+        m = self.today().get(day_slot(model, kid), {})
         L = limits(model)
         return {"requests": 0 if m.get("exhausted") else max(0, L["rpd"] - m.get("req", 0)),
                 "tokens": max(0, L.get("tpd", 10 ** 9) - m.get("tok", 0)), "exhausted": m.get("exhausted")}

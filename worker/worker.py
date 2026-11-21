@@ -259,9 +259,13 @@ def cmd_run(a) -> int:
     print(f"worker {worker_id} polling (sections: {mode}; code from {stamp_str(loaded)}); Ctrl+C to stop", flush=True)
     if mode == "agents":
         from landing import keys as K
-        print(f"agents mode: {len(K.collect('mistral'))} Mistral, {len(K.collect('groq'))} Groq, "
-              f"{len(K.collect('gemini'))} Gemini (last fallback) key(s)"
+        print(f"agents mode: {len(K.collect('openrouter'))} OpenRouter (A1 / A5), {len(K.collect('mistral'))} Mistral, "
+              f"{len(K.collect('groq'))} Groq, {len(K.collect('gemini'))} Gemini (last fallback) key(s)"
               " (agents without a key use their deterministic default)", flush=True)
+    def _on_term(signum, frame):                   # systemd / docker stop: the same clean exit as Ctrl+C
+        raise KeyboardInterrupt
+    import signal
+    signal.signal(signal.SIGTERM, _on_term)
     try:
         _serve(sb, qwen, eng, worker_id, pulse.set, a.theme, loaded)
     except KeyboardInterrupt:
@@ -391,9 +395,10 @@ def cmd_doctor(a) -> int:
     mode = agent.section_mode(qwen)
     line("ok", "SECTION_MODE", f"{mode}" + ("" if os.getenv("SECTION_MODE") else " (default; add SECTION_MODE=agents to worker/.env for the agents landing)"))
     from landing import keys as K
-    nm, ng, nq = len(K.collect("mistral")), len(K.collect("gemini")), len(K.collect("groq"))
-    line("ok" if (nm and nq) or mode != "agents" else "warn", "agent keys",
-         f"Mistral {nm}, Groq {nq}, Gemini {ng} (last fallback)" + ("" if nm else " - add MISTRAL_API_KEY to worker/.env"))
+    no_, nm, ng, nq = (len(K.collect(x)) for x in ("openrouter", "mistral", "gemini", "groq"))
+    line("ok" if ((no_ or nm) and nq) or mode != "agents" else "warn", "agent keys",
+         f"OpenRouter {no_} (A1 / A5), Mistral {nm}, Groq {nq}, Gemini {ng} (last fallback)"
+         + ("" if no_ else " - add OPENROUTER_API_KEY to worker/.env for A1 / A5"))
     line("ok" if qwen.ok else "info", "Prompt split", "Qwen (QWEN_*)" if qwen.ok else "rule-based (split.py)")
     print("supabase")
     if not bad:
@@ -446,14 +451,25 @@ def cmd_doctor(a) -> int:
         line("FAIL", "studio", f"{site}: {type(e).__name__}")
     if a.keys:
         print("agent keys (model lists only, no generation)")
-        from landing.providers import Gemini, Groq, Mistral, ProviderError
+        from landing.providers import Gemini, Groq, Mistral, OpenRouter, ProviderError
         from landing import budget, pipeline as LP
-        for name, prov in (("mistral", Mistral(budget.Buckets())), ("groq", Groq(budget.Buckets())), ("gemini", Gemini())):
+        for name, prov in (("openrouter", OpenRouter(budget.Buckets())), ("mistral", Mistral(budget.Buckets())),
+                           ("groq", Groq(budget.Buckets())), ("gemini", Gemini())):
             for i, k in enumerate(K.collect(name)):
                 try:
+                    if name == "openrouter":
+                        info = prov.key_info(k)
                     ms = prov.models(k)
                     prov._models = None
                     extra = ""
+                    if name == "openrouter":
+                        pool = (f"free requests today: {info['free_used']} used of {info['free_limit']}"
+                                if info.get("free_limit") else "free daily pool: not reported")
+                        want = list(dict.fromkeys(LP.PREFS["openrouter:vision"] + LP.PREFS["openrouter:compose"]))
+                        extra = "; " + pool + "; " + ", ".join(
+                            f"{m} ({'vision' if prov.vision(m) else 'text'}"
+                            f"{', json' if prov.structured(m) else ''}, out {prov.caps(m).get('max_out') or '?'})"
+                            if m in ms else f"{m} MISSING" for m in want)
                     if name == "mistral":
                         want = list(dict.fromkeys(LP.PREFS["mistral:vision"] + LP.PREFS["mistral:text"]))
                         extra = "; " + ", ".join(f"{m} {'(vision)' if prov.vision(m) else '(text)' if m in ms else 'MISSING'}"

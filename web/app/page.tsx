@@ -1,7 +1,7 @@
 import { Poster } from "@/components/cosmos";
 import { PipelineShowcase } from "@/components/pipeline/showcase";
 import { Studio, type Engine } from "@/components/studio";
-import { BARS, Card, Tag } from "@/components/ui";
+import { Card, Tag } from "@/components/ui";
 import { PROSPECTS } from "@/content/prospects";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -70,7 +70,7 @@ export default async function StudioPage() {
           <PipelineShowcase />
         </div>
       </section>
-      {/* future prospects: what the engine does today and what is being worked on next */}
+      {/* future prospects: four current goals, then the goal behind them */}
       <section className="section band-sand relative z-10 border-y-2 border-ink" aria-labelledby="prospects-title">
         <div className="container-x">
           <div className="mb-12 max-w-[44rem]">
@@ -78,11 +78,11 @@ export default async function StudioPage() {
             <h2 id="prospects-title" className="title">{PROSPECTS.title}</h2>
             <p className="lede mt-4">{PROSPECTS.lede}</p>
           </div>
-          <ul className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid gap-8 md:grid-cols-2">
             {PROSPECTS.items.map((it, i) => (
               <li key={it.name}>
-                <Card bar={BARS[i % BARS.length]} lift className="h-full">
-                  <div className="flex h-full flex-col p-7 pb-8">
+                <Card bar={(["forest", "gold", "vermilion", "teal"] as const)[i % 4]} lift className="h-full">
+                  <div className="flex h-full flex-col p-7 pb-8 md:p-8">
                     <span><Tag tone="gold">{PROSPECTS.status}</Tag></span>
                     <h3 className="display mt-4 text-[1.75rem] leading-[1.08]">{it.name}</h3>
                     <p className="mt-4">{it.body}</p>
@@ -90,18 +90,34 @@ export default async function StudioPage() {
                 </Card>
               </li>
             ))}
-            <li>
-              <Card className="h-full bg-forest text-cream">
-                <div className="flex h-full flex-col justify-center p-7 pb-8">
-                  <p className="display mt-1 text-[2.1rem] italic leading-[1.02] text-gold"
-                    style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>
-                    {PROSPECTS.closing.lead}
-                  </p>
-                  <p className="mt-4">{PROSPECTS.closing.body}</p>
-                </div>
-              </Card>
-            </li>
           </ul>
+
+          {/* our goal: why the work matters, and the half of the web it is for */}
+          <div className="card mt-12 grid overflow-hidden bg-forest text-cream md:mt-16 lg:grid-cols-[1.05fr_1fr]">
+            <div className="flex flex-col justify-center p-7 md:p-12">
+              <span><span className="tag tag-gold">{PROSPECTS.goal.tag}</span></span>
+              <p className="display mt-5 text-[clamp(2.2rem,1.6rem+2.2vw,3.1rem)] italic leading-[1.02] text-gold"
+                style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>
+                {PROSPECTS.goal.lead}
+              </p>
+              <p className="mt-6 max-w-[56ch] text-[1.06rem] leading-[1.7]">{PROSPECTS.goal.body}</p>
+              <p className="mt-4 max-w-[56ch] text-[1.06rem] leading-[1.7]">{PROSPECTS.goal.split}</p>
+            </div>
+            <div className="flex flex-col justify-center gap-6 border-t-2 border-ink p-7 md:p-12 lg:border-l-2 lg:border-t-0">
+              {PROSPECTS.goal.lanes.map((l) => (
+                <Card key={l.name} bar={l.ours ? "gold" : "teal"} className="text-ink">
+                  <div className="p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="title-sm">{l.name}</h3>
+                      {l.ours && <Tag tone="cta">Where we build</Tag>}
+                    </div>
+                    <p className="mt-3">{l.body}</p>
+                  </div>
+                </Card>
+              ))}
+              <p className="text-[0.95rem] leading-[1.6]" style={{ color: "rgba(251,245,239,.86)" }}>{PROSPECTS.goal.closing}</p>
+            </div>
+          </div>
         </div>
       </section>
     </>

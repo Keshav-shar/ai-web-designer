@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,7 +27,8 @@ import taste_affinity as ta  # noqa: E402
 import taste_catalog as tc  # noqa: E402
 
 CONTRACTS = Path(__file__).resolve().parents[1] / "contracts"
-CREAM = Path(r"D:\serpman_data\ui_drafts\p1\context-cream")
+# the lab's p1 root (same variable as context_clusters.SERPMAN_P1); the Windows default is this PC's D: layout
+CREAM = Path(os.getenv("SERPMAN_P1", r"D:\serpman_data\ui_drafts\p1")) / "context-cream"
 _schema = None
 _affinity = None
 
@@ -154,8 +156,19 @@ def cream_resolver():
             cache[fam] = ({it["id"]: it["dest"] for it in json.loads(mf.read_text(encoding="utf-8"))["files"]}
                           if mf.exists() else {})
         d = cache[fam].get(id_)
-        return Path(d) if d and Path(d).exists() else None
+        p = local_dest(d) if d else None
+        return p if p and p.exists() else None
     return resolve
+
+
+def local_dest(d: str) -> Path:
+    """A manifest's absolute `dest` from the machine that built the cream layer -> a path that exists here: unchanged
+    when it exists (this PC), else rebased onto this machine's CREAM (the data moved, e.g. to a Linux server)."""
+    p = Path(d)
+    if p.exists():
+        return p
+    parts = re.split(r"[\\/]", d)
+    return CREAM.joinpath(*parts[parts.index("context-cream") + 1:]) if "context-cream" in parts else p
 
 
 def typography_roles(lab_typo: dict | None, heading: str, body: str, italic: bool, scale: dict) -> dict:

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import os
 import shutil
 import sys
@@ -21,13 +22,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-TMP = Path(tempfile.mkdtemp(prefix="landing_test_", dir=r"D:\caches\tmp"))
+TMP = Path(tempfile.mkdtemp(prefix="landing_test_", dir=os.getenv("LANDING_TEST_TMP", r"D:\caches\tmp")))
 os.environ["LANDING_CACHE"] = str(TMP / "cache")
 os.environ["LANDING_LEDGER"] = str(TMP / "quota.json")
 os.environ["LANDING_OUT"] = str(TMP / "out")
 os.environ["LANDING_ENV_FILE"] = str(TMP / "no-such.env")        # never read the real worker/.env keys in tests
 os.environ["LANDING_UNAVAIL"] = str(TMP / "unavailable.json")
-for _k in [k for k in os.environ if k.startswith(("GEMINI_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY"))]:
+for _k in [k for k in os.environ if k.startswith(("GEMINI_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY",
+                                                   "OPENROUTER_API_KEY"))]:
     os.environ.pop(_k)
 os.environ["GEMINI_API_KEY"] = "fake-gemini"
 os.environ["GROQ_API_KEY"] = "fake-groq"
@@ -52,7 +54,7 @@ def check(cond, msg):
 
 def load(name):
     d = json.loads((FIX / f"{name}.json").read_text(encoding="utf-8"))
-    res = {k: Path(v) for k, v in d["resolve"].items()}
+    res = {k: B.local_dest(v) for k, v in d["resolve"].items()}     # recorded on this PC; rebased if the data moved
     sp = SP.fallback(d["q"])
     sp["vibe_query"] = d["q"]
     resolve = lambda f, i: res.get(f"{f}/{i}")  # noqa: E731
@@ -232,11 +234,55 @@ class FakeMistral:
         return providers.Reply(json.dumps(out), model, "stop", {"in": 1800, "out": 700})
 
 
+class FakeOpenRouter:
+    """OpenRouter: free models listed with their capabilities; A1 gets text first, then [IMAGE n] + detail-high parts."""
+    LIST = {"nvidia/nemotron-3.5-super-vl:free": {"vision": True, "structured": True, "max_out": 131072},
+            "google/gemma-4-31b-it:free": {"vision": True, "structured": True, "max_out": 32768},
+            "google/gemma-4-26b-a4b-it:free": {"vision": True, "structured": False, "max_out": 32768},
+            "nvidia/nemotron-3-ultra-550b-a55b:free": {"vision": False, "structured": False, "max_out": 65536}}
+    quota_day = False                        # the account's free daily pool is used up
+    a1_messages: list = []
+
+    def __init__(self, buckets):
+        self.buckets, self._caps = buckets, {}
+
+    def models(self, key):
+        self._caps = dict(self.LIST)
+        return list(self.LIST)
+
+    def key_info(self, key):
+        return {"free_used": 3, "free_limit": 1000, "free_left": 997}
+
+    def caps(self, model):
+        return self._caps.get(model.removeprefix(budget.OR_PREFIX), {})
+
+    def vision(self, model):
+        return bool(self.caps(model).get("vision"))
+
+    def structured(self, model):
+        return bool(self.caps(model).get("structured"))
+
+    def chat(self, model, messages, *, key, kid="", schema=None, name="out", max_out=2500, temperature=0.4, **kw):
+        Calls.log.append(("openrouter", model, name, key))
+        if FakeOpenRouter.quota_day:
+            raise providers.ProviderError("quota_day", "Rate limit exceeded: free-models-per-day")
+        if name == "a1":
+            FakeOpenRouter.a1_messages = messages
+            out = copy.deepcopy(flow.default_doc(H))
+            out["strategic_cards"][0]["heading"] = "Seen through OpenRouter"
+            return providers.Reply(json.dumps(out), model, "stop", {"in": 16000, "out": 6000})
+        if name == "a5":
+            spec = json.loads(messages[-1]["content"].split("\n\nYour previous")[0])
+            return providers.Reply(render_doc_page(spec), model, "stop", {"in": 9000, "out": 12000})
+        raise AssertionError(f"OpenRouter is not on {name}'s chain")
+
+
 STATE: dict = {}
 
 
 def patch():
     pipeline.Gemini, pipeline.Groq, pipeline.Mistral = FakeGemini, FakeGroq, FakeMistral
+    pipeline.OpenRouter = FakeOpenRouter
     orig_put = S.State.put
 
     def spy_put(self, who, key, value):              # let the fake Groq agents see the run's blackboard
@@ -415,6 +461,26 @@ def t_validate(h):
     fx = validate_page.check(stray, spec, fix_colors_=True)
     check(not fx["errors"] and any("snapped" in f for f in fx["fixes"]) and "color-mix(in srgb" in fx["html"],
           "stray colours on a model page are snapped to the palette by code (alpha kept), not a reason to discard it")
+    varn = validate_page.check(page.replace(":root{", ".v{color:var(--c-terminal-green);border-color:var(--c-near-white-ui)}"
+                                                  ":root{--c-terminal-green:var(--text-body);--c-near-white-ui:var(--text-body);"),
+                               spec, fix_colors_=True)
+    check("var(--c-terminal-green)" in varn["html"] and "var(--c-near-white-ui)" in varn["html"]
+          and not any("named colours" in e for e in varn["errors"]),
+          "colour words inside CSS variable names are left alone (not snapped, not flagged)")
+    ctas = [x for s_ in spec["sections"] for x in s_["items"] if x["kind"] in ("cta", "nav_link") and x.get("text")]
+    if ctas:
+        gone = ctas[0]
+        cut = re.sub(r"<a [^>]*data-item=\"" + re.escape(gone["item_id"]) + r"\"[^>]*>.*?</a>", "", page, count=1)
+        inj = validate_page.check(cut, spec, fix_colors_=True)
+        check(cut != page and not inj["errors"] and any("added 1 item" in f for f in inj["fixes"])
+              and f'data-item="{gone["item_id"]}"' in inj["html"],
+              f"a {gone['kind']} the page left out is added to its own section by code, not a reason to discard it")
+        strict = validate_page.check(cut, spec)
+        check(any("data-item missing" in e for e in strict["errors"]), "without code fixes, a missing item still blocks")
+    glyph = dict(spec, copy=spec["copy"] + ["● Online"])
+    gp = page.replace("</body>", "<p><span class='dot'></span>Online</p></body>")
+    check(not any("copy missing" in e for e in validate_page.check(gp, glyph)["errors"]),
+          "decorative glyphs in copy (a dot before Online) may be drawn with CSS: the words still count")
     hiz = validate_page.check(page.replace(":root{", ".nav{z-index:100}.u{z-index:-3}:root{"), spec, fix_colors_=True)
     check(not hiz["errors"] and any("clamped 2 z-index" in f for f in hiz["fixes"]) and "z-index:49" in hiz["html"],
           f"z-index outside 0-50 on a model page is clamped by code, not a reason to discard it ({hiz['errors'][:1]})")
@@ -458,6 +524,24 @@ def t_backdrop(h):
     fb, _ = flow.fallback(st, h)
     chk = validate_page.check(compile_spec.render(fb), fb)
     check(not chk["errors"] and 'class="bg-img"' in chk["html"], "the fallback page shows it in z0 too")
+
+
+def t_nested_overlap():
+    """In a real browser: a card holding its own tag / heading / body items is not text over text; two separate
+    items stacked on each other still are."""
+    from landing import qa as QA
+    page = ("<!doctype html><html><body style='margin:0;font:16px sans-serif'><main><section data-section='s'>"
+            "<article data-item='card-1' style='width:300px;padding:20px'><span data-item='card-1-tag'>New</span>"
+            "<h3 data-item='card-1-heading'>Heading</h3><p data-item='card-1-body'>Body text here</p></article>"
+            "<div style='position:relative;height:60px'><p data-item='a' style='position:absolute;top:0;margin:0'>First line"
+            "</p><p data-item='b' style='position:absolute;top:2px;margin:0'>Second line</p></div>"
+            "</section></main></body></html>")
+    f = TMP / "nested" / "index.html"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(page, encoding="utf-8")
+    probs = [p for x in QA.run(f, widths=(1440,)).values() for p in x["problems"] if "overlaps text" in p]
+    check(not any("card-1" in p for p in probs), f"a card's nested items are not text over text ({probs[:2]})")
+    check(any("text of a overlaps text of b" in p for p in probs), "two separate items on top of each other still are")
 
 
 def t_measure():
@@ -580,8 +664,8 @@ def t_pipeline_models(h, qa):
     check("<script" not in html and "evil.example" not in html and "#123456" not in html, "the final page is clean")
     check("Neon nights, live" in html, "A1's card copy reaches the page")
     if qa:
-        check(any("removed decor that covered" in o["why"] for o in r["overrides"]),
-              "decoration painted over the h1 is removed by code (the page still ships)")
+        check(any("moved decor behind the content" in o["why"] for o in r["overrides"]),
+              "decoration painted over the h1 is moved behind it by code, not deleted (the page still ships)")
         check(not any(c for p in r["qa"].values() for c in p["problems"] if "overlaps text" in c),
               "browser: no text overlaps on the shipped page")
     heads = [p["text"] for p in getattr(FakeGemini, "a1_parts", []) if "text" in p and p["text"].startswith("[IMAGE")]
@@ -759,11 +843,231 @@ def t_mistral_provider():
         check(e.kind == "rate" and e.retry_after == 60.0, f"Mistral 2 req/min window full -> rate, wait 60 s ({e.kind}, {e.retry_after})")
 
 
+def t_pipeline_openrouter(h):
+    """OpenRouter key present: A1 on Nemotron VL (high-detail images, the depth exemplar), A5 on Nemotron Ultra, one
+    shared free daily pool learned from GET /key; the pool used up -> Mistral's models take A1 / A5."""
+    os.environ["OPENROUTER_API_KEY"] = "fake-or"
+    os.environ["MISTRAL_API_KEY"] = "fake-mistral"
+    os.environ["LANDING_LEDGER"] = str(TMP / "quota_or.json")
+    saved_free = dict(budget.OPENROUTER_FREE)
+    saved_limits = {m: dict(budget.LIMITS[m]) for m in budget.LIMITS if m.startswith(("ministral", "codestral", "mistral"))}
+    for m in saved_limits:
+        budget.LIMITS[m]["rpm"] = 1000
+    cache.ROOT = TMP / "cache_or"
+    _reset_router()
+    NOTES.clear()
+    Calls.log.clear()
+    try:
+        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
+        tr = {}
+        for t in r["trace"]:
+            tr.setdefault(t["agent"], t)
+        vl, ultra = budget.OR_PREFIX + "nvidia/nemotron-3.5-super-vl:free", budget.OR_PREFIX + "nvidia/nemotron-3-ultra-550b-a55b:free"
+        check(tr["a1"]["model"] == vl and tr["a1"]["source"] == "model", f"A1 on Nemotron VL ({tr['a1'].get('model')})")
+        check(tr["a5"]["model"] == ultra and r["page_source"] == "model",
+              f"A5 composes on Nemotron Ultra and its page ships ({tr['a5'].get('model')}, {r['page_source']})")
+        a1_chain = next((n for n in NOTES if n.startswith("models: A1 ")), "")
+        check(a1_chain.startswith(f"models: A1 {vl} -> {budget.OR_PREFIX}google/gemma-4-31b-it:free -> mistral")
+              and "gemma-4-26b" not in a1_chain.split(";")[0],
+              f"A1 chain: Nemotron VL -> Gemma 4 31B (26B lacks structured outputs) -> Mistral ({a1_chain[:140]})")
+        msgs = FakeOpenRouter.a1_messages
+        cont = msgs[-1]["content"]
+        imgs = [i for i, x in enumerate(cont) if x.get("type") == "image_url"]
+        check(cont[0]["type"] == "text" and cont[0]["text"].startswith("INPUT:") and len(imgs) == len(h["images"])
+              and all(cont[i - 1]["text"].startswith("[IMAGE") for i in imgs)
+              and all(cont[i]["image_url"]["detail"] == "high" and cont[i]["image_url"]["url"].startswith("data:image/jpeg")
+                      for i in imgs), f"A1 on OpenRouter: text first, each image after its header at detail high ({len(imgs)})")
+        check("THE DEPTH EXPECTED" in msgs[0]["content"] and "Vintage Coral Red" in msgs[0]["content"],
+              "A1's system prompt carries the depth exemplar")
+        left = budget.Ledger().left(budget.OR_PREFIX + "google/gemma-4-31b-it:free", keys.kid("fake-or"))
+        check(budget.OPENROUTER_FREE["rpd"] == 1000 and left["requests"] == 1000 - 3 - 2,
+              f"one shared free pool per account: the key's 1000/day, 3 used elsewhere, + A1 + A5 ({left})")
+        check(not [c for c in Calls.log if c[0] in ("mistral", "gemini") and c[2] in ("a1", "a5")],
+              "no Mistral / Gemini A1 or A5 call while OpenRouter answers")
+        d = r.get("a1_depth") or {}
+        check(d.get("colours", 0) >= 4 and d.get("elements_traced", 0) >= 1, f"result.json reports A1's depth ({d})")
+        html = (Path(r["out"]) / "index.html").read_text(encoding="utf-8")
+        check("Seen through OpenRouter" in html, "OpenRouter A1's card copy reaches the page")
+
+        FakeOpenRouter.quota_day = True             # the account's free pool is gone -> Mistral takes A1 / A5
+        _reset_router()
+        NOTES.clear()
+        r2 = pipeline.run(h, enabled=True, force_from="a1", qa=False, a5_repair=False, log=lambda *a: None)
+        m2 = {}
+        for t in r2["trace"]:
+            m2.setdefault(t["agent"], t.get("model"))
+        check(m2["a1"] == "ministral-14b-latest" and m2["a5"] == "codestral-latest",
+              f"free pool used up: A1 / A5 on Mistral ({m2['a1']}, {m2['a5']})")
+        check(any("openrouter key 1/1 reached its daily limit" in n for n in NOTES), "terminal: the free pool's limit announced")
+        n_or = len([c for c in Calls.log if c[0] == "openrouter"])
+        check(n_or == 3, f"the shared pool: after the 429 no other free model is asked ({n_or} OpenRouter calls)")
+        check(not any("fake-or" in n for n in NOTES), "terminal lines never contain the OpenRouter key")
+    finally:
+        FakeOpenRouter.quota_day = False
+        budget.OPENROUTER_FREE.clear()
+        budget.OPENROUTER_FREE.update(saved_free)
+        budget.LIMITS.update(saved_limits)
+        keys._UNAVAIL.clear()
+        for k in ("OPENROUTER_API_KEY", "MISTRAL_API_KEY"):
+            os.environ.pop(k, None)
+        os.environ["LANDING_LEDGER"] = str(TMP / "quota.json")
+        cache.ROOT = TMP / "cache"
+        _reset_router()
+
+
+def t_openrouter_provider():
+    """The real OpenRouter client over a mock transport: capabilities, the key's pool, request shape, error kinds,
+    errors inside a 200 reply, dropped connections."""
+    import base64
+    import io
+    import httpx
+    from PIL import Image
+    seen, replies, sleeps = [], [], []
+
+    def handler(req):
+        seen.append((req.url.path, json.loads(req.content or b"{}") if req.method == "POST" else {}, dict(req.headers)))
+        nxt = replies.pop(0)
+        if isinstance(nxt, Exception):
+            raise nxt
+        return nxt
+    o = providers.OpenRouter(budget.Buckets())
+    o.pace_s = 0
+    o.http = httpx.Client(transport=httpx.MockTransport(handler))
+    replies.append(httpx.Response(200, json={"data": [
+        {"id": "nvidia/nemotron-3.5-super-vl:free", "architecture": {"input_modalities": ["text", "image", "video"]},
+         "supported_parameters": ["structured_outputs", "response_format"], "context_length": 1000000,
+         "top_provider": {"max_completion_tokens": 131072}},
+        {"id": "nvidia/nemotron-3-ultra-550b-a55b:free", "architecture": {"input_modalities": ["text"]},
+         "supported_parameters": ["max_tokens"], "top_provider": {"max_completion_tokens": 65536}}]}))
+    o.models("k")
+    vl, ul = budget.OR_PREFIX + "nvidia/nemotron-3.5-super-vl:free", budget.OR_PREFIX + "nvidia/nemotron-3-ultra-550b-a55b:free"
+    check(o.vision(vl) and o.structured(vl) and not o.vision(ul) and not o.structured(ul) and o.caps(ul)["max_out"] == 65536,
+          "OpenRouter models: vision, structured outputs and output caps come from /models")
+    replies.append(httpx.Response(200, json={"data": {"label": "x", "free_model_daily_requests":
+                                                       {"used": 7, "limit": 50, "remaining": 43}}}))
+    info = o.key_info("k")
+    check(info == {"free_used": 7, "free_limit": 50, "free_left": 43}, f"GET /key: the account's free daily pool ({info})")
+    img = TMP / "probe.png"
+    Image.new("RGB", (3000, 1200), (200, 80, 40)).save(img)
+    part = providers.image_part_or(img, 2048)
+    size = Image.open(io.BytesIO(base64.b64decode(part["image_url"]["url"].split(",", 1)[1]))).size
+    check(part["image_url"]["detail"] == "high" and max(size) == 2048, f"image part: detail high, long side 2048 px ({size})")
+    schema = {"type": "object", "properties": {"a": {"type": "string"}}, "required": ["a"], "additionalProperties": False}
+    ok = {"choices": [{"message": {"content": '{"a":"x"}'}, "finish_reason": "stop"}],
+          "usage": {"prompt_tokens": 10, "completion_tokens": 3}}
+    replies.append(httpx.Response(200, json=ok))
+    o.chat(vl, [{"role": "user", "content": [{"type": "text", "text": "hi"}, part]}], key="k", kid="x", schema=schema,
+           name="a1")
+    b, hdrs = seen[-1][1], {k.lower() for k in seen[-1][2]}
+    check(b["model"] == "nvidia/nemotron-3.5-super-vl:free" and b.get("max_tokens") and b["response_format"]["type"] ==
+          "json_schema" and b["response_format"]["json_schema"]["strict"] and b.get("provider") == {"require_parameters": True},
+          "A1 request: the bare model id, max_tokens, strict json_schema routed only to endpoints that honour it")
+    check(not hdrs & {"http-referer", "x-title", "x-openrouter-title"}, "no attribution headers leave the PC")
+    check(b.get("reasoning") == {"effort": "low"},
+          "reasoning effort is capped low, so thinking can't eat the JSON's output budget")
+    replies += [httpx.Response(400, json={"error": {"code": 400, "message": "reasoning is not supported by this model"}}),
+                httpx.Response(200, json=ok)]
+    o.chat(vl, [{"role": "user", "content": "hi"}], key="k", kid="x", schema=schema, name="a1")
+    check("reasoning" not in seen[-1][1] and "reasoning" in seen[-2][1],
+          "a model that rejects the reasoning parameter is retried without it")
+    o.drop.discard("reasoning")
+    replies.append(httpx.Response(200, json=ok))
+    o.chat(ul, [{"role": "user", "content": "compose"}], key="k", kid="x", name="a5")
+    b = seen[-1][1]
+    check("response_format" not in b and "provider" not in b, "A5 request: plain text, no schema routing")
+    real_sleep = providers.time.sleep
+    providers.time.sleep = sleeps.append
+    try:
+        soon = str(int((time.time() + 30) * 1000))
+        cases = [(httpx.Response(429, json={"error": {"code": 429, "message": "Rate limit exceeded: free-models-per-day"}}),
+                  "quota_day"),
+                 (httpx.Response(429, json={"error": {"code": 429, "message": "Rate limit exceeded"}},
+                                 headers={"x-ratelimit-reset": soon}), "rate"),
+                 (httpx.Response(402, json={"error": {"code": 402, "message": "Insufficient credits"}}), "quota_day"),
+                 (httpx.Response(403, json={"error": {"code": 403, "message": "Input was flagged by moderation"}}), "blocked"),
+                 (httpx.Response(404, json={"error": {"code": 404, "message": "No endpoints found that can handle the "
+                                                                                 "requested parameters."}}), "bad_output"),
+                 (httpx.Response(200, json={"error": {"code": 400, "message": "Provider returned error"}}), "server"),
+                 (httpx.Response(200, json={"choices": [{"message": {"content": ""}, "finish_reason": "stop"}]}), "server")]
+        for resp, kind in cases:
+            replies.append(resp)
+            try:
+                o.chat(vl, [{"role": "user", "content": "hi"}], key="k", kid="y", schema=schema)
+                got, ra = "ok", 0
+            except providers.ProviderError as e:
+                got, ra = e.kind, e.retry_after
+            check(got == kind, f"OpenRouter HTTP {resp.status_code} {resp.text[:60]} -> {kind} ({got})")
+            if kind == "rate":
+                check(20 <= ra <= 31, f"a 429's X-RateLimit-Reset becomes the wait ({ra:.0f}s)")
+        replies += [httpx.Response(200, json={"error": {"code": 502, "message": "upstream down"}}), httpx.Response(200, json=ok)]
+        r = o.chat(vl, [{"role": "user", "content": "hi"}], key="k", kid="y", schema=schema)
+        check(r.text == '{"a":"x"}', "a 502 reported inside a 200 is retried on the same model")
+        sleeps.clear()
+        replies += [httpx.ConnectError("[WinError 10051] unreachable network"), httpx.ConnectError("again"),
+                    httpx.Response(200, json=ok)]
+        r = o.chat(vl, [{"role": "user", "content": "hi"}], key="k", kid="y", schema=schema)
+        check(r.text == '{"a":"x"}' and sleeps[:2] == list(providers.NET_BACKOFF[:2]),
+              f"a dropped connection is retried with backoff ({sleeps})")
+    finally:
+        providers.time.sleep = real_sleep
+
+
+def t_copy_fold(h):
+    """A composer types '-' for a non-breaking hyphen: the copy is stored plain and the check folds variants."""
+    check(validate_page._norm("Sign\u2011up") == validate_page._norm("Sign-up")
+          and validate_page._norm("It\u2019s\u00a0on") == validate_page._norm("It's on"),
+          "page check: dash, quote and space variants compare equal")
+    st = S.State(h)
+    flow.after_a1(st, flow.default_doc(h), h)
+    flow.after_a2(st, flow.default_plan(st))
+    out = flow.default_copy(st, h)
+    item = next(x for x in out["copy"]["items"] if x["kind"] != "card")
+    item["text"] = "Sign\u2011up"
+    flow.after_a3(st, out)
+    texts = [x["text"] for x in st["copy_final"]["items"]]
+    check("Sign-up" in texts and not any("\u2011" in t for t in texts), "A3's copy is stored with a plain hyphen")
+    flow.after_a4(st, flow.default_decor(st))
+    spec = flow.spec(st)
+    page = render_doc_page(spec)
+    spec2 = copy.deepcopy(spec)
+    spec2["copy"] = ["Sign\u2011up" if t == "Sign-up" else t for t in spec2["copy"]]
+    chk = validate_page.check(page, spec2, inject_backdrop=True)
+    check(not any("spec copy missing" in e for e in chk["errors"]), f"U+2011 in the spec vs '-' on the page is not "
+                                                                    f"'missing copy' ({chk['errors'][:2]})")
+
+
+def t_decor_layers(h):
+    """Decor never shares the text layer, and decor over text is first moved behind it."""
+    st = S.State(h)
+    flow.after_a1(st, doc_1976(), h)
+    plan = flow.default_plan(st)
+    L0 = plan["layout_plan"]["layers"][0]
+    L0["z"] = 10
+    log = flow.after_a2(st, plan)
+    z = next(L["z"] for L in st["plan"]["layers"] if L["element_id"] == L0["element_id"])
+    check(z == S.layer_of(st["doc"])[L0["element_id"]][1] and z != 10
+          and any("never shares the text layer" in o["why"] for o in log),
+          f"a z10 decor layer goes to its A1 group's layer ({z}, logged)")
+    zs = sc.a2(*flow.a2_enums(st))["properties"]["layout_plan"]["properties"]["layers"]["items"]["properties"]["z"]["enum"]
+    check(10 not in zs, f"A2's schema offers decor no z10 ({zs})")
+    flow.after_a3(st, flow.default_copy(st, h))
+    flow.after_a4(st, flow.default_decor(st))
+    spec = flow.spec(st)
+    motif = (spec.get("motif_ids") or [None])[0]
+    if motif:
+        chk = validate_page.check(render_doc_page(spec, cover_h1_with=motif), spec, demote_motifs={motif},
+                                  inject_backdrop=True)
+        html = chk["html"]
+        check(html.count('data-demoted="1"') >= 2 and validate_page.DEMOTE_CSS in html
+              and any("moved decor behind the content" in f for f in chk["fixes"]) and f'data-motif="{motif}"' in html,
+              "decor over text: it and its layer wrapper are moved behind the content (kept on the page)")
+
+
 def t_keys_collect():
     saved = {k: os.environ.pop(k) for k in [k for k in os.environ if k.startswith(("GEMINI_API_KEY", "GROQ_API_KEY"))]}
     env_file = TMP / "keys.env"
     env_file.write_text("# test\nGROQ_API_KEY=from-file\nGEMINI_API_KEY_2=file-two\nSUPABASE_URL=ignored\n"
-                        "MISTRAL_API_KEY=m-file\nMISTRAL_API_KEY_2=m-two\n", encoding="utf-8")
+                        "MISTRAL_API_KEY=m-file\nMISTRAL_API_KEY_2=m-two\nOPENROUTER_API_KEY=or-file\n", encoding="utf-8")
     os.environ["LANDING_ENV_FILE"] = str(env_file)
     os.environ.update({"GEMINI_API_KEY": "a", "GEMINI_API_KEY_3": "c", "GEMINI_API_KEYS": "d, a ;e"})
     try:
@@ -771,6 +1075,7 @@ def t_keys_collect():
               f"key order: X_API_KEY, X_API_KEY_2.., X_API_KEYS; env + file; duplicates dropped ({keys.collect('gemini')})")
         check(keys.collect("groq") == ["from-file"], "keys are read from the env file when the environment has none")
         check(keys.collect("mistral") == ["m-file", "m-two"], f"MISTRAL_API_KEY / _2 are read ({len(keys.collect('mistral'))})")
+        check(keys.collect("openrouter") == ["or-file"], "OPENROUTER_API_KEY is read")
         check(keys.kid("a") != "a" and len(keys.kid("a")) == 8, "keys are only ever shown as a short hash")
     finally:
         for k in ("GEMINI_API_KEY", "GEMINI_API_KEY_3", "GEMINI_API_KEYS"):
@@ -852,23 +1157,30 @@ def main():
         t_copy(h)
         t_validate(h)
         t_backdrop(h)
+        t_copy_fold(h)
+        t_decor_layers(h)
         if qa:
             r = pipeline.run(h, enabled=False, qa=True, log=lambda *a: None)
             check(not any("overlaps text" in p or "overflow" in p for x in r["qa"].values() for p in x["problems"]),
                   f"agents-off page: nothing blocking in the browser ({n}, {r['page_source']})")
             t_doc_page_qa(h)
+    if qa:
+        t_nested_overlap()
     t_svg()
     t_backoff()
     t_state()
     t_budget()
     t_measure()
     t_mistral_provider()
+    t_openrouter_provider()
     print("--- fake models, no Mistral key: Gemini fallback (routing, repair, the design document, the A5 gate, cache)")
     H = load(names[0])
     patch()
     t_pipeline_models(H, qa)
     print("--- fake models with a Mistral key (A1 / A5 on Mistral, Groq backup, Gemini last)")
     t_pipeline_mistral(H)
+    print("--- fake models with an OpenRouter key (A1 / A5 on OpenRouter, Mistral next)")
+    t_pipeline_openrouter(H)
     print("--- several keys per provider (failover + terminal notices)")
     t_keys_collect()
     t_multikey(H)

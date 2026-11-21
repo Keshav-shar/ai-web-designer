@@ -2,10 +2,11 @@
 
     run(handoff, enabled=True|False, force_from=None, out_dir=..., qa=True) -> result
 
-The agents write one design document together (state.py): A1 (Mistral vision, sees the five reference images, each
-after its role header) describes the whole visual system in words, A2 plans the layout, A3 writes the copy, A4 draws
-the decorations (A2-A4 on Groq, Mistral as their backup), and A5 (Mistral, text only) composes the page from the
-merged document with real design freedom. Gemini is only the last fallback for A1 / A5.
+The agents write one design document together (state.py): A1 (a vision model on OpenRouter - Nemotron VL / Gemma -
+sees the five reference images at high detail, each after its role header) describes the whole visual system in
+words, A2 plans the layout, A3 writes the copy, A4 draws the decorations (A2-A4 on Groq, Mistral as their backup),
+and A5 (a large long-context model on OpenRouter, text only) composes the page from the merged document with real
+design freedom. Mistral's free models, then Gemini, are A1 / A5's fallbacks.
 
 Per agent: build its slice (state.slice_for; Groq slices are trimmed to fit the minute window) -> cache lookup ->
 route through its model chain (ledger + buckets decide; quota/rate/size errors move to the next model) -> strict
@@ -31,7 +32,7 @@ from pathlib import Path
 import jsonschema
 
 from . import budget, cache, compile_spec, defaults, flow, keys, qa as QA, schemas as sc, state as S, validate_page
-from .providers import Gemini, Groq, Mistral, ProviderError, image_part
+from .providers import Gemini, Groq, Mistral, OpenRouter, ProviderError, image_part, image_part_or
 
 PROMPTS = Path(__file__).resolve().parents[2] / "contracts" / "prompts" / "agents"
 OUT = Path(os.getenv("LANDING_OUT", r"D:\serpman-studio\out\_landing"))
@@ -43,17 +44,35 @@ OUT = Path(os.getenv("LANDING_OUT", r"D:\serpman-studio\out\_landing"))
 # Ministral 14B (vision) for A1, Codestral (HTML/CSS) for A5 and Ministral 8B as Groq's backup: each has its own
 # 2 req/min, 40K tok/min pool, so the three jobs never queue behind each other. Medium stays first in case the plan
 # opens it; a model the tier refuses is skipped for that key for 6 h (keys.mark_unavailable), the key is kept.
-PREFS = {"mistral:vision": ["mistral-medium-latest", "ministral-14b-latest"],
+# OpenRouter (2026-11-22, the user's call after Ministral 14B / Codestral produced generic documents and pages): A1 runs
+# on a strong vision model with structured outputs, A5 on a large long-context model; both chains are checked against
+# OpenRouter's live model list (renamed or retired ids drop out) and its capability data ("openrouter:vision" keeps
+# image-capable models with structured outputs, "openrouter:compose" models whose output cap fits A5's page).
+# A1 = Ling 3.2 Flash (the user's pick 2026-11-22 after comparing raw A1 documents on the same five references):
+# richest per-image description, thinking off. Nemotron VL and the Gemmas stay as fallbacks.
+PREFS = {"openrouter:vision": ["inclusionai/ling-3.2-flash:free", "nvidia/nemotron-3.5-super-vl:free",
+                               "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"],
+         # A5 = Nemotron 3 Ultra 550B (the user's pick 2026-11-22, after comparing raw A5 pages on one A1-A4 spec);
+         # Nemotron VL and Gemma 4 31B stay behind it
+         "openrouter:compose": ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3.5-super-vl:free",
+                                "google/gemma-4-31b-it:free"],
+         "mistral:vision": ["mistral-medium-latest", "ministral-14b-latest"],
          "mistral:compose": ["mistral-medium-latest", "codestral-latest", "ministral-14b-latest"],
          "mistral:text": ["mistral-medium-latest", "ministral-8b-latest", "ministral-14b-latest"],
+         "openrouter:text": ["inclusionai/ling-3.2-flash:free", "nvidia/nemotron-3.5-super-vl:free"],
          "gemini": ["gemini-4-hydrogen", "gemini-3.8-flash"], "groq:big": ["openai/gpt-oss-120b"],
          "groq:vision": ["qwen/qwen3.8-27b"]}
-CHAINS = {"a1": ["mistral:vision", "gemini"], "a2": ["groq:big", "mistral:text"], "a3": ["groq:big", "mistral:text"],
-          "a4": ["groq:vision", "groq:big", "mistral:text"], "a5": ["mistral:compose", "gemini"]}
+# Priority (the user's call, 2026-11-22): Gemini first everywhere, then OpenRouter; A2-A4 then Groq; Mistral last.
+CHAINS = {"a1": ["gemini", "openrouter:vision", "mistral:vision"],
+          "a2": ["gemini", "openrouter:text", "groq:big", "mistral:text"],
+          "a3": ["gemini", "openrouter:text", "groq:big", "mistral:text"],
+          "a4": ["gemini", "openrouter:text", "groq:vision", "groq:big", "mistral:text"],
+          "a5": ["gemini", "openrouter:compose", "mistral:compose"]}
 # A4 is text-only (A1 describes the images); Qwen keeps its own minute window apart from A2/A3's gpt-oss.
 # If every model of a chain is out, the agent falls back to code (the default document / compile_spec).
 MISTRAL_PREFIXES = ("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")
 A1_SIDE = {"high": 1540, "medium": 1024, "low": 1024}   # Mistral: <=1540 px, ~(W*H)/784 tokens per image
+OR_SIDE = {"high": 1536, "medium": 1280, "low": 1024}   # OpenRouter vision models, JPEG q90, detail "high"; 1024-1536 px keeps fine text crisp without oversized payloads
 MAX_OUT = {"a1": 9000, "a2": 3000, "a3": 3000, "a4": 4000, "a5": 20000}
 TEMP = {"a1": 0.5, "a2": 0.4, "a3": 0.6, "a4": 0.7, "a5": 0.7}
 THINK = {"a1": "medium", "a5": "medium"}            # Gemini thinking level per agent (others: low)
@@ -61,13 +80,21 @@ A1_RES = {"LAYOUT_REF": "high", "TYPOGRAPHY_REF": "high", "ELEMENTS_REF": "mediu
           "PALETTE_REF": "low"}
 WAIT_MAX = 25.0                         # longer waits for a minute window -> try the next model instead
 WAIT_MAX_MISTRAL = 65.0                 # Mistral's free tier is 2 req/min: waiting out the minute is normal there
-TIMEOUT = {"a1": 240.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0}
+TIMEOUT = {"a1": 300.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0}
 STICKY_S = 1800.0                       # after a switch to the alternate, stay on it this long before retrying the primary
 ORDER = ["a1", "a2", "a3", "a4", "a5"]
 
 
 def prompt(name: str) -> str:
-    return (PROMPTS / f"{name}.md").read_text(encoding="utf-8")
+    """An agent's system prompt; an '<agent>_example.json' next to it is appended as the depth expected."""
+    text = (PROMPTS / f"{name}.md").read_text(encoding="utf-8")
+    ex = PROMPTS / f"{name}_example.json"
+    if ex.exists():
+        text += ("\n\nTHE DEPTH EXPECTED - a design document written for a DIFFERENT brand from DIFFERENT references. "
+                 "Match its level of observed detail (named colours with exact uses, element geometry, positions, "
+                 "layers, overlap reasons); never reuse its subjects, copy, colours or fonts, and answer in the schema "
+                 "you are given, not in this example's keys:\n" + ex.read_text(encoding="utf-8"))
+    return text
 
 
 class NoModel(RuntimeError):
@@ -81,11 +108,14 @@ class Ctx:
         self.enabled, self.log = enabled, log
         self.buckets, self.ledger = budget.Buckets(), budget.Ledger()
         self.gemini, self.groq, self.mistral = Gemini(), Groq(self.buckets), Mistral(self.buckets)
-        self.rings = {p: keys.Ring(p if enabled else "") for p in ("mistral", "groq", "gemini")}
+        self.openrouter = OpenRouter(self.buckets)
+        self.rings = {p: keys.Ring(p if enabled else "") for p in ("openrouter", "mistral", "groq", "gemini")}
         self.resolved: dict[str, list[str]] = {}
 
     @staticmethod
     def pname(model: str) -> str:
+        if model.startswith(budget.OR_PREFIX):
+            return "openrouter"
         if model.startswith(("gemini", "gemma")):
             return "gemini"
         return "mistral" if model.startswith(MISTRAL_PREFIXES) else "groq"
@@ -94,16 +124,22 @@ class Ctx:
         """Alias -> its preferred models that this provider lists (checked with the first key that works)."""
         if alias not in self.resolved:
             name = alias.split(":", 1)[0]
-            ring, prov = self.rings[name], {"gemini": self.gemini, "groq": self.groq, "mistral": self.mistral}[name]
+            ring, prov = self.rings[name], self.provider(name)
             picks: list[str] = []
             for i in range(len(ring)):
                 if i in ring.disabled:
                     continue
                 try:
+                    if name == "openrouter":
+                        self._openrouter_key(ring, i)
                     live = set(prov.models(ring.keys[i]))
                     picks = [m for m in PREFS[alias] if m in live]
                     if alias == "mistral:vision":
                         picks = [m for m in picks if prov.vision(m)]
+                    if alias == "openrouter:vision":
+                        picks = [m for m in picks if prov.vision(m) and prov.structured(m)]
+                    if alias == "openrouter:compose":      # no stated cap: keep it and let the reply decide
+                        picks = [m for m in picks if (prov.caps(m).get("max_out") or MAX_OUT["a5"]) >= MAX_OUT["a5"]]
                     break
                 except ProviderError as e:
                     if e.kind == "auth":
@@ -112,8 +148,21 @@ class Ctx:
                         continue
                     picks = list(PREFS[alias])             # can't list: try the preferences, let errors decide
                     break
+            if name == "openrouter":
+                picks = [budget.OR_PREFIX + m for m in picks]
             self.resolved[alias] = picks
         return self.resolved[alias]
+
+    def provider(self, name: str):
+        return {"gemini": self.gemini, "groq": self.groq, "mistral": self.mistral, "openrouter": self.openrouter}[name]
+
+    def _openrouter_key(self, ring, i: int) -> None:
+        """Check an OpenRouter key once (a bad key raises 'auth') and adopt the account's free daily pool and how much
+        of it is used today (other apps on the same account count too)."""
+        info = self.openrouter.key_info(ring.keys[i])
+        budget.set_free_daily(info.get("free_limit"))
+        if isinstance(info.get("free_used"), int):
+            self.ledger.sync(budget.OR_FREE_POOL, info["free_used"], ring.ids[i])
 
     def chain(self, agent: str) -> list[str]:
         pinned = os.getenv(f"AGENT{agent[1]}_MODEL", "").strip()
@@ -202,7 +251,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                                         thinking=THINK.get(agent, "low"))
                         else:
                             kind, messages, schema, est = req
-                            prov = ctx.mistral if kind == "mistral" else ctx.groq
+                            prov = ctx.provider(kind)
                             if not strict and schema is not None:   # the schema rides in the prompt in plain mode
                                 est += budget.est_text(json.dumps(sc.inline_refs(sc.provider_schema(schema)),
                                                                   separators=(",", ":")))
@@ -402,6 +451,10 @@ def chat_request(st: S.State, agent: str, schema: dict, errors, model: str) -> t
     """The agent's chat request (Groq, or Mistral as the backup): the same shared preamble + digest prefix, its slice
     trimmed (longest descriptions first) until it fits the model's minute window (Mistral's is wide: no trim)."""
     kind = Ctx.pname(model)
+    if kind == "gemini":                       # same words, Gemini's request shape: one system text + the user part
+        msgs, _ = _groq_msgs(st, agent, S.slice_for(st, agent), None, errors)
+        system = "\n\n".join(m["content"] for m in msgs if m["role"] == "system")
+        return ("gemini", system, [{"text": msgs[-1]["content"]}], schema)
     slc = S.slice_for(st, agent)
     limit = budget.limits(model)["tpm"] * budget.MARGIN - int(MAX_OUT[agent] * 0.6)
     for cap in TRIM_CAPS:
@@ -448,6 +501,8 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
     ctx = Ctx(enabled, log)
     if enabled:
         keys.notify(f"models: {ctx.describe()}")
+        first = {a: (ctx.chain(a) or ["code default"])[0].removeprefix(budget.OR_PREFIX) for a in ("a1", "a5")}
+        log(f"A1 (sees the references) on {first['a1']} · A5 (composes) on {first['a5']}")
     st, trace, overrides = S.State(h), [], []
     forced = lambda a: force_from is not None and ORDER.index(a) >= ORDER.index(force_from)  # noqa: E731
 
@@ -467,6 +522,15 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                     parts += [{"text": sc.image_header(lbl, pos, im["cluster"], im["text"])},
                               {"image": im["local"], "res": A1_RES[lbl]}]
                 return ("gemini", prompt("a1"), parts, s1)
+            if ctx.pname(model) == "openrouter":    # text first, then each image right after its role header
+                content = [{"type": "text", "text": text}]
+                est = budget.est_text(prompt("a1") + text)
+                for pos, lbl, im in sent:
+                    head = sc.image_header(lbl, pos, im["cluster"], im["text"])
+                    content += [{"type": "text", "text": head}, image_part_or(im["local"], OR_SIDE[A1_RES[lbl]])]
+                    est += budget.est_text(head) + budget.OR_IMAGE[A1_RES[lbl]]
+                msgs = [{"role": "system", "content": prompt("a1")}, {"role": "user", "content": content}]
+                return ("openrouter", msgs, s1, est)
             if ctx.pname(model) == "mistral":       # every image right after its role header, like Gemini's parts
                 content = [{"type": "text", "text": text}]
                 est = budget.est_text(prompt("a1") + text)
@@ -536,14 +600,22 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         return QA.run(od / "index.html", spec=sp) if qa else None
 
     def evaluate(raw: str, source: str, model: str | None) -> dict:
-        """Sanitize + check + measure an A5 page; code removes decor that covers content and adds a missing backdrop."""
+        """Sanitize + check + measure an A5 page; code adds a missing backdrop. Decor the browser finds over text or an
+        image is first moved behind the content and measured again; only what still covers something is removed."""
         chk = validate_page.check(raw, spec, inject_backdrop=True, fix_colors_=True)
         q = measure(chk["html"], spec) if not chk["errors"] else None
         c = classify(chk, q)
         if c["fix_motifs"]:
-            chk = validate_page.check(raw, spec, drop_motifs=c["fix_motifs"], inject_backdrop=True, fix_colors_=True)
+            flagged = set(c["fix_motifs"])
+            chk = validate_page.check(raw, spec, demote_motifs=flagged, inject_backdrop=True, fix_colors_=True)
             q = measure(chk["html"], spec) if not chk["errors"] else None
             c = classify(chk, q)
+            if c["fix_motifs"]:
+                drop = set(c["fix_motifs"])
+                chk = validate_page.check(raw, spec, demote_motifs=flagged - drop, drop_motifs=drop,
+                                          inject_backdrop=True, fix_colors_=True)
+                q = measure(chk["html"], spec) if not chk["errors"] else None
+                c = classify(chk, q)
         n = len(cands) + 1
         (od / f"a5-{n}.html").write_text(chk["html"], encoding="utf-8")
         cand = {"n": n, "source": source, "model": model, "raw": raw, "chk": chk, "qa": q, **c, "fixes": chk["fixes"],
@@ -626,11 +698,26 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
               "candidates": [{k: c[k] for k in ("n", "source", "model", "blocking", "advisory", "fixes", "file")}
                              for c in cands],
               "raw": {k: st.get(k) for k in ("design_doc", "layout_plan", "copy", "decor")},
+              "a1_depth": a1_depth(st.get("design_doc")),
               "ledger": ctx.quota(sorted({m for t in trace for m in [t.get("model")] if m})),
               "ms": int((time.time() - t0) * 1000)}
     (od / "result.json").write_text(json.dumps({k: v for k, v in result.items() if k != "spec"}, indent=1, default=str),
                                     encoding="utf-8")
     return result
+
+
+def a1_depth(doc: dict | None) -> dict:
+    """How much A1 actually observed: colours and elements traced to a reference image, elements with geometry."""
+    if not isinstance(doc, dict):
+        return {}
+    cols = [c for g in (doc.get("color_palette_distribution") or {}).values() for c in g or []]
+    els = ((doc.get("background_layer") or {}).get("elements") or []) + (doc.get("midground_decor") or []) + \
+        (doc.get("foreground_overlays") or [])
+    seen = lambda x: (x.get("source") or "inferred") != "inferred"  # noqa: E731
+    return {"colours": len(cols), "colours_traced": sum(1 for c in cols if seen(c)), "elements": len(els),
+            "elements_traced": sum(1 for e in els if seen(e)),
+            "elements_with_geometry": sum(1 for e in els if len((e.get("geometry") or "").strip()) >= 20),
+            "sections": len(doc.get("content_sections") or [])}
 
 
 DEAD_CARD = re.compile(r"dead space: (\S+) is")

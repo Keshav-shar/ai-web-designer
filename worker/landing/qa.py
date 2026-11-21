@@ -36,6 +36,15 @@ JS = r"""(path) => {
       const rg = document.createRange(); rg.selectNodeContents(n);
       for (const r of rg.getClientRects()) if (r.width > 1 && r.height > 1) out.push([r.left, r.top + scrollY, r.width, r.height]); }
     return out; };
+  // the text an item owns: not the text of an item nested inside it (a card holding its tag / heading / body would
+  // otherwise "overlap" its own children). Used by the text-over-text check; content() keeps the full text.
+  const own = el => { const out = []; const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let n; while ((n = w.nextNode())) { if (!n.textContent.trim() || !n.parentElement) continue;
+      if (n.parentElement.closest('[data-item]') !== el) continue;
+      if (n.parentElement.closest('[data-layer]') !== el.closest('[data-layer]')) continue;
+      const rg = document.createRange(); rg.selectNodeContents(n);
+      for (const r of rg.getClientRects()) if (r.width > 1 && r.height > 1) out.push([r.left, r.top + scrollY, r.width, r.height]); }
+    return out; };
   const content = el => { let top = Infinity, bottom = -Infinity;
     const add = b => { top = Math.min(top, b[1]); bottom = Math.max(bottom, b[1] + b[3]); };
     lines(el).forEach(add);
@@ -47,7 +56,7 @@ JS = r"""(path) => {
     return (s.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(s.backgroundColor)) || (s.backdropFilter && s.backdropFilter !== 'none'); };
   const items = [...document.querySelectorAll('[data-item]')].filter(shown).map(el => ({
     id: el.dataset.item, sec: (el.closest('[data-section]') || {dataset: {}}).dataset.section || '',
-    lines: lines(el), box: rect(el), pads: pads(el), content: content(el), painted: painted(el),
+    lines: lines(el), own: own(el), box: rect(el), pads: pads(el), content: content(el), painted: painted(el),
     card: el.classList.contains('k-card'), img: el.tagName === 'IMG' || !!el.querySelector('img'),
     imgbox: el.tagName === 'IMG' ? rect(el) : (el.querySelector('img') ? rect(el.querySelector('img')) : null),
     wordmark: el.classList.contains('lv-wordmark') || el.dataset.item === 'logo',
@@ -154,7 +163,8 @@ def analyze(data: dict, spec: dict | None = None, width: int = 1440) -> dict:
     its = data["items"]
     for i in range(len(its)):
         for j in range(i + 1, len(its)):
-            if any(_hit(a, b, 2) for a in its[i]["lines"] for b in its[j]["lines"]):
+            a_, b_ = its[i].get("own", its[i]["lines"]), its[j].get("own", its[j]["lines"])
+            if any(_hit(a, b, 2) for a in a_ for b in b_):          # each item's own text, not its nested items'
                 probs.append(f"text of {its[i]['id']} overlaps text of {its[j]['id']}")
     over = data["scrollW"] > data["innerW"] + 1
     if over:

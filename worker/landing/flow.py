@@ -43,6 +43,15 @@ def _log(log, token, frm, to, why):
     log.append({"token": token, "from": frm, "to": to, "why": why})
 
 
+# Characters a composer won't retype verbatim (a non-breaking hyphen looks like '-'; zero-width marks are invisible):
+# the copy is stored plain so the page check compares like with like.
+PLAIN = str.maketrans({"\u2010": "-", "\u2011": "-", "\u00ad": "", "\u200b": "", "\u2060": "", "\ufeff": ""})
+
+
+def plain(s: str) -> str:
+    return (s or "").translate(PLAIN)
+
+
 # --------------------------------------------------------------------------- A1: the design document
 def normalize_doc(doc: dict, st: S.State, h: dict) -> tuple[dict, list]:
     log = []
@@ -129,9 +138,10 @@ def normalize_doc(doc: dict, st: S.State, h: dict) -> tuple[dict, list]:
 
     def els(lst, prefix):
         out = []
-        for e in (lst or [])[:6]:
-            out.append({"id": _unique(slug(e.get("id") or prefix, 32), seen_ids), "what": S.cut(e.get("what", ""), 320),
-                        "where": S.cut(e.get("where", ""), 220)})
+        for e in (lst or [])[:8]:
+            out.append({"id": _unique(slug(e.get("id") or prefix, 32), seen_ids), "what": S.cut(e.get("what", ""), 480),
+                        "where": S.cut(e.get("where", ""), 280), "geometry": S.cut(e.get("geometry", ""), 320),
+                        "source": e.get("source") if e.get("source") in sc.SOURCES else "inferred"})
         return out
     elements = {"background": els(bl.get("elements"), "bg"), "midground": els(doc.get("midground_decor"), "decor"),
                 "foreground": els(doc.get("foreground_overlays"), "overlay")}
@@ -154,8 +164,8 @@ def normalize_doc(doc: dict, st: S.State, h: dict) -> tuple[dict, list]:
     for c in (doc.get("strategic_cards") or [])[:4]:
         if c.get("card_id") in sc.CARD_IDS and c["card_id"] not in card_ids and (c.get("heading") or "").strip():
             card_ids.add(c["card_id"])
-            cards.append({"card_id": c["card_id"], "tag": S.cut(c.get("tag", ""), 24), "heading": S.cut(c["heading"], 60),
-                          "body": S.cut(c.get("body", ""), 220),
+            cards.append({"card_id": c["card_id"], "tag": plain(S.cut(c.get("tag", ""), 24)),
+                          "heading": plain(S.cut(c["heading"], 60)), "body": plain(S.cut(c.get("body", ""), 220)),
                           "accent_color_key": c.get("accent_color_key") if c.get("accent_color_key") in sc.PALETTE_ROLES
                           else "overlay_primary"})
     L = dict(doc.get("layout_spec") or {})
@@ -230,8 +240,9 @@ def after_a1(st: S.State, doc: dict, h: dict) -> list:
                                        "ignored_irrelevant_subjects": bl["ignored_irrelevant_subjects"],
                                        "base_surface_description": bl["base_surface"], "backdrop_focal_geometry": ""})
     st.put("code", "design_elements", [{"element_id": e["id"], "motif_type": defaults.guess_primitive(e["what"]),
-                                        "geometry": S.cut(e["what"], 60), "visual_cues": S.cut(e["where"], 60),
-                                        "source": "ELEMENTS_REF"}
+                                        "geometry": S.cut(e.get("geometry") or e["what"], 60),
+                                        "visual_cues": S.cut(e["where"], 60),
+                                        "source": e["source"] if e.get("source") in sc.IMAGE_LABELS else "ELEMENTS_REF"}
                                        for e in nd["elements"]["midground"] + nd["elements"]["foreground"]][:5])
     return log + log2
 
@@ -268,11 +279,17 @@ def after_a2(st: S.State, out: dict) -> list:
     order = [s["section_id"] for s in d["content_sections"]]
     secs.sort(key=lambda s: order.index(s["section_id"]))
     hero = next(s["section_id"] for s in d["content_sections"] if s["role"] == "hero")
+    group_z = S.layer_of(d)
     lays, seen = [], set()
     for L in lp.get("layers") or []:
         if L.get("element_id") in eids and L["element_id"] not in seen:
             seen.add(L["element_id"])
-            lays.append({"element_id": L["element_id"], "z": L.get("z") if L.get("z") in sc.Z_LAYERS else 5,
+            z = L.get("z")
+            if z not in sc.DECOR_Z:                    # z10 is the text layer: decor there gets painted over words
+                _log(log, f"layer {L['element_id']}.z", z, group_z[L["element_id"]][1],
+                     "decoration never shares the text layer; it goes to its A1 group's layer")
+                z = group_z[L["element_id"]][1]
+            lays.append({"element_id": L["element_id"], "z": z,
                          "anchor": L.get("anchor") if L.get("anchor") in sids else hero,
                          "placement": S.cut(L.get("placement", ""), 260), "notes": S.cut(L.get("notes", ""), 160)})
     for L in fb["layers"]:
@@ -316,7 +333,7 @@ def after_a3(st: S.State, out: dict) -> list:
         k = x.get("kind")
         if k not in sc.COPY_KINDS or x.get("section_id") not in sids:
             continue
-        text = S.cut(x.get("text", ""), CAPS[k]) if CAPS[k] else ""
+        text = plain(S.cut(x.get("text", ""), CAPS[k])) if CAPS[k] else ""
         if k == "card":
             if x.get("card_id") not in cards or x["card_id"] in used_cards:
                 _log(log, f"item {x.get('item_id')}", x.get("card_id"), None, "no such strategic card (A1 owns them)")

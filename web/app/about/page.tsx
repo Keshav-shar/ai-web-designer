@@ -100,20 +100,29 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* cta: a forest panel beside a print, text never on the image */}
-      <section className="container-x">
-        <div className="card grid overflow-hidden md:grid-cols-[1.5fr_1fr]">
-          <div className="band-forest px-7 py-14 md:px-12 md:py-16">
-            <h2 className="display display-2" style={{ color: "var(--cream)" }}>{cta.title}</h2>
-            <p className="lede mt-4" style={{ color: "rgba(251,245,239,.9)" }}>{cta.sub}</p>
-            <Link className="btn btn-primary mt-8" href="/">Start in the studio</Link>
+      {/* cta: a forest panel beside a print, text never on the image. Senku peeks in at the bottom-right corner: cut
+          by the window's right edge, his lower edge tucked behind the footer's top border (main and the footer are both
+          z-10, and the footer paints later). On wide screens he overlaps only the card's stripes panel. */}
+      <div className="relative pb-12 md:pb-0" style={{ overflowX: "clip" }}>
+        <section className="container-x">
+          <div className="card grid overflow-hidden md:grid-cols-[1.5fr_1fr]">
+            <div className="band-forest px-7 py-14 md:px-12 md:py-16">
+              <h2 className="display display-2" style={{ color: "var(--cream)" }}>{cta.title}</h2>
+              <p className="lede mt-4" style={{ color: "rgba(251,245,239,.9)" }}>{cta.sub}</p>
+              <Link className="btn btn-primary mt-8" href="/">Start in the studio</Link>
+            </div>
+            <Texture name="stripes" className="hide-sm border-l-2 border-ink" position="70% center" />
           </div>
-          <Texture name="stripes" className="hide-sm border-l-2 border-ink" position="70% center" />
-        </div>
-        <p className="mt-8 text-center text-[0.9rem] text-muted">
-          <Link className="underline hover:text-cta" href="/evidence">See the measured evidence →</Link>
-        </p>
-      </section>
+          <p className="mt-8 text-center text-[0.9rem] text-muted">
+            <Link className="underline hover:text-cta" href="/evidence">See the measured evidence →</Link>
+          </p>
+        </section>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/about/senku-peek.webp" alt="" aria-hidden="true" width={773} height={765} loading="lazy"
+          className="pointer-events-none absolute right-0 z-20 h-auto w-[clamp(150px,22vw,330px)] translate-x-[22%] select-none"
+          style={{ bottom: "-110px", WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 16%)",
+            maskImage: "linear-gradient(to bottom, transparent 0, #000 16%)" }} />
+      </div>
     </>
   );
 }

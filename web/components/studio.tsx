@@ -40,9 +40,9 @@ function EngineBadge({ initial }: { initial: Engine }) {
       </p>
       {on && engine?.section_mode === "agents" && (
         <p className="mt-2 max-w-[70ch] text-[0.84rem] text-muted">
-          AI pipeline on: your prompt and the engine&rsquo;s reference images are sent to Mistral AI&rsquo;s free tier
-          (Mistral may use free-tier inputs to train its models) and to Groq; Google Gemini&rsquo;s free tier is used
-          only as a fallback. Don&rsquo;t include private details.
+          AI pipeline on: your prompt and the engine&rsquo;s reference images are sent to free models on OpenRouter
+          (NVIDIA Nemotron, Google Gemma; free endpoints may log inputs or use them for training) and to Groq; Mistral
+          AI&rsquo;s and Google Gemini&rsquo;s free tiers are used only as fallbacks. Don&rsquo;t include private details.
         </p>
       )}
     </>

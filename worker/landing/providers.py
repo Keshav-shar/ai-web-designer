@@ -1,5 +1,10 @@
 """providers.py - the free-tier providers, over plain httpx (no SDKs).
 
+OpenRouter (OpenAI-compatible router; the primary for A1 / A5): free ':free' models (Nemotron, Gemma, ...) behind one
+key, images as {"type": "image_url", "image_url": {"url": data-URL, "detail": "high"}}, strict json_schema with
+provider.require_parameters (only endpoints that honour the schema are routed to), 20 req/min and a per-account
+daily pool of free requests (50, or 1000 once $10 of credit was bought), errors that can arrive inside a 200 reply.
+
 Mistral (La Plateforme, OpenAI-compatible; the primary for A1 / A5 and the backup for A2-A4): images as content parts,
 strict json_schema, ~1 request/s per key (paced), 429 month-limit -> quota_day.
 
@@ -31,6 +36,8 @@ import httpx
 
 from . import budget, schemas as sc
 
+OPENROUTER_BASE = os.getenv("OPENROUTER_BASE", "https://openrouter.ai/api/v1").rstrip("/")
+OR_PREFIX = budget.OR_PREFIX            # OpenRouter ids are kept as 'openrouter/<vendor>/<model>' inside the pipeline
 GEMINI_BASE = os.getenv("GEMINI_BASE", "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
 GROQ_BASE = os.getenv("GROQ_BASE", "https://api.groq.com/openai/v1").rstrip("/")
 MISTRAL_BASE = os.getenv("MISTRAL_BASE", "https://api.mistral.ai/v1").rstrip("/")
@@ -64,14 +71,15 @@ class Reply:
             return json.loads(m.group(0))
 
 
-def jpeg_b64(path: str | Path, side: int) -> str:
+def jpeg_b64(path: str | Path, side: int, quality: int = 85) -> str:
+    """The image as base64 JPEG, its long side at most `side` px (never upscaled)."""
     from PIL import Image
     with Image.open(path) as im:
         im.seek(0)
         im = im.convert("RGB")
-        im.thumbnail((side, side))
+        im.thumbnail((side, side), Image.LANCZOS)
         buf = io.BytesIO()
-        im.save(buf, "JPEG", quality=85)
+        im.save(buf, "JPEG", quality=quality, optimize=True)
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
@@ -135,8 +143,8 @@ class Gemini:
                  thinking: str = "low") -> Reply:
         if not key:
             raise ProviderError("auth", "no Gemini key")
-        overloads = 0
-        for attempt in range(8):
+        overloads = nets = 0
+        for attempt in range(14):
             cfg = {"temperature": temperature, "maxOutputTokens": max_out}
             if schema is not None:
                 cfg.update(responseMimeType="application/json", responseJsonSchema=sc.inline_refs(sc.provider_schema(schema)))
@@ -153,8 +161,8 @@ class Gemini:
             except httpx.TimeoutException as e:            # a slow model: don't wait another full timeout here
                 raise ProviderError("timeout", f"no reply within {timeout:.0f}s ({type(e).__name__})") from None
             except httpx.HTTPError as e:
-                if attempt < 1:
-                    time.sleep(2)
+                nets += 1
+                if net_wait(model, e, nets):
                     continue
                 raise ProviderError("network", f"{type(e).__name__}: {e}") from None
             ms = int((time.time() - t0) * 1000)
@@ -208,6 +216,21 @@ class Gemini:
 
 
 OVERLOAD_BACKOFF = (5.0, 15.0, 30.0)                # seconds between retries of a busy model
+# A dropped connection (WinError 10051 "unreachable network", 10054 reset, DNS blips) is usually over within seconds on
+# this PC: retry the same request a few times before the router gives the model up (it used to be 1 s / 2 s only).
+NET_BACKOFF = (2.0, 4.0, 8.0, 15.0)
+
+
+def net_wait(model: str, e: Exception, n: int) -> bool:
+    """Sleep before retry n of a request that failed at the network level. -> False when the retries are used up."""
+    if n > len(NET_BACKOFF):
+        return False
+    wait = NET_BACKOFF[n - 1]
+    if wait >= 4:
+        from . import keys
+        keys.notify(f"{model}: network error ({type(e).__name__}); retrying in {wait:.0f}s ({n}/{len(NET_BACKOFF)})")
+    time.sleep(wait)
+    return True
 
 
 def _brief(msg: str) -> str:
@@ -271,8 +294,9 @@ class OpenAICompat:
             body["messages"] = [{"role": "system", "content": "Reply with ONE JSON object that matches this JSON "
                                  "schema exactly (every property, enum values only):\n" + json.dumps(
                                      sc.inline_refs(sc.provider_schema(schema)), separators=(",", ":"))}] + messages
-        overloads = 0
-        for attempt in range(7):
+        self.shape(body)
+        overloads = nets = 0
+        for attempt in range(14):
             for p in self.drop:
                 body.pop(p, None)
             if self.pace_s:
@@ -284,14 +308,24 @@ class OpenAICompat:
             except httpx.TimeoutException as e:
                 raise ProviderError("timeout", f"no reply within {timeout:.0f}s ({type(e).__name__})") from None
             except httpx.HTTPError as e:
-                if attempt < 2:
-                    time.sleep(2 ** attempt)
+                nets += 1
+                if net_wait(model, e, nets):
                     continue
                 raise ProviderError("network", f"{type(e).__name__}: {e}") from None
             ms = int((time.time() - t0) * 1000)
             self.buckets.update(model, dict(r.headers), kid)
             if r.status_code == 200:
                 d = r.json()
+                if d.get("error") or not d.get("choices"):   # a router can report an upstream failure inside a 200
+                    err = d.get("error") or {}
+                    code = str(err.get("code") or "")
+                    why = _brief(json.dumps(err))[:200] if err else "the reply has no choices"
+                    if code in ("502", "503", "504") and overloads < len(self.backoff()):
+                        overloads += 1
+                        time.sleep(self.backoff()[overloads - 1])
+                        continue
+                    raise ProviderError("rate" if code == "429" else "server", f"error inside a 200 reply: {why}",
+                                        20.0 if code == "429" else 0.0)
                 ch = d["choices"][0]
                 u = d.get("usage", {})
                 usage = {"in": u.get("prompt_tokens", 0), "out": u.get("completion_tokens", 0),
@@ -299,6 +333,10 @@ class OpenAICompat:
                          "thinking": (u.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)}
                 if ch.get("finish_reason") == "length":
                     raise ProviderError("truncated", f"hit max_completion_tokens={max_out}")
+                if ch.get("finish_reason") == "error":
+                    raise ProviderError("server", f"the model stopped with an error ({_brief(json.dumps(ch))[:160]})")
+                if not (ch.get("message") or {}).get("content"):
+                    raise ProviderError("server", "empty reply (no content)")
                 return Reply(ch["message"].get("content") or "", model, ch.get("finish_reason", ""), usage,
                              {k: v for k, v in r.headers.items() if k.lower().startswith("x-ratelimit")}, ms)
             msg = r.text[:600]
@@ -337,6 +375,9 @@ class OpenAICompat:
             raise ProviderError("overloaded" if r.status_code == 503 else "server" if r.status_code >= 500 else
                                 "bad_request", f"HTTP {r.status_code}: {_brief(msg)}")
         raise ProviderError("server", "retries exhausted")
+
+    def shape(self, body: dict) -> None:
+        """Provider-specific changes to a request body, made once before it is sent."""
 
     def special(self, r: httpx.Response, low: str, model: str) -> ProviderError | None:
         """Provider-specific errors checked before the generic mapping (None = use the generic one)."""
@@ -406,3 +447,110 @@ class Mistral(OpenAICompat):
 def image_part(path: str | Path, side: int) -> dict:
     """An OpenAI-style image content part as Mistral takes it (the URL as a plain string)."""
     return {"type": "image_url", "image_url": f"data:image/jpeg;base64,{jpeg_b64(path, side)}"}
+
+
+# --------------------------------------------------------------------------- OpenRouter (OpenAI-compatible router)
+class OpenRouter(OpenAICompat):
+    """openrouter.ai/api/v1. Inside the pipeline an OpenRouter model is 'openrouter/<vendor>/<model>' (Groq's ids also
+    contain a '/'); the prefix is stripped on the wire. /models is public and describes every model: input
+    modalities (vision), supported parameters (structured outputs), context length and the provider's output cap.
+    Free models (':free'): 20 requests/min, and a per-ACCOUNT daily pool shared by all of them (50, or 1000 once $10
+    of credit was bought); GET /key reports the pool (free_model_daily_requests). A 429 carries X-RateLimit-Reset (ms
+    epoch) or Retry-After. No attribution headers are sent (optional; nothing about the project leaves the PC)."""
+    base = OPENROUTER_BASE
+    name = "openrouter"
+    max_field = "max_tokens"
+    drop_params = ("reasoning",)                        # a model that rejects it is retried without it
+    pace_s = 3.1                                        # 20 requests/min
+
+    # thinking off where the model allows it (Ling: "reasoning": {"enabled": false} gives the full description with
+    # no hidden tokens); low effort for models whose thinking is mandatory or that do better with a little of it
+    REASONING_OFF = ("inclusionai/ling",)
+
+    def extra(self, model: str) -> dict:
+        """Reasoning models (Nemotron) spend their thinking out of the same max_tokens as the answer: one A1 run
+        thought for 190 s and was cut off at 14.4K tokens before its JSON was complete. Low effort keeps most of the
+        budget for the document / page itself; Ling runs with thinking off."""
+        bare = model.removeprefix(OR_PREFIX)
+        if bare.startswith(self.REASONING_OFF):
+            return {"reasoning": {"enabled": False}}
+        return {"reasoning": {"effort": "low"}}
+
+    def models(self, key: str) -> list[str]:
+        if self._models is None:                        # public endpoint: the key is sent only when there is one
+            r = self.http.get(f"{self.base}/models", headers={"Authorization": f"Bearer {key}"} if key else {})
+            if r.status_code != 200:
+                raise ProviderError("auth" if r.status_code in (401, 403) else "server", f"list models HTTP {r.status_code}")
+            data = r.json().get("data", [])
+            self._models = [m["id"] for m in data]
+            for m in data:
+                arch, params = m.get("architecture") or {}, set(m.get("supported_parameters") or [])
+                self._caps[m["id"]] = {
+                    "vision": "image" in (arch.get("input_modalities") or []),
+                    "structured": bool(params & {"structured_outputs", "response_format"}),
+                    "context": int(m.get("context_length") or 0),
+                    "max_out": int((m.get("top_provider") or {}).get("max_completion_tokens") or 0)}
+        return self._models
+
+    def key_info(self, key: str) -> dict:
+        """GET /key -> {'free_used', 'free_limit', 'free_left'} (None when not reported). 401/403: the key is bad."""
+        r = self.http.get(f"{self.base}/key", headers={"Authorization": f"Bearer {key}"})
+        if r.status_code in (401, 403):
+            raise ProviderError("auth", f"key check HTTP {r.status_code}")
+        if r.status_code != 200:
+            raise ProviderError("server", f"key check HTTP {r.status_code}")
+        f = (r.json().get("data") or {}).get("free_model_daily_requests") or {}
+        num = lambda v: int(v) if isinstance(v, (int, float)) else None  # noqa: E731
+        return {"free_used": num(f.get("used")), "free_limit": num(f.get("limit")), "free_left": num(f.get("remaining"))}
+
+    def caps(self, model: str) -> dict:
+        return self._caps.get(model.removeprefix(OR_PREFIX), {})
+
+    def vision(self, model: str) -> bool:
+        return bool(self.caps(model).get("vision"))
+
+    def structured(self, model: str) -> bool:
+        return bool(self.caps(model).get("structured"))
+
+    def shape(self, body: dict) -> None:
+        body["model"] = body["model"].removeprefix(OR_PREFIX)
+        if "response_format" in body:                   # route only to endpoints that honour the JSON schema
+            body["provider"] = {"require_parameters": True}
+
+    def bad_schema(self, low: str) -> bool:
+        return super().bad_schema(low) or "json_schema" in low or "response_format" in low
+
+    def special(self, r: httpx.Response, low: str, model: str) -> ProviderError | None:
+        h = {k.lower(): v for k, v in r.headers.items()}
+        brief = _brief(r.text[:600])
+        if r.status_code == 429:
+            ra = float(h.get("retry-after") or 0)
+            if not ra and h.get("x-ratelimit-reset"):
+                try:                                    # ms since the epoch
+                    ra = max(0.0, float(h["x-ratelimit-reset"]) / 1000.0 - time.time())
+                except ValueError:
+                    pass
+            if self.daily(r, low) or ra > 3600:
+                return ProviderError("quota_day", brief, ra)
+            return ProviderError("rate", brief, ra or 20.0)
+        if r.status_code == 402:
+            if "in_flight" in low:
+                return ProviderError("rate", brief, float(h.get("retry-after") or 30))
+            return ProviderError("quota_day", f"HTTP 402: {brief} (credits or the key's limit)")
+        if r.status_code == 403 and re.search(r"moderation|flagged|guardrail", low):
+            return ProviderError("blocked", brief)
+        if r.status_code == 404 and "no endpoints" in low and re.search(r"parameter|require", low):
+            return ProviderError("bad_output", "no endpoint of this model honours the requested JSON schema")
+        return None
+
+    def daily(self, r: httpx.Response, low: str) -> bool:
+        return bool(re.search(r"free-models-per-day|per[- ]day|daily", low))
+
+    def backoff(self) -> tuple:
+        return OVERLOAD_BACKOFF
+
+
+def image_part_or(path: str | Path, side: int, quality: int = 90) -> dict:
+    """An OpenAI image content part as OpenRouter takes it: an object URL with detail 'high'."""
+    return {"type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{jpeg_b64(path, side, quality)}", "detail": "high"}}

@@ -1,0 +1,24 @@
+[Unit]
+Description=Cosmogon Labs engine (serpman worker: polls Supabase, builds pages)
+Wants=network-online.target
+After=network-online.target
+# never give up restarting (the default stops after 5 starts in 10 s)
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=/srv/cosmogon/studio/worker
+EnvironmentFile=/srv/cosmogon/worker.env
+ExecStart=/srv/cosmogon/venv/bin/python worker.py run
+# crash, OOM kill or a lost network at boot: start again after 10 s, forever
+Restart=always
+RestartSec=10
+# SIGTERM -> the worker's clean exit (marks the studio badge offline); an unfinished job is re-queued on next start
+KillSignal=SIGTERM
+TimeoutStopSec=60
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

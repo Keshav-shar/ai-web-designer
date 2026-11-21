@@ -221,7 +221,8 @@ def slice_for(st: State, agent: str) -> dict:
             for e in d["elements"][k]:
                 L = placed.get(e["id"], {})
                 els.append({"element_id": e["id"], "z": L.get("z", lay[e["id"]][1]), "what": e["what"],
-                            "where": e["where"], "placement": L.get("placement", ""), "anchor": L.get("anchor", "")})
+                            "geometry": e.get("geometry", ""), "where": e["where"], "placement": L.get("placement", ""),
+                            "anchor": L.get("anchor", "")})
         return {"decor_elements": els,
                 "palette_vars": [f"var({c['var']}) = {c['name']} {c['hex']}" for c in d["colors"]],
                 "limits": "one asset per element; svg up to ~2500 characters each, viewBox-based; colours only "
@@ -418,7 +419,8 @@ def assemble_doc_spec(st: State) -> dict:
             L = placed.get(e["id"], {})
             a = assets_by.get(e["id"])
             decor.append({"element_id": e["id"], "layer": f"z{L.get('z', lay[e['id']][1])}", "what": e["what"],
-                          "where": e["where"], "anchor": L.get("anchor", ""), "placement": L.get("placement", ""),
+                          "geometry": e.get("geometry", ""), "where": e["where"], "anchor": L.get("anchor", ""),
+                          "placement": L.get("placement", ""),
                           "asset": ({"kind": a["kind"], a["kind"]: a[a["kind"]], "opacity": a["opacity"]}
                                     if a else None)})
     bg = backdrop(st)

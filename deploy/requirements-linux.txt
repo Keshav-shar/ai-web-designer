@@ -1,0 +1,22 @@
+# The worker's runtime packages, pinned to the versions in D:\caches\venvs\uifp (measured 2026-11-22 by loading the
+# engine and running a job, then mapping sys.modules to installed distributions).
+# torch==2.10.0 and torchvision==0.25.0 are installed first by bootstrap.sh from PyTorch's CPU wheel index
+# (no CUDA on the server); they are left out here so the resolver keeps them.
+numpy==2.4.2
+scipy==1.17.1
+scikit-image==0.26.0
+opencv-python-headless==5.0.0.93
+pillow==12.1.1
+open_clip_torch==4.2.2
+timm==1.0.31
+huggingface_hub==2.4.0
+safetensors==0.8.0
+ftfy==6.3.1
+regex==2026.11.15
+tqdm==4.67.3
+PyYAML==6.0.3
+httpx==0.28.1
+jsonschema==4.26.0
+playwright==1.65.0
+truststore==0.10.5
+requests

@@ -116,17 +116,19 @@ PALETTE_GROUPS = ["text_color", "muted_accent_color", "background_element_color"
 SECTION_ROLES = ["nav", "hero", "intro", "feature", "cards", "gallery", "quote", "cta_band", "footer", "other"]
 COPY_KINDS = ["logo", "nav_link", "cta", "eyebrow", "h1", "h2", "h3", "paragraph", "label", "quote", "stat",
               "list_item", "caption", "card"]
-Z_LAYERS = [0, 5, 10, 20, 50]
+Z_LAYERS = [0, 5, 10, 20, 50]          # the page's layers (z10 = text and UI)
+DECOR_Z = [0, 5, 20, 50]                # where decoration may go: never the text layer (A2's choices)
+SOURCES = IMAGE_LABELS + ["inferred"]   # which reference image a colour / element was seen in ("inferred" = not seen)
 DECOR_KINDS = ["svg", "css"]
 EXTRA_HEXES = 4                       # colours A1 may add beyond the measured ones (logged)
 
 
 def a1() -> dict:
     """A1 - the visual design document, written from the five reference images."""
-    entry = obj({"name": S, "hex": S, "usage": S})
+    entry = obj({"name": S, "hex": S, "usage": S, "source": enum(SOURCES)})
     level = {"family": S, "weight": enum(WEIGHTS), "case": enum(CASES), "letter_spacing": S, "italic": B,
              "classification": S, "visual_traits": S, "reference_style": S, "size_css": S, "line_height": S}
-    el = obj({"id": S, "what": S, "where": S})
+    el = obj({"id": S, "what": S, "where": S, "geometry": S, "source": enum(SOURCES)})
     return obj({
         "design_system_name": S,
         "aesthetic_direction": S,
@@ -160,7 +162,7 @@ def a2(section_ids: list[str], element_ids: list[str], colors: list[str]) -> dic
         "canvas": obj({"content_width_px": I, "gutter_px": I, "canvas_use": S}),
         "sections": arr(obj({"section_id": ref("section"), "layout": S, "size": S, "surface": ref("color"),
                              "responsive": S})),
-        "layers": arr(obj({"element_id": ref("element"), "z": enum(Z_LAYERS), "anchor": ref("section"),
+        "layers": arr(obj({"element_id": ref("element"), "z": enum(DECOR_Z), "anchor": ref("section"),
                            "placement": S, "notes": S})),
     })}), "$defs": {"section": enum(section_ids), "element": enum(element_ids or [""]), "color": enum(colors)}}
 

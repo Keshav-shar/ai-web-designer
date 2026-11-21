@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import html as H
 import re
+import unicodedata
 from html.parser import HTMLParser
 
 BANNED = {"script", "iframe", "object", "embed", "link", "meta", "base", "frame", "frameset", "applet", "noscript",
@@ -35,7 +36,7 @@ except ImportError:  # pragma: no cover
     pass
 _NAMES = "|".join(sorted(NAMED, key=len, reverse=True))
 NAMED_RE = re.compile(r"(?:color|background(?:-color)?|fill|stroke|border(?:-[a-z]+)?|outline|stop-color|"
-                      r"text-shadow|box-shadow)\s*:[^;{}]*\b(" + _NAMES + r")\b", re.I)
+                      r"text-shadow|box-shadow)\s*:[^;{}]*(?<![\w-])(" + _NAMES + r")(?![\w-])", re.I)
 URL = re.compile(r"url\(\s*['\"]?([^'\")]+)['\"]?\s*\)", re.I)
 FONT_FAMILY = re.compile(r"font-family\s*:\s*([^;}{]+)", re.I)
 ZINDEX = re.compile(r"z-index\s*:\s*(-?\d+)", re.I)
@@ -72,11 +73,31 @@ def _hex6(lit: str) -> str | None:
     return None
 
 
+# Typographic variants that must not fail a verbatim copy check: models type '-' for U+2011 (non-breaking hyphen),
+# straight quotes for curly ones, a plain space for NBSP / thin spaces. Both sides are folded the same way.
+FOLD = str.maketrans({**{c: "-" for c in "\u2010\u2011\u2012\u2013\u2014\u2015\u2212\ufe63\uff0d"},
+                      **{c: "'" for c in "\u2018\u2019\u201a\u201b\u2032\u00b4"},
+                      **{c: '"' for c in "\u201c\u201d\u201e\u201f\u2033"},
+                      **{c: " " for c in "\u00a0\u2007\u2009\u200a\u202f\u3000"},
+                      **{c: "" for c in "\u200b\u200c\u200d\u2060\u00ad\ufeff"}})
+
+
+def fold(s: str) -> str:
+    return unicodedata.normalize("NFKC", s or "").translate(FOLD)
+
+
+# Decor the browser found over text or an image is first moved behind the content: a negative z-index paints below
+# in-flow text and images (and above the stacking context's own background), then the page is measured again.
+DEMOTE_CSS = "[data-demoted]{z-index:-1!important}"
+
+
 class _San(HTMLParser):
-    def __init__(self, assets: set[str], drop_motifs=()):
+    def __init__(self, assets: set[str], drop_motifs=(), demote=()):
         super().__init__(convert_charrefs=True)
         self.assets, self.out, self.skip, self.stack = assets, [], 0, []
         self.drop = set(drop_motifs)
+        self.demote, self.demoted = set(demote), set()
+        self.open_out: list[int] = []                  # index in self.out of each open tag (parallel to self.stack)
         self.sections: set[str] = set()
         self.dropped: list[str] = []
         self.text: list[str] = []
@@ -133,10 +154,20 @@ class _San(HTMLParser):
             self.z0_srcs.add(dict(keep)["src"])
         if t == "h1":
             self.h1 += 1
+        motif = dict(keep).get("data-motif")
+        if motif and motif in self.demote:             # behind the content: the motif and its decor-layer wrapper
+            keep.append(("data-demoted", "1"))
+            self.demoted.add(motif)
+            for lay, idx in zip(reversed(self.layer_stack), reversed(self.open_out)):
+                if lay in ("z5", "z20"):
+                    if "data-demoted" not in self.out[idx]:
+                        self.out[idx] = self.out[idx][:-1] + ' data-demoted="1">'
+                    break
         self.out.append(f"<{t}" + "".join(f' {k}="{H.escape(v, quote=True)}"' for k, v in keep) + (">"))
         if t not in VOID:
             self.stack.append(t)
             self.layer_stack.append(layer)
+            self.open_out.append(len(self.out) - 1)
         else:
             self.out[-1] = self.out[-1][:-1] + "/>" if t in VOID - {"img", "br", "hr", "wbr"} else self.out[-1]
 
@@ -161,6 +192,7 @@ class _San(HTMLParser):
         while self.stack:
             x = self.stack.pop()
             self.layer_stack.pop()
+            self.open_out.pop()
             self.out.append(f"</{x}>")
             if x == t:
                 break
@@ -229,7 +261,11 @@ def wrap(css: str, body: str, spec: dict) -> str:
 
 
 def _norm(s: str) -> str:
-    return re.sub(r"\s+", " ", H.unescape(s or "")).strip().lower()
+    """Text for the verbatim-copy check: dash / quote / space variants folded, decorative glyphs (category So: ● ★ ▶,
+    plus • and ·) dropped, so "● Online" drawn as a CSS dot + "Online" still counts as the same words."""
+    t = fold(H.unescape(s or ""))
+    t = "".join(" " if (unicodedata.category(c) == "So" or c in "\u2022\u00b7") else c for c in t)
+    return re.sub(r"\s+", " ", t).strip().lower()
 
 
 def backdrop_html(spec: dict) -> tuple[str, str]:
@@ -258,7 +294,59 @@ def clamp_z(text: str) -> tuple[str, int]:
     return ZINDEX.sub(sub, text), n
 
 
-def check(raw: str, spec: dict, *, drop_motifs=(), inject_backdrop: bool = False, fix_colors_: bool = False) -> dict:
+INJECTABLE = {"cta": "a", "nav_link": "a", "label": "span", "caption": "span", "eyebrow": "span"}
+ADDED_CSS = (".x-added{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin-top:1rem;position:relative;"
+             "z-index:10}.x-added>a{display:inline-block;padding:.55em 1.15em;border:2px solid currentColor;"
+             "border-radius:999px;color:inherit;text-decoration:none;font-weight:600;line-height:1.2}"
+             ".x-added>span{opacity:.85}")
+_TAG = re.compile(r"<(/?)([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*?(/?)>")
+
+
+def _section_end(body: str, sid: str) -> int | None:
+    """Index of the closing tag of the element carrying data-section="sid" (None if absent or unbalanced)."""
+    m = re.search(r'<([a-zA-Z][a-zA-Z0-9-]*)\b[^>]*\bdata-section\s*=\s*["\']' + re.escape(sid) + r'["\'][^>]*>', body)
+    if not m:
+        return None
+    depth = 1
+    for t in _TAG.finditer(body, m.end()):
+        name = t.group(2).lower()
+        if name in VOID or t.group(3):
+            continue
+        depth += -1 if t.group(1) else 1
+        if depth == 0:
+            return t.start()
+    return None
+
+
+def inject_items(body: str, spec: dict) -> tuple[str, list[str]]:
+    """Short items (CTAs, nav links, labels, captions, eyebrows) the page left out entirely - no data-item hook and
+    not their words - are added at the end of their own section, in A3's words. Headings, paragraphs, cards and the
+    h1 are never added: a page without them stays blocked. -> (body, added item ids)."""
+    hooks = set(re.findall(r'data-item\s*=\s*["\']([^"\']+)', body))
+    text = _norm(re.sub(r"<[^>]+>", " ", body))
+    added = []
+    for sec in spec.get("sections", []):
+        miss = [it for it in sec.get("items", []) if it.get("kind") in INJECTABLE and (it.get("text") or "").strip()
+                and it["item_id"] not in hooks and _norm(it["text"]) not in text]
+        if not miss:
+            continue
+        end = _section_end(body, sec["section_id"])
+        if end is None:
+            continue
+        parts = []
+        for it in miss:
+            tag = INJECTABLE[it["kind"]]
+            href = it.get("href") or "#"
+            href = href if href.startswith(("#", "mailto:")) else "#"
+            attr = f' href="{H.escape(href)}"' if tag == "a" else ""
+            parts.append(f'<{tag}{attr} data-item="{H.escape(it["item_id"])}">{H.escape(it["text"])}</{tag}>')
+            added.append(it["item_id"])
+        body = body[:end] + '<div class="x-added" data-injected="items">' + "".join(parts) + "</div>" + body[end:]
+    return body, added
+
+
+def check(raw: str, spec: dict, *, drop_motifs=(), demote_motifs=(), inject_backdrop: bool = False,
+          fix_colors_: bool = False) -> dict:
     """-> {html, errors (blocking), advisories, fixes, warnings, dropped}.
     errors = the page is unsafe, invents something or loses content; advisories = taste / completeness notes."""
     assets = {a["path"] for a in spec.get("assets", [])}
@@ -270,7 +358,12 @@ def check(raw: str, spec: dict, *, drop_motifs=(), inject_backdrop: bool = False
         css, n1 = clamp_z(css)                        # z-index outside 0-50 -> inside it (a fact, not a taste call)
         body, n2 = clamp_z(body)
         clamped = n1 + n2
-    p = _San(assets, drop_motifs)
+        body, added = inject_items(body, spec)        # A3's short items the page left out -> their own section
+        if added:
+            css += "\n" + ADDED_CSS
+    else:
+        added = []
+    p = _San(assets, drop_motifs, demote_motifs)
     p.feed(body)
     p.close()
     while p.stack:
@@ -335,10 +428,15 @@ def check(raw: str, spec: dict, *, drop_motifs=(), inject_backdrop: bool = False
         advisories.append(f"decor not on the page (data-motif missing): {', '.join(miss_motifs[:8])}")
     if "z0" not in p.layers and not fixes:
         advisories.append('no data-layer="z0" backdrop layer')
+    if p.demoted:
+        css += "\n" + DEMOTE_CSS
+        fixes.append(f"moved decor behind the content (it covered text or an image): {', '.join(sorted(p.demoted))}")
     if drop_motifs:
         fixes.append(f"removed decor that covered text or an image: {', '.join(sorted(drop_motifs))}")
     if snapped:
         fixes.append(f"snapped {snapped} stray colour(s) to the nearest palette colour")
+    if added:
+        fixes.append(f"added {len(added)} item(s) the page left out, in their own sections: {', '.join(added[:8])}")
     if clamped:
         fixes.append(f"clamped {clamped} z-index value(s) into {Z_MIN}-{Z_MAX} (above {Z_MAX} -> {Z_MAX - 1}, below the grain)")
     if dropped:
@@ -408,7 +506,8 @@ def fix_colors(text: str, allowed: list[str]) -> tuple[str, int]:
                 return mm.group(0)
             n += 1
             return nearest_hex(hx, pal)
-        return m.group(1) + re.sub(r"\b(" + _NAMES + r")\b", name, m.group(2), flags=re.I)
+        # a standalone colour word only: "green" in var(--c-terminal-green) or .green-dot is a name, not a colour
+        return m.group(1) + re.sub(r"(?<![\w-])(" + _NAMES + r")(?![\w-])", name, m.group(2), flags=re.I)
     text = re.sub(r"(" + COLOR_PROPS + r"\s*[:=]\s*[\"']?)([^;{}\"'<>]*)", decl, text, flags=re.I)
     return text, n
 

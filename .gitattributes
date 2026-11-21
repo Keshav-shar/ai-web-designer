@@ -1,0 +1,4 @@
+# server scripts run by bash/systemd on Linux: keep LF on every checkout
+deploy/*.sh text eol=lf
+deploy/*.service text eol=lf
+deploy/*.env text eol=lf

@@ -1,12 +1,14 @@
 """keys.py - API keys for the landing agents: several per provider, failover when one hits a limit.
 
 Where keys come from (environment first, then the gitignored env file; values are never printed or logged):
-    MISTRAL_API_KEY=k1                GROQ_API_KEY=k1                GEMINI_API_KEY=k1   (Gemini: last fallback)
-    MISTRAL_API_KEY_2=k2  ...         GROQ_API_KEY_2=k2  ...         GEMINI_API_KEY_2=k2  ...
-    MISTRAL_API_KEYS=k1,k2            GROQ_API_KEYS=k1,k2            GEMINI_API_KEYS=k1,k2,k3   (comma / semicolon / space separated)
+    OPENROUTER_API_KEY=k1   (A1 / A5 first)   MISTRAL_API_KEY=k1   GROQ_API_KEY=k1   GEMINI_API_KEY=k1 (last fallback)
+    OPENROUTER_API_KEY_2=k2  ...      MISTRAL_API_KEY_2=k2  ...         GROQ_API_KEY_2=k2  ...   GEMINI_API_KEY_2=k2  ...
+    OPENROUTER_API_KEYS=k1,k2         MISTRAL_API_KEYS=k1,k2            GROQ_API_KEYS=k1,k2      GEMINI_API_KEYS=k1,k2,k3
+    (comma / semicolon / space separated)
 Env file: LANDING_ENV_FILE, default D:\\serpman-studio\\worker\\.env (the worker's own .env; the lab reads it too).
 
-Limits are per Google Cloud PROJECT (Gemini), per ORGANIZATION (Groq) and per WORKSPACE (Mistral), not per key: keys from the same project /
+Limits are per Google Cloud PROJECT (Gemini), per ORGANIZATION (Groq), per WORKSPACE (Mistral) and per ACCOUNT
+(OpenRouter's free pool), not per key: keys from the same project /
 org share one quota and fail together. Backup keys help only when they come from another project / org (e.g. a
 paid key as the last resort). On a limit the pipeline moves to the next key and prints one line to the terminal:
     21:04:11 [landing] gemini key 1/3 reached its daily limit for gemini-3.8-flash (resets at midnight Pacific) -> using gemini key 2/3
@@ -23,7 +25,7 @@ import time
 from pathlib import Path
 
 ENV_FILE = Path(os.getenv("LANDING_ENV_FILE", r"D:\serpman-studio\worker\.env"))
-NAME = re.compile(r"^(GEMINI|GROQ|MISTRAL)_API_KEY(S|_\d+)?$")
+NAME = re.compile(r"^(GEMINI|GROQ|MISTRAL|OPENROUTER)_API_KEY(S|_\d+)?$")
 # process-wide (and kept across the lab's hot reloads): a rejected key stays skipped and a cooling key keeps
 # cooling for the life of the serve / worker process, not just one pipeline run. Keyed by kid, never by value.
 _announced: set[str] = globals().get("_announced", set())
@@ -72,7 +74,7 @@ def _order(name: str) -> tuple:
 
 
 def collect(provider: str) -> list[str]:
-    """All keys for 'mistral', 'groq' or 'gemini', in order: X_API_KEY, X_API_KEY_2.., X_API_KEYS; duplicates dropped."""
+    """All keys for 'openrouter', 'mistral', 'groq' or 'gemini', in order: X_API_KEY, X_API_KEY_2.., X_API_KEYS; duplicates dropped."""
     prefix = provider.upper() + "_API_KEY"
     src = {**_file_vars(), **{k: v for k, v in os.environ.items() if NAME.match(k)}}
     vals = []

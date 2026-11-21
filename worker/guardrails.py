@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 from pathlib import Path
 
-FONT_ROOT = Path(r"D:\serpman_data\fonts")
+# the font catalogue under the serpman data root (same variable as serpman_paths.SERPMAN_DATA)
+FONT_ROOT = Path(os.getenv("SERPMAN_DATA", r"D:\serpman_data")) / "fonts"
 
 # WCAG 2.x targets
 AA_TEXT, AAA_TEXT, AA_UI = 4.5, 7.0, 3.0

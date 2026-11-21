@@ -1,0 +1,275 @@
+{
+  "design_system_name": "1976 Analog Retro Editorial & Event Landing Page",
+  "aesthetic_direction": "Mid-to-late 1970s tactile print, warm analog interiors, groovy swash typography, die-cut sticker badges, and balanced geometric ribbon framing",
+  "color_palette_distribution": {
+    "text_color": {
+      "primary_heading": {
+        "name": "Vintage Tape Charcoal",
+        "hex": "#2B2B2B",
+        "usage": "Main uppercase section headers (e.g., ABOUT), high-contrast UI labels, and cassette hardware framing"
+      },
+      "display_accent_heading": {
+        "name": "Deep Burnt Sienna",
+        "hex": "#A74623",
+        "usage": "Hero swash-serif display typography and editorial pull-quotes"
+      },
+      "body_copy": {
+        "name": "Deep Espresso Brown",
+        "hex": "#3D2214",
+        "usage": "Long-form readable paragraphs, card descriptions, and footer links"
+      },
+      "navigation_and_meta": {
+        "name": "Muted Charcoal Ink",
+        "hex": "#3A3A3A",
+        "usage": "Top navigation bar links, secondary metadata, and micro-labels"
+      },
+      "inverse_and_badge_text": {
+        "name": "Warm Cream Ink",
+        "hex": "#FBF4EA",
+        "usage": "Text inside dark chocolate badges, coral CTA buttons (#FFFFFF), and extruded script fills"
+      }
+    },
+    "muted_accent_color": {
+      "botanical_olive": {
+        "name": "Avocado Green",
+        "hex": "#699022",
+        "usage": "Secondary feature card headers, organic tags, and vertical stripe accents"
+      },
+      "vintage_cyan": {
+        "name": "Weathered Vintage Teal",
+        "hex": "#6CA6A1",
+        "usage": "Split-panel feature cards, secondary badges, and subtle stripe borders"
+      },
+      "warm_pastel_blush": {
+        "name": "Dusty Pastel Rose",
+        "hex": "#E59BA7",
+        "usage": "Alternating full-width testimonial or highlight band background"
+      },
+      "soft_sun_glow": {
+        "name": "Muted Peach Blush",
+        "hex": "#EEA686",
+        "usage": "Outer rings of the concentric semi-circular sun arch behind hero display text"
+      },
+      "neutral_ray_tone": {
+        "name": "Muted Slate Gray",
+        "hex": "#6C6D6B",
+        "usage": "Low-opacity alternating rays in the background sunburst watermark"
+      }
+    },
+    "background_element_color": {
+      "primary_page_canvas": {
+        "name": "Soft Linen Off-White",
+        "hex": "#F4F3F0",
+        "usage": "Primary viewport background with subtle halftone/linen weave texture"
+      },
+      "secondary_section_surface": {
+        "name": "Warm Textured Parchment",
+        "hex": "#F3ECE0",
+        "usage": "Card interiors, cassette paper label (#EDE9DA), and alternating content bands"
+      },
+      "alabaster_hero_tint": {
+        "name": "Warm Alabaster",
+        "hex": "#EFECE7",
+        "usage": "Soft radial glow zone framing the central hero typography"
+      },
+      "sunburst_cream_ray": {
+        "name": "Sun-Baked Cream",
+        "hex": "#F2DFB9",
+        "usage": "Alternating light rays in the subtle hero radial sunburst backdrop"
+      }
+    },
+    "overlay_elements_color": {
+      "primary_cta_and_ribbon_red": {
+        "name": "Vintage Coral Red",
+        "hex": "#E05A47",
+        "usage": "Pill-shaped BUY TICKETS CTA buttons, inner U-bend ribbon stripe, and 3D script shadow layer"
+      },
+      "golden_highlight_and_tape": {
+        "name": "Harvest Gold",
+        "hex": "#DA9100",
+        "secondary_hex": "#F6C548",
+        "usage": "Middle U-bend ribbon stripe, sticker script lettering, and textured masking-tape section divider (#D7B14A)"
+      },
+      "warm_terracotta_stripe": {
+        "name": "Rust Burnt Orange",
+        "hex": "#B7410E",
+        "secondary_hex": "#F3963F",
+        "usage": "Diagonal racing stripes, concentric sun inner rings, and warm upholstery-inspired card accents"
+      },
+      "cool_outer_ribbon_track": {
+        "name": "Retro Cerulean Blue",
+        "hex": "#4DA2D6",
+        "usage": "Outer border track of the left and right flanking stadium-curve rainbow ribbons"
+      },
+      "sticker_badge_base_and_die_cut": {
+        "name": "Roasted Chocolate & Sticker White",
+        "badge_hex": "#5B3B28",
+        "die_cut_border_hex": "#FFFFFF",
+        "usage": "Circular overlay sticker badges with thick white die-cut borders overlapping hero corners"
+      }
+    }
+  },
+  "typography_and_font_styles": {
+    "font_style": {
+      "hero_display_serif": {
+        "classification": "1970s High-Contrast Calligraphic Swash Serif",
+        "visual_traits": "Thick vertical stems, razor-thin horizontal hairlines, tight negative letter-spacing, and sweeping terminal swashes on ascenders/descenders",
+        "reference_style": "Tangerine / Bookmania / Souvenir Swash",
+        "color": "#A74623"
+      },
+      "hero_groovy_script": {
+        "classification": "Bold Retro Brush & Extruded Ribbon Script",
+        "visual_traits": "Connected, rounded, heavy-weight cursive letterforms with a cream inner fill (#FBF4EA), dark espresso outline (#3D2214), and stacked multi-color 3D block shadow (#283E58, #E05A47, #F2CA52)",
+        "reference_style": "Rise / Retro Burger Bar Script"
+      },
+      "decorative_numerals_and_badges": {
+        "classification": "Geometric Inline Multi-Track Display",
+        "visual_traits": "Tall, rounded-corner 1970s modular numerals whose vertical strokes extend into parallel diagonal stripes",
+        "reference_style": "1976 Poster Numerals"
+      },
+      "section_headings_and_ui": {
+        "classification": "Clean Geometric Mid-Century Sans-Serif",
+        "visual_traits": "All-caps, bold weight, generous horizontal letter-spacing (+0.18em), crisp rounded terminals",
+        "reference_style": "Futura / Montserrat Bold Wide-Tracked",
+        "color": "#2B2B2B"
+      },
+      "body_copy": {
+        "classification": "Neutral Humanist Sans-Serif",
+        "visual_traits": "Regular weight (400), medium x-height, relaxed line-height (1.65) for effortless readability over textured off-white paper",
+        "color": "#3D2214"
+      }
+    },
+    "typography_style": {
+      "hierarchy_scale": {
+        "h1_hero_display": "clamp(3.5rem, 6vw, 5.5rem), line-height 0.95, letter-spacing -0.03em",
+        "h2_section_title": "clamp(1.75rem, 3vw, 2.5rem), uppercase, line-height 1.2, letter-spacing 0.18em",
+        "h3_card_title": "1.35rem, bold, line-height 1.3, letter-spacing 0.04em",
+        "body_paragraph": "1rem (16px), line-height 1.65, max-width 62ch, centered in editorial blocks and left-aligned in cards",
+        "cta_button_label": "0.85rem, bold uppercase, letter-spacing 0.12em"
+      },
+      "text_treatment_rules": "Display headlines use organic swashes or 3D multi-layered drop shadows; UI headings and body text remain completely flat and un-extruded to preserve crisp legibility."
+    }
+  },
+  "composition_and_overlap_rules": {
+    "alignment_grid": "12-column centered container (max-width 1200px) with full-bleed edge-anchored graphic wings outside the central 720px hero column",
+    "non_similarity_overlap_policy": {
+      "permitted_overlaps": [
+        "Circular white-bordered chocolate sticker badge (z-20) overlapping the bottom-right corner of the rectangular charcoal cassette illustration (z-10) — permitted due to contrasting shape (circle vs. rectangle), edge treatment (thick #FFFFFF die-cut outline vs. dark #2B2B2B bevel), and color.",
+        "High-contrast burnt-sienna swash serif headline (z-10) overlapping the lower baseline of the soft semi-circular sun arch (z-5) — permitted due to sharp serif strokes contrasting against soft gradient concentric arcs.",
+        "Horizontal crinkled golden masking-tape strip (z-20) overlapping the seam between the off-white hero canvas and parchment content section — permitted as a tactile physical divider."
+      ],
+      "prohibited_overlaps": [
+        "Flanking U-bend rainbow ribbons must NOT touch or overlap the central cassette illustration or sunburst rays.",
+        "Diagonal racing stripes and radial sunburst rays must never occupy the same bounding box."
+      ]
+    }
+  },
+  "absolute_website_landing_page_design": {
+    "viewport_dimensions": "Responsive desktop-first 1440px reference frame, collapsing gracefully to single-column mobile below 768px",
+    "z_index_layers": {
+      "layer_0_background": {
+        "z_index": 0,
+        "elements": [
+          {
+            "id": "bg-linen-canvas",
+            "what": "Full-page seamless fine dot-matrix/linen paper texture (#F4F3F0)",
+            "where": "Covers 100% width and height of the document body"
+          },
+          {
+            "id": "bg-hero-sunburst",
+            "what": "Radial 24-ray retro sunburst pattern (#F2DFB9, #6C6D6B, #C04E1D, #DFB753) at 14% opacity with a soft radial edge-fade mask",
+            "where": "Centered behind the hero focal zone (top: 80px, center-x: 50%, diameter: 760px)"
+          }
+        ]
+      },
+      "layer_1_midground_decor": {
+        "z_index": 5,
+        "elements": [
+          {
+            "id": "decor-left-rainbow-loop",
+            "what": "Horizontal U-turn stadium-curve multi-stripe ribbon (4 bands: #4DA2D6 outer, #DA9100, #B7410E, #F3ECE0 inner)",
+            "where": "Anchored flush to left viewport edge (left: 0, top: 240px, width: 22vw, max-width: 310px), curving inward and looping back to left edge"
+          },
+          {
+            "id": "decor-right-rainbow-loop",
+            "what": "Symmetrical mirrored U-turn stadium-curve multi-stripe ribbon (#4DA2D6, #DA9100, #B7410E, #F3ECE0)",
+            "where": "Anchored flush to right viewport edge (right: 0, top: 240px, width: 22vw, max-width: 310px), maintaining at least 64px clear margin from the central hero cassette"
+          },
+          {
+            "id": "decor-hero-sun-arch",
+            "what": "5-band concentric semi-circular rainbow arch (#C59A38 core to #F6C8B6 outer ring)",
+            "where": "Centered directly behind the Hero H1 headline (top: 110px, width: 340px, height: 170px)"
+          }
+        ]
+      },
+      "layer_2_content_and_hero": {
+        "z_index": 10,
+        "sections": [
+          {
+            "section_id": "top-navigation-bar",
+            "where": "Top of viewport (height: 88px, max-width: 1200px centered, flex row space-between)",
+            "what": [
+              "Left/Center horizontal navigation links ('Home', 'Schedule', 'Exhibitors', 'Guests', 'Contact Us', 'Hotel & Travel', 'FAQs') in #3A3A3A, 14px medium sans-serif, gap 28px",
+              "Right-aligned pill CTA button ('BUY TICKETS') in #E05A47 background, #FFFFFF bold uppercase text, border-radius 999px, padding 12px 26px"
+            ]
+          },
+          {
+            "section_id": "hero-centerpiece",
+            "where": "Upper-center viewport (padding-top: 40px, padding-bottom: 72px, centered single column)",
+            "what": [
+              "Hero Display Lockup: High-contrast swash serif title in #A74623 sitting across the base of the concentric sun arch, paired with a compact groovy cream-and-espresso script subtitle badge",
+              "Primary Hero Focal Illustration: Detailed vector vintage cassette tape (width: 480px) in dark charcoal (#2B2B2B) with warm cream paper label (#EDE9DA), brush-script event title, burnt-orange (#D96B14) technical callouts, and twin white-and-black tape reels"
+            ]
+          },
+          {
+            "section_id": "about-editorial-section",
+            "where": "Directly below hero (padding: 72px 24px, centered max-width 760px)",
+            "what": [
+              "Centered uppercase heading 'ABOUT' in #2B2B2B (letter-spacing: 0.18em)",
+              "Centered 3-to-4 line introductory paragraph in #3D2214 explaining the analog showcase/event",
+              "Centered secondary coral-red pill CTA button ('BUY TICKETS', #E05A47)"
+            ]
+          },
+          {
+            "section_id": "featured-highlights-grid",
+            "where": "Lower mid-page band on warm parchment surface (#F3ECE0, padding: 80px 24px)",
+            "what": [
+              "3-column equal card grid (max-width: 1140px, gap: 32px)",
+              "Card 1: Framed in Avocado Green (#699022) top accent bar with warm cream card body",
+              "Card 2: Framed in Rust Burnt Orange (#B7410E) top accent bar with warm cream card body",
+              "Card 3: Framed in Weathered Vintage Teal (#6CA6A1) top accent bar with warm cream card body"
+            ]
+          },
+          {
+            "section_id": "retro-footer",
+            "where": "Bottom of page on Deep Espresso Brown surface (#3D2214, padding: 56px 24px)",
+            "what": [
+              "Split diagonal footer accent stripe in Harvest Gold (#DA9100), Rust (#B7410E), and Teal (#6CA6A1)",
+              "Warm cream (#FBF4EA) navigation links, social icons, and vintage copyright colophon"
+            ]
+          }
+        ]
+      },
+      "layer_3_foreground_overlays": {
+        "z_index": 20,
+        "elements": [
+          {
+            "id": "overlay-die-cut-sticker",
+            "what": "Circular Roasted Chocolate badge (#5B3B28) with thick #FFFFFF die-cut sticker outline, inner cream ring, and golden-yellow (#F6C548) groovy script ('Retro Edition / '76')",
+            "where": "Overlaps bottom-right corner of the Hero Cassette illustration (offset: bottom -24px, right -32px, rotated -6deg)"
+          },
+          {
+            "id": "overlay-golden-tape-strip",
+            "what": "Horizontal textured golden-ochre vintage masking-tape strip (#D7B14A) with slightly torn/crinkled edges",
+            "where": "Full-bleed horizontal divider bridging the bottom of the About section and the top of the Featured Highlights grid"
+          },
+          {
+            "id": "overlay-global-print-grain",
+            "what": "Full-viewport subtle analog film/paper grain texture at 4% opacity (mix-blend-mode: multiply, pointer-events: none, z-index: 50)",
+            "where": "Covers entire viewport to bind flat digital vectors into unified 1970s print stock"
+          }
+        ]
+      }
+    }
+  }
+}

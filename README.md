@@ -61,11 +61,11 @@ decoration is forced.
 
 | Agent | Model (fallbacks) | Writes |
 |---|---|---|
-| A1 visual director | Mistral Medium if the tier allows it, else Ministral 14B (vision); then Gemini 4 Hydrogen / 3.8 Flash | Sees the query and 5 labelled references, each image right after its role header. Writes the design document: aesthetic direction, a named palette in four groups, a role map, five type levels (any Google Font; the lab's pool is recommended), the background layer and whether the photo is used, midground and foreground decor, the page's sections, the composition and overlap rules, and the cards. |
+| A1 visual director | OpenRouter Nemotron 3.5 Super VL (then Gemma 4 31B / 26B on OpenRouter; then Mistral Medium / Ministral 14B; then Gemini 4 Hydrogen / 3.8 Flash) | Sees the query and 5 labelled references at high detail (up to 2048 px), each image right after its role header. Writes the design document: aesthetic direction, a named palette in four groups, a role map, five type levels (any Google Font; the lab's pool is recommended), the background layer and whether the photo is used, midground and foreground decor, the page's sections, the composition and overlap rules, and the cards. Every colour and element names the reference it was seen in (`source`) and every element carries its `geometry`; `contracts/prompts/agents/a1_example.json` shows the depth expected. |
 | A2 layout architect | Groq gpt-oss-120b (backup: Ministral 8B) | The layout plan: how each section is built and sized, its surface, and where every layered element sits. It makes the whole canvas purposeful. |
 | A3 content editor | Groq gpt-oss-120b (backup: Ministral 8B) | The copy: items with their kinds and type levels, and each section's surface, text, heading and accent colours. |
 | A4 decor artist | Groq Qwen 3.8 27B, text only (gpt-oss-120b, then Ministral 8B) | An SVG drawing or CSS recipe for each decorative element. |
-| A5 composer | Mistral Medium if allowed, else Codestral (then Ministral 14B, then Gemini), then `compile_spec.py`; temperature 0.7 | The page, composed freely from the merged document (no images; A1's words carry them). |
+| A5 composer | OpenRouter Nemotron 3 Ultra 550B (then Nemotron 3.5 Super VL, Gemma 4 31B; then Mistral Medium / Codestral / Ministral 14B; then Gemini), then `compile_spec.py`; temperature 0.7 | The page, composed freely from the merged document (no images; A1's words carry them). |
 
 What code still owns (`flow.py`, `validate_page.py`):
 - **Facts.** Hexes come from the lab's measured set plus up to 4 observed extras; the rest are snapped. Fonts must be
@@ -77,8 +77,10 @@ What code still owns (`flow.py`, `validate_page.py`):
   - **Blocking:** unsafe markup, foreign fonts, missing copy or hooks, not exactly one h1, text overlapping text,
     horizontal overflow.
   - **Fixed by code:** stray colours are snapped to the palette (alpha kept); z-index values outside 0-50 are clamped. Decoration painted on top of text, or
-    over more than 15% of an image, is removed; this is measured by paint order, so decoration behind text stays.
-    A missing backdrop is injected.
+    over more than 15% of an image (measured by paint order), is first moved behind the content (`data-demoted`,
+    z-index -1) and measured again; only what still covers something is removed. A missing backdrop is injected.
+    The copy check folds typographic variants (a non-breaking hyphen vs '-', curly vs straight quotes, NBSP), and A2
+    can't put decoration on the text layer (z10 is not a decor layer; legacy plans are moved to the element's A1 layer).
   - **Advisory:** dead space, hero balance, canvas coverage, gap outliers, a hidden backdrop and the wordmark. These
     go back to A5 once (`run(..., a5_repair=False)` skips that), and the better page ships.
 
@@ -89,6 +91,10 @@ What code still owns (`flow.py`, `validate_page.py`):
   per model per Pacific day. Outputs are cached by input hash in `out/_agents/cache`.
 
 Free-tier limits (2026-11-20):
+- **OpenRouter (2026-11-22, openrouter.ai/docs/api-reference/limits):** free `:free` models allow 20 requests/min and a
+  per-account daily pool shared by all of them: 50 requests, or 1000 once $10 of credit was ever bought. The ledger counts
+  that pool as one slot (`openrouter/:free`) and adopts the account's real numbers from `GET /api/v1/key` at the start of
+  a run. A site costs about 2 pool requests (+1 for an A5 repair).
 - **Groq:** 30 RPM, 1K RPD, 8K TPM and 200K TPD per model.
 - **Mistral (free plan, measured on our key 2026-11-21):** limits are per model. Ministral 14B / 8B and Codestral
   allow 2 requests/min and 40K tokens/min each. Medium, Small, Large and Magistral answer "limit 0 requests/min" (or 403
@@ -97,11 +103,19 @@ Free-tier limits (2026-11-20):
   shown at https://admin.mistral.ai/plateforme/limits.
 - **Gemini (last fallback only):** 3.8 Flash allows 5 RPM and 20 RPD per project and was often overloaded (503).
 
-Model routing (`landing/pipeline.py`, `providers.py`) uses short chains of comparable models, never lite or small
-models:
-- **A1:** `mistral-medium-latest` (used only if the tier opens it), then `ministral-14b-latest` (vision), then
-  `gemini-4-hydrogen` / `gemini-3.8-flash`. If all are out, A1 falls back to the default document.
-- **A5:** Medium, then `codestral-latest`, then Ministral 14B, then Gemini, then `compile_spec`.
+Model routing (`landing/pipeline.py`, `providers.py`) uses short chains, checked against each provider's live model list:
+- **A1:** OpenRouter `nvidia/nemotron-3.5-super-vl:free` → `google/gemma-4-31b-it:free` → `google/gemma-4-26b-a4b-it:free`
+  (kept only when OpenRouter lists the model with image input and structured outputs), then `mistral-medium-latest`
+  (used only if the tier opens it) → `ministral-14b-latest` (vision), then `gemini-4-hydrogen` / `gemini-3.8-flash`. If
+  all are out, A1 falls back to the default document.
+- **A5:** OpenRouter `nvidia/nemotron-3-ultra-550b-a55b:free` → `nvidia/nemotron-3.5-super-vl:free` →
+  `google/gemma-4-31b-it:free` (kept when its output cap fits the page), then Medium / `codestral-latest` / Ministral 14B,
+  then Gemini, then `compile_spec`.
+- **Why OpenRouter first (2026-11-22):** with Medium and Large off the Mistral free tier, A1 ran on Ministral 14B and A5
+  on Codestral. Their documents were generic (colours and motifs from the query, not the images), and their pages lost
+  most decoration at the gate or fell back to `compile_spec`.
+- Inside the pipeline an OpenRouter model is `openrouter/<vendor>/<model>` (Groq ids also contain a `/`); the prefix is
+  stripped on the wire. No attribution headers are sent.
 - **A2 / A3:** `gpt-oss-120b`, then Ministral 8B (Medium first if allowed).
 - **A4:** `qwen3.8-27b`, then `gpt-oss-120b`, then Ministral 8B.
 - Aliases a key doesn't list are dropped from the chain, so a renamed model never fails a run.
@@ -119,20 +133,20 @@ How a run stays on one model:
 
 Keys, several per provider (`worker/landing/keys.py`):
 - **Where they're read from:** the environment first, then `worker/.env` (gitignored). The lab reads that same file.
-- **Names:** `MISTRAL_API_KEY`, `MISTRAL_API_KEY_2` … or `MISTRAL_API_KEYS=k1,k2`; the same pattern for `GROQ_` and
-  `GEMINI_`.
+- **Names:** `OPENROUTER_API_KEY`, `OPENROUTER_API_KEY_2` … or `OPENROUTER_API_KEYS=k1,k2`; the same pattern for
+  `MISTRAL_`, `GROQ_` and `GEMINI_`.
 - **Failover:** on a daily limit, a per-minute limit or a rejected key, the next key takes over. Each switch prints one
   line on the terminal, for example `[landing] gemini key 1/2 reached its daily limit for gemini-4-hydrogen … -> using
   gemini key 2/2`. Only when every key is out does the alternate model run.
 - **Limits are per Mistral workspace, per Google Cloud project and per Groq organization, not per key.** Keys from the same project or org
   share one quota, so a backup only helps from another project or org (or as a paid key).
-- **Where to get keys:** https://console.mistral.ai/api-keys, https://console.groq.com/keys and
+- **Where to get keys:** https://openrouter.ai/settings/keys, https://console.mistral.ai/api-keys, https://console.groq.com/keys and
   https://aistudio.google.com/apikey. Limits are shown at
   https://aistudio.google.com/rate-limit and https://console.groq.com/settings/limits.
 
 Run it:
 ```
-# worker/.env (or the shell): SECTION_MODE=agents, MISTRAL_API_KEY=..., GROQ_API_KEYS=..., GEMINI_API_KEYS=... (optional)
+# worker/.env (or the shell): SECTION_MODE=agents, OPENROUTER_API_KEY=..., GROQ_API_KEYS=..., MISTRAL_API_KEY=... and GEMINI_API_KEYS=... (fallbacks)
 D:\caches\venvs\uifp\Scripts\python.exe worker\worker.py run
 # lab: serpman\serve.cmd agents  (sets AGENTS_ENABLE=1; keys from worker/.env), Route, Next, then "agents landing"
 D:\caches\venvs\uifp\Scripts\python.exe worker\test_landing.py [--qa]     # offline: fake models, no quota

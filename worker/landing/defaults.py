@@ -280,7 +280,7 @@ def design_doc(h: dict) -> dict:
     pool = h.get("font_pool") or {}
     cpd = {g: [] for g in sc.PALETTE_GROUPS}
     for r, hx in pal.items():
-        cpd[ROLE_GROUP[r]].append({"name": ROLE_NAME[r], "hex": hx, "usage": ROLE_USE[r]})
+        cpd[ROLE_GROUP[r]].append({"name": ROLE_NAME[r], "hex": hx, "usage": ROLE_USE[r], "source": "PALETTE_REF"})
 
     def lvl(v, level, size):
         info = pool.get(v["family"]) or font_info(v["family"])
@@ -320,13 +320,17 @@ def design_doc(h: dict) -> dict:
             "alignment_mode": bs["alignment_mode"], "use_background_image": False, "treatment": "none",
             "ignored_irrelevant_subjects": [], "base_surface": bs["base_surface_description"],
             "elements": [{"id": "bg-ground", "what": f"{ROLE_NAME['bg_primary']} ground with {cues}",
-                          "where": "the whole page, fixed behind everything"},
+                          "where": "the whole page, fixed behind everything",
+                          "geometry": "a flat full-bleed surface", "source": "BACKGROUND_REF"},
                          {"id": "bg-glow", "what": f"a soft radial glow in {ROLE_NAME['overlay_primary']}",
-                          "where": "behind the hero, upper right"}]},
+                          "where": "behind the hero, upper right",
+                          "geometry": "one radial gradient, about 60vw across, fading to transparent",
+                          "source": "inferred"}]},
         "centerpiece": {"use": has_c, "description": f"{m['vibe']['name']} artwork", "where": "beside the hero text"},
         "midground_decor": [{"id": f"decor-{i + 1}",
                              "what": f"{e['motif_type'].replace('_', ' ')}: {e['geometry']}; {e['visual_cues']}",
-                             "where": "behind the hero image" if i == 0 and has_c else "in the outer margin beside the hero"}
+                             "where": "behind the hero image" if i == 0 and has_c else "in the outer margin beside the hero",
+                             "geometry": e["geometry"], "source": e.get("source") or "ELEMENTS_REF"}
                             for i, e in enumerate(els)],
         "foreground_overlays": [],
         "content_sections": sections,
