@@ -83,7 +83,6 @@ export default async function StudioPage() {
               <li key={it.name}>
                 <Card bar={(["forest", "gold", "vermilion", "teal"] as const)[i % 4]} lift className="h-full">
                   <div className="flex h-full flex-col p-7 pb-8 md:p-8">
-                    <span><Tag tone="gold">{PROSPECTS.status}</Tag></span>
                     <h3 className="display mt-4 text-[1.75rem] leading-[1.08]">{it.name}</h3>
                     <p className="mt-4">{it.body}</p>
                   </div>

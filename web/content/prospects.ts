@@ -11,35 +11,35 @@ export const PROSPECTS = {
   lede:
     "Every mockup on this page is made on free, low-token-limit APIs: a few small model calls, the engine's own " +
     "taste layer, and code that checks the result. Working inside that limit has shaped how the engine thinks. " +
-    "Here is where we're taking it.",
-  status: "Current goal",
+    "This is just the concept, we aim to go much higher.",
+  status: "Planned Update",
   items: [
     {
-      name: "Motion, with the people who do it best",
+      name: "Interactivity and Motion components",
       body:
-        "We're showing our pages to graphic and motion designers and asking what they would change, frame by frame. " +
-        "What we learn becomes a library of motion components the engine can place with the same care it already " +
-        "gives to type, colour and layout, so pages move with intent.",
+        "We present our pages to graphic and motion designers to get reviews on design and structure mocks. " +
+        "What we learn builds our library of design and query relevant motion components and static element interactions, with controlled frequency, location and family design relevance so the engine can compare it alongside" +
+        "type, colour and layout, so pages move with intent.",
     },
     {
-      name: "The right references from the first step",
+      name: "Relevant data from the first step",
       body:
-        "Search casts a wide net, and some of what it brings back doesn't fit the brief; CLIP clustering sorts most " +
-        "of that out today. With AI page parsing in the style of Firecrawl, the engine can read a page and keep only " +
+        "SERP search brings unexpected results for planned queries which don't fit the brief, and CLIP clustering cleans most " +
+        "of that out today. Upgrading this with AI page parsing in the style of Firecrawl, the engine will be able to read a page and keep only " +
         "what is relevant, right at the source.",
     },
     {
-      name: "Your style, as skills and checks",
+      name: "Your Agents learn your style",
       body:
-        "Each routed design becomes a set of skills, so the agents you connect carry your UI style into their own " +
+        "Each routed design provides a set of skills along with the mock, so the agents you connect with carry your UI style into their own " +
         "work. A specialised inspector then reviews your product one component at a time, the buttons, the cards, " +
         "the type, and tells you plainly how each one holds up.",
     },
     {
-      name: "Local and culturally rooted design",
+      name: "Localized and culturally rooted design",
       body:
-        "Niche and regional styles lose the most when AI designs from averages. We want the engine to know as many " +
-        "of them as it can: local print traditions, craft and signage, the colours of a particular street or season, " +
+        "Niche and regional styles lose the most when AI designs from averages. We teach our engine as many " +
+        "styles from them as it can while keeping vibe separate from personalization: local print traditions, craft and signage, the colours of a particular street or season, " +
         "each kept as its own family, not blended away.",
     },
   ],
@@ -49,7 +49,7 @@ export const PROSPECTS = {
     body:
       "Good design should be cheap, quick and measurably effective, not a luxury. When every small business, studio " +
       "and side project can afford real taste, the internet as a whole gets better: more sites that look like " +
-      "themselves, and fewer that look like each other.",
+      "themselves, flavorful and dynamic.",
     split:
       "The web is splitting in two: browsing for agents and browsing for humans. We're building for the second, so " +
       "it stays vibrant even as AI use keeps growing.",

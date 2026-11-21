@@ -64,9 +64,9 @@ PREFS = {"openrouter:vision": ["inclusionai/ling-3.2-flash:free", "nvidia/nemotr
          "groq:vision": ["qwen/qwen3.8-27b"]}
 # Priority (the user's call, 2026-11-22): Gemini first everywhere, then OpenRouter; A2-A4 then Groq; Mistral last.
 CHAINS = {"a1": ["gemini", "openrouter:vision", "mistral:vision"],
-          "a2": ["gemini", "openrouter:text", "groq:big", "mistral:text"],
-          "a3": ["gemini", "openrouter:text", "groq:big", "mistral:text"],
-          "a4": ["gemini", "openrouter:text", "groq:vision", "groq:big", "mistral:text"],
+          "a2": [ "openrouter:text", "groq:big", "mistral:text"],
+          "a3": ["openrouter:text", "groq:big", "mistral:text"],
+          "a4": ["openrouter:text", "groq:vision", "groq:big", "mistral:text"],
           "a5": ["gemini", "openrouter:compose", "mistral:compose"]}
 # A4 is text-only (A1 describes the images); Qwen keeps its own minute window apart from A2/A3's gpt-oss.
 # If every model of a chain is out, the agent falls back to code (the default document / compile_spec).
@@ -78,10 +78,10 @@ TEMP = {"a1": 0.5, "a2": 0.4, "a3": 0.6, "a4": 0.7, "a5": 0.7}
 THINK = {"a1": "medium", "a5": "medium"}            # Gemini thinking level per agent (others: low)
 A1_RES = {"LAYOUT_REF": "high", "TYPOGRAPHY_REF": "high", "ELEMENTS_REF": "medium", "BACKGROUND_REF": "medium",
           "PALETTE_REF": "low"}
-WAIT_MAX = 25.0                         # longer waits for a minute window -> try the next model instead
+WAIT_MAX = 20.0                         # longer waits for a minute window -> try the next model instead
 WAIT_MAX_MISTRAL = 65.0                 # Mistral's free tier is 2 req/min: waiting out the minute is normal there
-TIMEOUT = {"a1": 300.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0}
-STICKY_S = 1800.0                       # after a switch to the alternate, stay on it this long before retrying the primary
+TIMEOUT = {"a1": 100.0, "a2": 30.0, "a3": 30.0, "a4": 30.0, "a5": 100.0}
+STICKY_S = 600.0                       # after a switch to the alternate, stay on it this long before retrying the primary
 ORDER = ["a1", "a2", "a3", "a4", "a5"]
 
 
@@ -600,7 +600,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         return QA.run(od / "index.html", spec=sp) if qa else None
 
     def evaluate(raw: str, source: str, model: str | None) -> dict:
-        """Sanitize + check + measure an A5 page; code adds a missing backdrop. Decor the browser finds over text or an
+        """Sanitize + check + measure page; code adds a missing backdrop. Decor the browser finds over text or an
         image is first moved behind the content and measured again; only what still covers something is removed."""
         chk = validate_page.check(raw, spec, inject_backdrop=True, fix_colors_=True)
         q = measure(chk["html"], spec) if not chk["errors"] else None
