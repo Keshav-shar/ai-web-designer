@@ -121,14 +121,20 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
     setBusy(true);
     setError(null);
     try {
-      const r = await fetch("/api/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: clean }) });
+      const r = await fetch("/api/generate", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: clean }),
+        signal: AbortSignal.timeout(40_000),     // the route bounds itself at ~25 s; never leave "Queuing…" spinning
+      });
       const j = await r.json().catch(() => ({}));
       if (r.status === 401) throw new Error("signin");
-      if (!r.ok) throw new Error(j.error ?? "Something went wrong.");
+      if (!r.ok) throw new Error(j.error ?? `The studio server answered ${r.status}. Please try again.`);
       setJob({ id: j.job_id, prompt: j.prompt ?? clean, status: "queued" });
       setJobStatus("queued");
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const timedOut = err instanceof DOMException && (err.name === "TimeoutError" || err.name === "AbortError");
+      setError(timedOut ? "The studio server didn't answer in 40 s. Please try again."
+        : err instanceof TypeError ? "Couldn't reach the studio server. Check your connection and try again."
+        : err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
