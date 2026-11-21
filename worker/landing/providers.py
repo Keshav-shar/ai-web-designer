@@ -1,8 +1,11 @@
-"""providers.py - the two free-tier providers, over plain httpx (no SDKs).
+"""providers.py - the free-tier providers, over plain httpx (no SDKs).
 
-Gemini (Google AI Studio, generateContent v1beta): multimodal parts, responseJsonSchema, per-part media resolution
+Mistral (La Plateforme, OpenAI-compatible; the primary for A1 / A5 and the backup for A2-A4): images as content parts,
+strict json_schema, ~1 request/s per key (paced), 429 month-limit -> quota_day.
+
+Gemini (Google AI Studio, generateContent v1beta; now only the last fallback for A1 / A5): multimodal parts, responseJsonSchema, per-part media resolution
 (falls back to the global setting if the API rejects it), thinking level per call (low by default; the composer and the director think more).
-Groq (OpenAI-compatible): strict json_schema (constrained decoding), reasoning kept low/off and hidden, images as
+Groq (OpenAI-compatible, same base class as Mistral): strict json_schema (constrained decoding), reasoning kept low/off and hidden, images as
 data URLs (Qwen 3.8: at most 3 images, 2048 tokens each), rate-limit headers fed to budget.Buckets.
 
 Errors are mapped to ProviderError.kind, which the router acts on:
@@ -30,6 +33,7 @@ from . import budget, schemas as sc
 
 GEMINI_BASE = os.getenv("GEMINI_BASE", "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
 GROQ_BASE = os.getenv("GROQ_BASE", "https://api.groq.com/openai/v1").rstrip("/")
+MISTRAL_BASE = os.getenv("MISTRAL_BASE", "https://api.mistral.ai/v1").rstrip("/")
 RES_LEVEL = {"low": "MEDIA_RESOLUTION_LOW", "medium": "MEDIA_RESOLUTION_MEDIUM", "high": "MEDIA_RESOLUTION_HIGH"}
 
 
@@ -212,30 +216,43 @@ def _brief(msg: str) -> str:
     return m.group(1) if m else msg[:200]
 
 
-# --------------------------------------------------------------------------- Groq (OpenAI-compatible)
-class Groq:
+# --------------------------------------------------------------------------- OpenAI-compatible chat (Groq, Mistral)
+class OpenAICompat:
+    """POST {base}/chat/completions with strict json_schema (or JSON-object mode), errors mapped to ProviderError.
+    Subclasses set the base URL, the name, the max-tokens field, per-model extras and provider-specific 400/429 text."""
+    base = ""
+    name = ""
+    max_field = "max_completion_tokens"
+    drop_params = ("reasoning_effort", "include_reasoning")
+    pace_s = 0.0                              # minimum seconds between requests per key (Mistral: ~1 request/s)
+
     def __init__(self, buckets: budget.Buckets):
         self.http = _http()
         self.buckets = buckets
         self._models: list[str] | None = None
+        self._caps: dict[str, dict] = {}
         self.drop: set[str] = set()           # params a model rejected this session
 
     def models(self, key: str) -> list[str]:
         if self._models is None:
-            r = self.http.get(f"{GROQ_BASE}/models", headers={"Authorization": f"Bearer {key}"})
+            r = self.http.get(f"{self.base}/models", headers={"Authorization": f"Bearer {key}"})
             if r.status_code != 200:
                 raise ProviderError("auth" if r.status_code in (401, 403) else "server", f"list models HTTP {r.status_code}")
-            self._models = [m["id"] for m in r.json().get("data", [])]
+            data = r.json().get("data", [])
+            self._models = [m["id"] for m in data]
+            self._caps = {m["id"]: (m.get("capabilities") or {}) for m in data}
+            for m in data:                    # Mistral lists aliases (mistral-large-latest) on the model they point to
+                for a in m.get("aliases") or []:
+                    self._caps.setdefault(a, m.get("capabilities") or {})
+                    if a not in self._models:
+                        self._models.append(a)
         return self._models
 
-    @staticmethod
-    def extra(model: str) -> dict:
-        m = model.lower()
-        if m.startswith("openai/gpt-oss"):
-            return {"reasoning_effort": "low", "include_reasoning": False}
-        if m.startswith("qwen/"):
-            return {"reasoning_effort": "none"}
+    def extra(self, model: str) -> dict:
         return {}
+
+    def bad_schema(self, low: str) -> bool:
+        return "json_validate_failed" in low or "failed to generate json" in low
 
     def chat(self, model: str, messages: list[dict], *, key: str, kid: str = "", schema: dict | None = None,
              name: str = "out", max_out: int = 2500, temperature: float = 0.4, strict: bool = True,
@@ -243,8 +260,8 @@ class Groq:
         """strict=True: constrained decoding against the schema. strict=False (the retry after a
         json_validate_failed): JSON-object mode with the schema stated in a system message; the pipeline validates."""
         if not key:
-            raise ProviderError("auth", "no Groq key")
-        body = {"model": model, "messages": messages, "max_completion_tokens": max_out, "temperature": temperature,
+            raise ProviderError("auth", f"no {self.name} key")
+        body = {"model": model, "messages": messages, self.max_field: max_out, "temperature": temperature,
                 **self.extra(model)}
         if schema is not None and strict:
             body["response_format"] = {"type": "json_schema",
@@ -254,12 +271,15 @@ class Groq:
             body["messages"] = [{"role": "system", "content": "Reply with ONE JSON object that matches this JSON "
                                  "schema exactly (every property, enum values only):\n" + json.dumps(
                                      sc.inline_refs(sc.provider_schema(schema)), separators=(",", ":"))}] + messages
-        for attempt in range(4):
+        overloads = 0
+        for attempt in range(7):
             for p in self.drop:
                 body.pop(p, None)
+            if self.pace_s:
+                self.buckets.pace(self.name, kid, self.pace_s)
             t0 = time.time()
             try:
-                r = self.http.post(f"{GROQ_BASE}/chat/completions", json=body,
+                r = self.http.post(f"{self.base}/chat/completions", json=body,
                                    headers={"Authorization": f"Bearer {key}"}, timeout=httpx.Timeout(timeout, connect=15))
             except httpx.TimeoutException as e:
                 raise ProviderError("timeout", f"no reply within {timeout:.0f}s ({type(e).__name__})") from None
@@ -283,28 +303,106 @@ class Groq:
                              {k: v for k, v in r.headers.items() if k.lower().startswith("x-ratelimit")}, ms)
             msg = r.text[:600]
             low = msg.lower()
-            if r.status_code == 400:
-                bad = [p for p in ("reasoning_effort", "include_reasoning") if p in low and p in body]
+            special = self.special(r, low, model)
+            if special is not None:
+                raise special
+            if r.status_code in (400, 422):
+                bad = [p for p in self.drop_params if p in low and p in body]
                 if bad:
                     self.drop.update(bad)
                     continue
-                if "json_validate_failed" in low or "failed to generate json" in low:
-                    raise ProviderError("bad_output", "the model's JSON failed the schema (json_validate_failed)")
+                if self.bad_schema(low):
+                    raise ProviderError("bad_output", f"the model's JSON failed the schema ({_brief(msg)[:120]})")
                 raise ProviderError("bad_request", _brief(msg))
             if r.status_code == 413 or "request too large" in low:
                 raise ProviderError("too_large", _brief(msg))
             if r.status_code == 429:
                 ra = float(r.headers.get("retry-after") or 0)
-                day = r.headers.get("x-ratelimit-remaining-requests") == "0" or re.search(
-                    r"per day|\(rpd\)|\(tpd\)|tokens per day|requests per day", low)
-                raise ProviderError("quota_day" if day else "rate", _brief(msg), ra)
+                raise ProviderError("quota_day" if self.daily(r, low) else "rate", _brief(msg), ra)
             if r.status_code in (401, 403):
                 raise ProviderError("auth", f"HTTP {r.status_code}")
             if r.status_code == 404:
                 raise ProviderError("bad_request", f"model {model} not found")
-            if r.status_code >= 500 and attempt < 1:
-                time.sleep(4)
-                continue
+            if r.status_code >= 500:
+                overloads += 1
+                backoff = self.backoff()
+                if overloads <= len(backoff):
+                    wait = backoff[overloads - 1]
+                    if wait >= 5:
+                        from . import keys
+                        keys.notify(f"{model} busy (HTTP {r.status_code}); retrying the same model in {wait:.0f}s "
+                                    f"({overloads}/{len(backoff)})")
+                    time.sleep(wait)
+                    continue
             raise ProviderError("overloaded" if r.status_code == 503 else "server" if r.status_code >= 500 else
                                 "bad_request", f"HTTP {r.status_code}: {_brief(msg)}")
         raise ProviderError("server", "retries exhausted")
+
+    def special(self, r: httpx.Response, low: str, model: str) -> ProviderError | None:
+        """Provider-specific errors checked before the generic mapping (None = use the generic one)."""
+        return None
+
+    def daily(self, r: httpx.Response, low: str) -> bool:
+        return bool(r.headers.get("x-ratelimit-remaining-requests") == "0" or re.search(
+            r"per day|\(rpd\)|\(tpd\)|tokens per day|requests per day", low))
+
+    def backoff(self) -> tuple:
+        return (4.0,)
+
+
+class Groq(OpenAICompat):
+    base = GROQ_BASE
+    name = "groq"
+
+    def extra(self, model: str) -> dict:
+        m = model.lower()
+        if m.startswith("openai/gpt-oss"):
+            return {"reasoning_effort": "low", "include_reasoning": False}
+        if m.startswith("qwen/"):
+            return {"reasoning_effort": "none"}
+        return {}
+
+
+# --------------------------------------------------------------------------- Mistral (La Plateforme, OpenAI-compatible)
+class Mistral(OpenAICompat):
+    """Free plan, as measured on the user's key (2026-11-21): limits are per model and per workspace. Ministral 14B /
+    8B and Codestral get 2 requests/min and 40K tokens/min; Medium, Small, Large and Magistral answer 429 with
+    x-ratelimit-limit-req-minute: 0 (or 403 tier_not_allowed): not available on this tier, which is NOT a key
+    problem -> kind "unavailable" (the router skips that model for this key and keeps the key for the others).
+    Vision models take images as {"type": "image_url", "image_url": "data:image/jpeg;base64,..."} (<=1540 px).
+    A per-minute 429 carries no retry-after: 60 s is assumed. A monthly-limit 429 marks the key out for the day."""
+    base = MISTRAL_BASE
+    name = "mistral"
+    max_field = "max_tokens"
+    drop_params = ()
+    pace_s = 1.1
+
+    def bad_schema(self, low: str) -> bool:
+        return super().bad_schema(low) or ("response_format" in low or "json_schema" in low or "schema" in low)
+
+    def special(self, r: httpx.Response, low: str, model: str) -> ProviderError | None:
+        h = {k.lower(): v for k, v in r.headers.items()}
+        if r.status_code == 403 and ("tier_not_allowed" in low or "not available in your subscription" in low):
+            return ProviderError("unavailable", f"{model} is not available on this key's subscription tier")
+        if r.status_code == 429 and h.get("x-ratelimit-limit-req-minute", "").strip() in ("0", "0.0"):
+            return ProviderError("unavailable", f"{model} has a limit of 0 requests/min on this key's tier")
+        if r.status_code == 429 and not self.daily(r, low):
+            ra = float(h.get("retry-after") or 0) or 60.0
+            return ProviderError("rate", _brief(r.text[:600]), ra)
+        return None
+
+    def daily(self, r: httpx.Response, low: str) -> bool:
+        h = {k.lower(): v for k, v in r.headers.items()}
+        month_left = [v for k, v in h.items() if "remaining" in k and "month" in k]
+        return bool(re.search(r"month|per day|daily", low) or any(v.strip() in ("0", "0.0") for v in month_left))
+
+    def backoff(self) -> tuple:
+        return OVERLOAD_BACKOFF
+
+    def vision(self, model: str) -> bool:
+        return bool(self._caps.get(model, {}).get("vision"))
+
+
+def image_part(path: str | Path, side: int) -> dict:
+    """An OpenAI-style image content part as Mistral takes it (the URL as a plain string)."""
+    return {"type": "image_url", "image_url": f"data:image/jpeg;base64,{jpeg_b64(path, side)}"}

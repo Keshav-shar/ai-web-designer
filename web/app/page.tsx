@@ -1,4 +1,5 @@
 import { Poster } from "@/components/cosmos";
+import { PipelineShowcase } from "@/components/pipeline/showcase";
 import { Studio, type Engine } from "@/components/studio";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -54,6 +55,18 @@ export default async function StudioPage() {
       </section>
       <section className="container-x relative z-10">
         <Studio signedIn={signedIn} initialJob={job ?? null} latest={latest ?? null} engine={engine} />
+      </section>
+      {/* the pipeline film: corpus -> taste layer -> agents -> page, under the query box */}
+      <section className="container-x relative z-10 pb-20 pt-16 md:pb-28 md:pt-24" aria-labelledby="pipeline-title">
+        <p className="eyebrow">Inside the engine</p>
+        <h2 id="pipeline-title" className="title">How one sentence becomes a page</h2>
+        <p className="lede mt-4">
+          Thirteen scenes: the taste layer built from real references, the agents that read it, and the code that
+          keeps them honest.
+        </p>
+        <div className="mt-10">
+          <PipelineShowcase />
+        </div>
       </section>
     </>
   );

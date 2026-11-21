@@ -26,19 +26,33 @@ LIMITS = {
     "gemini-2.5-flash-lite": {"rpm": 10, "rpd": 20, "tpm": 250_000},
     "gemini-3.5-flash-lite": {"rpm": 15, "rpd": 500, "tpm": 250_000},
     "gemini-3.1-flash-lite": {"rpm": 15, "rpd": 500, "tpm": 250_000},
+    # Mistral free plan, measured on the user's key 2026-11-21 (x-ratelimit-*-minute headers): Ministral 14B / 8B and
+    # Codestral 2 req/min + 40K tokens/min each (separate pools per model); Medium / Small / Large: 0 (not on the tier).
+    "ministral-14b-latest": {"rpm": 2, "rpd": 2000, "tpm": 40_000},
+    "ministral-8b-latest": {"rpm": 2, "rpd": 2000, "tpm": 40_000},
+    "codestral-latest": {"rpm": 2, "rpd": 2000, "tpm": 40_000},
+    "mistral-medium-latest": {"rpm": 2, "rpd": 2000, "tpm": 40_000},     # if the tier opens it: assume the same
     "openai/gpt-oss-120b": {"rpm": 30, "rpd": 1000, "tpm": 8000, "tpd": 200_000},
     "openai/gpt-oss-20b": {"rpm": 30, "rpd": 1000, "tpm": 8000, "tpd": 200_000},
     "qwen/qwen3.8-27b": {"rpm": 30, "rpd": 1000, "tpm": 8000, "tpd": 200_000},
 }
 DEFAULT = {"rpm": 10, "rpd": 200, "tpm": 8000}
 GEMINI_IMAGE = {"low": 280, "medium": 560, "high": 1120, "ultra_high": 2240}
+MISTRAL_IMAGE = {"low": 1000, "medium": 1000, "high": 2200}   # measured: a 1024 px image ~950 tokens on Ministral
 QWEN_IMAGE = 2048                     # Groq: each image counts as 2048 input tokens
 MARGIN = 0.9                          # never plan to use more than 90% of a minute's tokens in one request
 LEDGER = Path(os.getenv("LANDING_LEDGER", r"D:\serpman-studio\out\_agents\quota.json"))
 
 
+MISTRAL_DEFAULT = {"rpm": 2, "rpd": 2000, "tpm": 40_000}
+
+
 def limits(model: str) -> dict:
-    return LIMITS.get(model, DEFAULT)
+    if model in LIMITS:
+        return LIMITS[model]
+    if model.startswith(("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")):
+        return MISTRAL_DEFAULT
+    return DEFAULT
 
 
 def est_text(s: str) -> int:
@@ -140,6 +154,18 @@ class Buckets:
         self.lock = threading.Lock()
         self.hist: dict[str, deque] = {}          # model -> deque[(t, tokens)]
         self.hdr: dict[str, dict] = {}            # model -> {"tok": remaining, "reset_at": t}
+        self.last: dict[str, float] = {}          # provider|key -> monotonic time of the last request (pace)
+
+    def pace(self, provider: str, kid: str, min_interval: float) -> float:
+        """Keep at least min_interval seconds between two requests on one key (Mistral: ~1 request/s). -> slept s."""
+        k = slot(provider, kid)
+        with self.lock:
+            now = time.monotonic()
+            wait = max(0.0, self.last.get(k, -1e9) + min_interval - now)
+            self.last[k] = now + wait
+        if wait:
+            time.sleep(wait)
+        return wait
 
     def update(self, model: str, headers: dict, kid: str = "") -> None:
         h = {k.lower(): v for k, v in (headers or {}).items()}
@@ -148,6 +174,10 @@ class Buckets:
             with self.lock:
                 self.hdr[model] = {"tok": int(float(h["x-ratelimit-remaining-tokens"])),
                                    "reset_at": time.monotonic() + _dur(h.get("x-ratelimit-reset-tokens"))}
+        elif "x-ratelimit-remaining-tokens-minute" in h:          # Mistral: no reset header -> a minute at most
+            with self.lock:
+                self.hdr[model] = {"tok": int(float(h["x-ratelimit-remaining-tokens-minute"])),
+                                   "reset_at": time.monotonic() + 60.0}
 
     def note(self, model: str, tokens: int, kid: str = "") -> None:
         with self.lock:

@@ -15,6 +15,7 @@ claimed (requeue_mine). Idle sockets expire after 20 s so a long engine step doe
 from __future__ import annotations
 
 import os
+import threading
 import time
 from datetime import datetime, timezone
 from urllib.parse import quote
@@ -62,6 +63,7 @@ class Supa:
         self.http = httpx.Client(timeout=httpx.Timeout(60, connect=15), transport=transport,
                                  limits=httpx.Limits(keepalive_expiry=20))
         self.sleep = sleep
+        self._transport = transport
         self._beat_warned = False
 
     def _ok(self, r: httpx.Response) -> httpx.Response:
@@ -161,17 +163,19 @@ class Supa:
         rows = r.json()
         return rows[0] if rows else None
 
-    def update_job(self, job_id: str, **fields) -> int:
+    def update_job(self, job_id: str, *, _tries: int = 4, _timeout: float | None = None, **fields) -> int:
         """Strict update of a job that is still open. -> rows changed (0 = it was already done or cancelled)."""
-        r = self._ok(self._send("PATCH", "/rest/v1/jobs", what="update job",
+        kw = {"timeout": _timeout} if _timeout else {}
+        r = self._ok(self._send("PATCH", "/rest/v1/jobs", what="update job", tries=_tries,
                                 params={"id": f"eq.{job_id}", "status": OPEN, "select": "id"},
-                                json=fields, headers={**self.h, "Prefer": "return=representation"}))
+                                json=fields, headers={**self.h, "Prefer": "return=representation"}, **kw))
         return len(r.json())
 
     def progress(self, job_id: str, status: str) -> None:
-        """Best-effort stage update (UI only)."""
+        """Best-effort stage update (UI only): one retry and a short timeout, so a network drop costs the job
+        seconds, not the 4 tries x 60 s a strict write may take."""
         try:
-            self.update_job(job_id, status=status)
+            self.update_job(job_id, status=status, _tries=2, _timeout=15)
         except Exception as e:  # noqa: BLE001
             print(f"warning: stage update failed ({str(e)[:160]})", flush=True)
 
@@ -184,7 +188,7 @@ class Supa:
     def event(self, job: dict, stage: str, message: str, data: dict | None = None) -> None:
         """Best-effort progress event (UI only): one retry, then a failure is logged and the job carries on."""
         try:
-            self._ok(self._send("POST", "/rest/v1/job_events", what="event", tries=2,
+            self._ok(self._send("POST", "/rest/v1/job_events", what="event", tries=2, timeout=15,
                                 json={"job_id": job["id"], "user_id": job["user_id"], "stage": stage,
                                       "message": message[:500], "data": data},
                                 headers={**self.h, "Prefer": "return=minimal"}))
@@ -226,6 +230,10 @@ class Supa:
             self._beat_warned = True
             print("warning: " + explain(r.status_code, r.text, "engine_status heartbeat"), flush=True)
 
+    def pulse(self, worker_id: str, section_mode: str | None = None, every: float = 15.0) -> "Pulse":
+        """A background heartbeat on its own connection (see Pulse)."""
+        return Pulse(Supa(self._transport, self.sleep), worker_id, section_mode, every)
+
     def upload(self, path: str, data: bytes, content_type: str) -> None:
         """Upsert (x-upsert), so a retry after a lost reply is harmless."""
         self._ok(self._send("POST", f"/storage/v1/object/sites/{quote(path)}", what=f"upload {path.rsplit('/', 1)[-1]}",
@@ -235,3 +243,49 @@ class Supa:
     def delete_object(self, path: str) -> None:
         self._ok(self._send("DELETE", "/storage/v1/object/sites", what="delete object", json={"prefixes": [path]},
                             headers=self.h))
+
+
+class Pulse:
+    """The engine heartbeat on its own thread and connection: engine_status is upserted every `every` seconds with
+    the current state, whatever the main thread is doing (a long model call, browser QA, the mockup screenshot), so
+    the studio badge never reads "offline" in the middle of a generation. set() beats at once when the state
+    changes; stop() sends the final state (offline) right away. A failed beat is simply retried on the next tick."""
+
+    def __init__(self, sb: "Supa", worker_id: str, section_mode: str | None = None, every: float = 20.0):
+        self.sb, self.worker_id, self.mode, self.every = sb, worker_id, section_mode, every
+        self.state = "idle"
+        self.beats = 0
+        self._wake = threading.Event()
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+        self._thread = threading.Thread(target=self._run, name="engine-heartbeat", daemon=True)
+
+    def start(self) -> "Pulse":
+        self._thread.start()
+        return self
+
+    def set(self, state: str) -> None:
+        if state != self.state:
+            self.state = state
+            self._wake.set()
+
+    def _beat(self) -> None:
+        with self._lock:
+            try:
+                self.sb.heartbeat(self.worker_id, self.state, self.mode)
+                self.beats += 1
+            except Exception as e:  # noqa: BLE001 - heartbeat() never raises by design; belt and braces
+                print(f"warning: heartbeat failed ({type(e).__name__}: {str(e)[:90]})", flush=True)
+
+    def _run(self) -> None:
+        while not self._stop.is_set():
+            self._beat()
+            self._wake.wait(self.every)
+            self._wake.clear()
+
+    def stop(self, final: str = "offline") -> None:
+        self._stop.set()
+        self._wake.set()
+        self._thread.join(timeout=5)
+        self.state = final
+        self._beat()

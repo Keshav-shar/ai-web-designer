@@ -3,7 +3,7 @@
 The legacy enums below (bands, groups, item kinds, primitives, ...) describe the deterministic fallback page that
 compile_spec renders (flow.fallback); the agents themselves write the descriptive design document further down.
 
-Every schema is *strict*: all properties required, additionalProperties false (Groq strict json_schema needs both,
+Every schema is *strict*: all properties required, additionalProperties false (Groq / Mistral strict json_schema need both,
 Gemini responseJsonSchema accepts them). Numeric/length limits are NOT put in the provider schema (support varies);
 `clamp_*` in the agents' semantic checks enforce them instead. `provider_schema()` strips them, `inline_refs()`
 resolves $defs for providers that prefer flat schemas.

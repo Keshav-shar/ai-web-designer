@@ -2,9 +2,10 @@
 
     run(handoff, enabled=True|False, force_from=None, out_dir=..., qa=True) -> result
 
-The agents write one design document together (state.py): A1 (Gemini, sees the five reference images) describes
-the whole visual system in words, A2 plans the layout, A3 writes the copy, A4 draws the decorations, and A5
-(Gemini, text only) composes the page from the merged document with real design freedom.
+The agents write one design document together (state.py): A1 (Mistral vision, sees the five reference images, each
+after its role header) describes the whole visual system in words, A2 plans the layout, A3 writes the copy, A4 draws
+the decorations (A2-A4 on Groq, Mistral as their backup), and A5 (Mistral, text only) composes the page from the
+merged document with real design freedom. Gemini is only the last fallback for A1 / A5.
 
 Per agent: build its slice (state.slice_for; Groq slices are trimmed to fit the minute window) -> cache lookup ->
 route through its model chain (ledger + buckets decide; quota/rate/size errors move to the next model) -> strict
@@ -30,23 +31,36 @@ from pathlib import Path
 import jsonschema
 
 from . import budget, cache, compile_spec, defaults, flow, keys, qa as QA, schemas as sc, state as S, validate_page
-from .providers import Gemini, Groq, ProviderError
+from .providers import Gemini, Groq, Mistral, ProviderError, image_part
 
 PROMPTS = Path(__file__).resolve().parents[2] / "contracts" / "prompts" / "agents"
 OUT = Path(os.getenv("LANDING_OUT", r"D:\serpman-studio\out\_landing"))
-# Short, explicit chains of comparable models (no lite / small fallbacks): the primary, then one alternate.
-PREFS = {"gemini": ["gemini-4-hydrogen", "gemini-3.8-flash"], "groq:big": ["openai/gpt-oss-120b"],
+# Short, explicit chains of comparable models (no lite / small fallbacks). Mistral is the primary for the two
+# Gemini-shaped jobs (A1 sees the five references, A5 composes the page) and the backup for Groq's A2-A4; Gemini is
+# only the last fallback for A1 / A5 (it was overloaded too often on the free tier). Aliases are checked against the
+# key's live model list; "mistral:vision" keeps only models whose capabilities say vision.
+# Mistral free tier (measured 2026-11-21): Medium answers "limit 0" on the user's workspace, so the models that run are
+# Ministral 14B (vision) for A1, Codestral (HTML/CSS) for A5 and Ministral 8B as Groq's backup: each has its own
+# 2 req/min, 40K tok/min pool, so the three jobs never queue behind each other. Medium stays first in case the plan
+# opens it; a model the tier refuses is skipped for that key for 6 h (keys.mark_unavailable), the key is kept.
+PREFS = {"mistral:vision": ["mistral-medium-latest", "ministral-14b-latest"],
+         "mistral:compose": ["mistral-medium-latest", "codestral-latest", "ministral-14b-latest"],
+         "mistral:text": ["mistral-medium-latest", "ministral-8b-latest", "ministral-14b-latest"],
+         "gemini": ["gemini-4-hydrogen", "gemini-3.8-flash"], "groq:big": ["openai/gpt-oss-120b"],
          "groq:vision": ["qwen/qwen3.8-27b"]}
-CHAINS = {"a1": ["gemini"], "a2": ["groq:big"], "a3": ["groq:big"], "a4": ["groq:vision", "groq:big"],
-          "a5": ["gemini"]}
+CHAINS = {"a1": ["mistral:vision", "gemini"], "a2": ["groq:big", "mistral:text"], "a3": ["groq:big", "mistral:text"],
+          "a4": ["groq:vision", "groq:big", "mistral:text"], "a5": ["mistral:compose", "gemini"]}
 # A4 is text-only (A1 describes the images); Qwen keeps its own minute window apart from A2/A3's gpt-oss.
-# If both Gemini models are out, A1 / A5 fall back to code (the default document / compile_spec), not to Groq.
+# If every model of a chain is out, the agent falls back to code (the default document / compile_spec).
+MISTRAL_PREFIXES = ("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")
+A1_SIDE = {"high": 1540, "medium": 1024, "low": 1024}   # Mistral: <=1540 px, ~(W*H)/784 tokens per image
 MAX_OUT = {"a1": 9000, "a2": 3000, "a3": 3000, "a4": 4000, "a5": 20000}
 TEMP = {"a1": 0.5, "a2": 0.4, "a3": 0.6, "a4": 0.7, "a5": 0.7}
 THINK = {"a1": "medium", "a5": "medium"}            # Gemini thinking level per agent (others: low)
 A1_RES = {"LAYOUT_REF": "high", "TYPOGRAPHY_REF": "high", "ELEMENTS_REF": "medium", "BACKGROUND_REF": "medium",
           "PALETTE_REF": "low"}
 WAIT_MAX = 25.0                         # longer waits for a minute window -> try the next model instead
+WAIT_MAX_MISTRAL = 65.0                 # Mistral's free tier is 2 req/min: waiting out the minute is normal there
 TIMEOUT = {"a1": 240.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0}
 STICKY_S = 1800.0                       # after a switch to the alternate, stay on it this long before retrying the primary
 ORDER = ["a1", "a2", "a3", "a4", "a5"]
@@ -66,19 +80,21 @@ class Ctx:
     def __init__(self, enabled: bool, log=print):
         self.enabled, self.log = enabled, log
         self.buckets, self.ledger = budget.Buckets(), budget.Ledger()
-        self.gemini, self.groq = Gemini(), Groq(self.buckets)
-        self.rings = {"gemini": keys.Ring("gemini" if enabled else ""), "groq": keys.Ring("groq" if enabled else "")}
+        self.gemini, self.groq, self.mistral = Gemini(), Groq(self.buckets), Mistral(self.buckets)
+        self.rings = {p: keys.Ring(p if enabled else "") for p in ("mistral", "groq", "gemini")}
         self.resolved: dict[str, list[str]] = {}
 
     @staticmethod
     def pname(model: str) -> str:
-        return "gemini" if model.startswith("gemini") or model.startswith("gemma") else "groq"
+        if model.startswith(("gemini", "gemma")):
+            return "gemini"
+        return "mistral" if model.startswith(MISTRAL_PREFIXES) else "groq"
 
     def resolve(self, alias: str) -> list[str]:
         """Alias -> its preferred models that this provider lists (checked with the first key that works)."""
         if alias not in self.resolved:
-            name = "gemini" if alias.startswith("gemini") else "groq"
-            ring, prov = self.rings[name], (self.gemini if name == "gemini" else self.groq)
+            name = alias.split(":", 1)[0]
+            ring, prov = self.rings[name], {"gemini": self.gemini, "groq": self.groq, "mistral": self.mistral}[name]
             picks: list[str] = []
             for i in range(len(ring)):
                 if i in ring.disabled:
@@ -86,6 +102,8 @@ class Ctx:
                 try:
                     live = set(prov.models(ring.keys[i]))
                     picks = [m for m in PREFS[alias] if m in live]
+                    if alias == "mistral:vision":
+                        picks = [m for m in picks if prov.vision(m)]
                     break
                 except ProviderError as e:
                     if e.kind == "auth":
@@ -123,11 +141,12 @@ class Ctx:
 # so A1, A5 and repairs stay on one model), and (model, agent) pairs whose constrained JSON failed (plain JSON mode).
 _PREFERRED: dict[tuple, tuple[str, float]] = globals().get("_PREFERRED", {})
 _NONSTRICT: set[tuple[str, str]] = globals().get("_NONSTRICT", set())
-MINUTE_WAIT_MAX = 65.0                  # when every key/model is only in its minute window: wait once, up to this
+MINUTE_WAIT_MAX = 65.0
+LOCAL_RATE = "this key's minute window is full"   # the router's own pre-check (budget.Buckets), not a provider 429                  # when every key/model is only in its minute window: wait once, up to this
 
 
 def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, dict, list]:
-    """build(model) -> ("gemini", system, parts, schema) | ("groq", messages, schema, est_tokens).
+    """build(model) -> ("gemini", system, parts, schema) | ("groq" | "mistral", messages, schema, est_tokens).
     For each model in the agent's chain (the model that last answered for this chain goes first), each usable
     key in order: a daily limit marks that key out for the model (ledger), a per-minute limit cools the key and moves
     to the next one, a rejected key is skipped for the session. If every attempt failed only because of minute
@@ -151,7 +170,9 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                 continue
             order = ring.order(model, ctx.ledger)
             if not order:
-                tried.append({"model": model, "skip": f"all {len(ring)} {ring.provider} key(s) are out for today or rejected"})
+                off_tier = all(ring.unavailable(i, model) for i in range(len(ring)) if i not in ring.disabled)
+                tried.append({"model": model, "skip": f"not on the tier of any {ring.provider} key" if off_tier else
+                              f"all {len(ring)} {ring.provider} key(s) are out for today or rejected"})
                 minute_only = False
                 continue
             req = build(model)
@@ -180,19 +201,21 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                                         temperature=TEMP[agent], timeout=TIMEOUT[agent],
                                                         thinking=THINK.get(agent, "low"))
                         else:
-                            _, messages, schema, est = req
+                            kind, messages, schema, est = req
+                            prov = ctx.mistral if kind == "mistral" else ctx.groq
                             if not strict and schema is not None:   # the schema rides in the prompt in plain mode
                                 est += budget.est_text(json.dumps(sc.inline_refs(sc.provider_schema(schema)),
                                                                   separators=(",", ":")))
                             wait = ctx.buckets.wait_for(model, est + int(out_cap * 0.6), kid)
+                            wmax = WAIT_MAX_MISTRAL if kind == "mistral" else WAIT_MAX
                             if wait == float("inf"):
                                 raise ProviderError("too_large", f"~{est} tokens won't fit {model}'s minute window")
-                            if wait > WAIT_MAX or (wait > 3 and later):
-                                raise ProviderError("rate", f"this key's minute window is full for {wait:.0f}s", wait)
+                            if wait > wmax or (wait > 3 and later):   # checked here, before any request is sent
+                                raise ProviderError("rate", f"{LOCAL_RATE} for {wait:.0f}s", wait)
                             if wait:
                                 ctx.log(f"  {agent}: waiting {wait:.1f}s for {model}'s token window ({label})")
                                 time.sleep(wait)
-                            reply = ctx.groq.chat(model, messages, key=key, kid=kid, schema=schema, name=agent,
+                            reply = prov.chat(model, messages, key=key, kid=kid, schema=schema, name=agent,
                                                   max_out=out_cap, temperature=TEMP[agent], strict=strict,
                                                   timeout=TIMEOUT[agent])
                         u = reply.usage
@@ -200,7 +223,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                         ctx.buckets.note(model, max(0, u.get("in", 0) - u.get("cached", 0)) + u.get("out", 0)
                                          + u.get("thinking", 0), kid)
                         data = reply.json() if (req[0] == "gemini" and req[3] is not None) or \
-                            (req[0] == "groq" and req[2] is not None) else reply.text
+                            (req[0] != "gemini" and req[2] is not None) else reply.text
                         if model != (_PREFERRED.get(stick) or ("",))[0]:
                             _PREFERRED[stick] = (model, time.monotonic())
                         return data, model, {"ms": reply.ms, "usage": u, "headers": reply.headers, "key": label,
@@ -209,19 +232,31 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                         if e.kind == "truncated" and attempt == 0:
                             out_cap = int(out_cap * 1.6)
                             continue
-                        if e.kind == "bad_output" and req[0] == "groq" and strict:
+                        if e.kind == "bad_output" and req[0] != "gemini" and strict:
                             _NONSTRICT.add((model, agent))
                             keys.notify(f"{agent.upper()}: {model}'s constrained JSON failed; using plain JSON mode "
                                         f"(checked locally) for it from now on")
                             strict = False
                             continue
+                        if e.kind == "unavailable":     # the tier doesn't offer this model: not a key problem
+                            ring.mark_unavailable(i, model, str(e))
+                            keys.notify(f"{label}: {str(e)[13:120]} -> " + (f"using {nxt}" if nxt else after(model))
+                                        + " (skipped for this key for 6 h)")
+                            tried.append({"model": model, "key": label, "skip": "not on this key's tier"})
+                            minute_only = False
+                            break
                         if e.kind == "rate":
                             ring.cool_down(i, model, e.retry_after or 60)
+                            local = LOCAL_RATE in str(e)
+                            what = (f"would exceed its per-minute window on {model} for {e.retry_after:.0f}s "
+                                    f"(counted locally, no request sent)") if local else \
+                                f"hit the per-minute limit on {model}"
                             if nxt:
-                                keys.notify(f"{label} hit the per-minute limit on {model} -> using {nxt}")
+                                keys.notify(f"{label} {what} -> using {nxt}")
                                 tried.append({"model": model, "key": label, "error": "per-minute limit"})
                                 break
-                            if e.retry_after and e.retry_after <= WAIT_MAX and attempt == 0:
+                            if e.retry_after and e.retry_after <= (WAIT_MAX_MISTRAL if req[0] == "mistral"
+                                                                    else WAIT_MAX) and attempt == 0:
                                 keys.notify(f"{label} hit the per-minute limit on {model}; waiting {e.retry_after:.0f}s "
                                             f"(no other key free)")
                                 time.sleep(e.retry_after)
@@ -363,8 +398,10 @@ def _groq_msgs(st: S.State, agent: str, slc: dict, image: str | None, errors,
 TRIM_CAPS = (None, 260, 160, 100, 60)
 
 
-def groq_request(st: S.State, agent: str, schema: dict, errors, model: str) -> tuple:
-    """The agent's request, its slice trimmed (longest descriptions first) until it fits the model's minute window."""
+def chat_request(st: S.State, agent: str, schema: dict, errors, model: str) -> tuple:
+    """The agent's chat request (Groq, or Mistral as the backup): the same shared preamble + digest prefix, its slice
+    trimmed (longest descriptions first) until it fits the model's minute window (Mistral's is wide: no trim)."""
+    kind = Ctx.pname(model)
     slc = S.slice_for(st, agent)
     limit = budget.limits(model)["tpm"] * budget.MARGIN - int(MAX_OUT[agent] * 0.6)
     for cap in TRIM_CAPS:
@@ -373,8 +410,11 @@ def groq_request(st: S.State, agent: str, schema: dict, errors, model: str) -> t
         if est <= limit:
             if cap:
                 keys.notify(f"{agent.upper()}: descriptions trimmed to {cap} characters to fit {model}'s minute window")
-            return ("groq", msgs, sch, est)
-    return ("groq", msgs, sch, est)
+            return (kind, msgs, sch, est)
+    return (kind, msgs, sch, est)
+
+
+groq_request = chat_request                       # the old name (lab / tests)
 
 
 def problems(qa_res: dict | None) -> list[str]:
@@ -427,6 +467,15 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                     parts += [{"text": sc.image_header(lbl, pos, im["cluster"], im["text"])},
                               {"image": im["local"], "res": A1_RES[lbl]}]
                 return ("gemini", prompt("a1"), parts, s1)
+            if ctx.pname(model) == "mistral":       # every image right after its role header, like Gemini's parts
+                content = [{"type": "text", "text": text}]
+                est = budget.est_text(prompt("a1") + text)
+                for pos, lbl, im in sent:
+                    head = sc.image_header(lbl, pos, im["cluster"], im["text"])
+                    content += [{"type": "text", "text": head}, image_part(im["local"], A1_SIDE[A1_RES[lbl]])]
+                    est += budget.est_text(head) + budget.MISTRAL_IMAGE[A1_RES[lbl]]
+                msgs = [{"role": "system", "content": prompt("a1")}, {"role": "user", "content": content}]
+                return ("mistral", msgs, s1, est)
             comp = P.composite_b64([(f"{pos} · {im['image']} · {lbl}", im["local"]) for pos, lbl, im in sent])
             legend = "\n".join(sc.image_header(lbl, pos, im["cluster"], im["text"]) for pos, lbl, im in sent)
             msgs = [{"role": "system", "content": prompt("a1")},
@@ -469,9 +518,17 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         old.unlink()
     s_spec = S.compact(spec)
     k5 = cache.key("a5", prompt("a5"), s_spec)
-    build5 = lambda errs: (lambda model: ("gemini", prompt("a5"), [{"text": s_spec + (  # noqa: E731
-        "\n\nYour previous page was measured in a browser and checked; fix exactly these and keep everything else "
-        "(your composition, styling and decoration):\n- " + "\n- ".join(errs) if errs else "")}], None))
+    def build5(errs):
+        user = s_spec + ("\n\nYour previous page was measured in a browser and checked; fix exactly these and keep "
+                         "everything else (your composition, styling and decoration):\n- " + "\n- ".join(errs)
+                         if errs else "")
+
+        def b(model):
+            if ctx.pname(model) == "gemini":
+                return ("gemini", prompt("a5"), [{"text": user}], None)
+            msgs = [{"role": "system", "content": prompt("a5")}, {"role": "user", "content": user}]
+            return (ctx.pname(model), msgs, None, budget.est_text(prompt("a5") + user))
+        return b
     cands: list[dict] = []
 
     def measure(page_html: str, sp: dict):

@@ -61,11 +61,11 @@ decoration is forced.
 
 | Agent | Model (fallbacks) | Writes |
 |---|---|---|
-| A1 visual director | Gemini 4 Hydrogen (alternate: 3.8 Flash), thinking medium | Sees the query and 5 labelled references. Writes the design document: aesthetic direction, a named palette in four groups, a role map, five type levels (any Google Font; the lab's pool is recommended), the background layer and whether the photo is used, midground and foreground decor, the page's sections, the composition and overlap rules, and the cards. |
-| A2 layout architect | Groq gpt-oss-120b | The layout plan: how each section is built and sized, its surface, and where every layered element sits. It makes the whole canvas purposeful. |
-| A3 content editor | Groq gpt-oss-120b | The copy: items with their kinds and type levels, and each section's surface, text, heading and accent colours. |
-| A4 decor artist | Groq Qwen 3.8 27B, text only (gpt-oss-120b) | An SVG drawing or CSS recipe for each decorative element. |
-| A5 composer | Gemini 4 Hydrogen (alternate: 3.8 Flash), then `compile_spec.py`; temperature 0.7, thinking medium | The page, composed freely from the merged document (no images; A1's words carry them). |
+| A1 visual director | Mistral Medium if the tier allows it, else Ministral 14B (vision); then Gemini 4 Hydrogen / 3.8 Flash | Sees the query and 5 labelled references, each image right after its role header. Writes the design document: aesthetic direction, a named palette in four groups, a role map, five type levels (any Google Font; the lab's pool is recommended), the background layer and whether the photo is used, midground and foreground decor, the page's sections, the composition and overlap rules, and the cards. |
+| A2 layout architect | Groq gpt-oss-120b (backup: Ministral 8B) | The layout plan: how each section is built and sized, its surface, and where every layered element sits. It makes the whole canvas purposeful. |
+| A3 content editor | Groq gpt-oss-120b (backup: Ministral 8B) | The copy: items with their kinds and type levels, and each section's surface, text, heading and accent colours. |
+| A4 decor artist | Groq Qwen 3.8 27B, text only (gpt-oss-120b, then Ministral 8B) | An SVG drawing or CSS recipe for each decorative element. |
+| A5 composer | Mistral Medium if allowed, else Codestral (then Ministral 14B, then Gemini), then `compile_spec.py`; temperature 0.7 | The page, composed freely from the merged document (no images; A1's words carry them). |
 
 What code still owns (`flow.py`, `validate_page.py`):
 - **Facts.** Hexes come from the lab's measured set plus up to 4 observed extras; the rest are snapped. Fonts must be
@@ -76,7 +76,7 @@ What code still owns (`flow.py`, `validate_page.py`):
 - **The gate.** It discards only broken pages:
   - **Blocking:** unsafe markup, foreign fonts, missing copy or hooks, not exactly one h1, text overlapping text,
     horizontal overflow.
-  - **Fixed by code:** stray colours are snapped to the palette (alpha kept). Decoration painted on top of text, or
+  - **Fixed by code:** stray colours are snapped to the palette (alpha kept); z-index values outside 0-50 are clamped. Decoration painted on top of text, or
     over more than 15% of an image, is removed; this is measured by paint order, so decoration behind text stays.
     A missing backdrop is injected.
   - **Advisory:** dead space, hero balance, canvas coverage, gap outliers, a hidden backdrop and the wordmark. These
@@ -90,40 +90,49 @@ What code still owns (`flow.py`, `validate_page.py`):
 
 Free-tier limits (2026-11-20):
 - **Groq:** 30 RPM, 1K RPD, 8K TPM and 200K TPD per model.
-- **Gemini:** 3.8 Flash allows 5 RPM and 20 RPD per project. 4 Hydrogen's free-tier cap isn't published through the API,
-  so it is assumed to be the same, and the ledger learns the real cap from the first daily-limit reply.
+- **Mistral (free plan, measured on our key 2026-11-21):** limits are per model. Ministral 14B / 8B and Codestral
+  allow 2 requests/min and 40K tokens/min each. Medium, Small, Large and Magistral answer "limit 0 requests/min" (or 403
+  `tier_not_allowed`): they are not on the tier. The router skips such a model for that key for 6 h and keeps the key
+  for the others; three different models (A1, A5, the Groq backup) mean three separate minute pools. Limits are
+  shown at https://admin.mistral.ai/plateforme/limits.
+- **Gemini (last fallback only):** 3.8 Flash allows 5 RPM and 20 RPD per project and was often overloaded (503).
 
 Model routing (`landing/pipeline.py`, `providers.py`) uses short chains of comparable models, never lite or small
 models:
-- **A1 / A5:** `gemini-4-hydrogen`, then `gemini-3.8-flash`. If both are out, A1 falls back to the default document
-  and A5 to `compile_spec`.
-- **A2 / A3:** `gpt-oss-120b`.
-- **A4:** `qwen3.8-27b`, then `gpt-oss-120b`.
+- **A1:** `mistral-medium-latest` (used only if the tier opens it), then `ministral-14b-latest` (vision), then
+  `gemini-4-hydrogen` / `gemini-3.8-flash`. If all are out, A1 falls back to the default document.
+- **A5:** Medium, then `codestral-latest`, then Ministral 14B, then Gemini, then `compile_spec`.
+- **A2 / A3:** `gpt-oss-120b`, then Ministral 8B (Medium first if allowed).
+- **A4:** `qwen3.8-27b`, then `gpt-oss-120b`, then Ministral 8B.
+- Aliases a key doesn't list are dropped from the chain, so a renamed model never fails a run.
 
 How a run stays on one model:
-- **Sticky.** The model that answers is reused by the next Gemini calls (A5 and repairs). After a switch to the
+- **Sticky.** The model that answers is reused by the next calls of the same chain (A5 and repairs). After a switch to the
   alternate, the router retries the primary after 30 minutes.
 - **Patience before switching.** A busy model (503) is retried with 5 / 15 / 30 s backoff. A timeout (A1 240 s,
   A5 300 s) is retried once on the same model.
 - **Key failover first.** All keys are tried on the current model before the alternate model is used.
 - **Logging.** The terminal prints each agent's chain once per run, then one line per real switch.
 - **Overrides.** `AGENT1_MODEL` … `AGENT5_MODEL` still override a chain.
-- **Disclosure:** free-tier Gemini inputs may be used by Google; the studio says so when this mode is on.
+- **Disclosure:** free-tier Mistral inputs may be used for training (and Google's, for the Gemini fallback); the studio
+  says so when this mode is on.
 
 Keys, several per provider (`worker/landing/keys.py`):
 - **Where they're read from:** the environment first, then `worker/.env` (gitignored). The lab reads that same file.
-- **Names:** `GEMINI_API_KEY`, `GEMINI_API_KEY_2` … or `GEMINI_API_KEYS=k1,k2`; the same pattern for `GROQ_`.
+- **Names:** `MISTRAL_API_KEY`, `MISTRAL_API_KEY_2` … or `MISTRAL_API_KEYS=k1,k2`; the same pattern for `GROQ_` and
+  `GEMINI_`.
 - **Failover:** on a daily limit, a per-minute limit or a rejected key, the next key takes over. Each switch prints one
   line on the terminal, for example `[landing] gemini key 1/2 reached its daily limit for gemini-4-hydrogen … -> using
   gemini key 2/2`. Only when every key is out does the alternate model run.
-- **Limits are per Google Cloud project and per Groq organization, not per key.** Keys from the same project or org
+- **Limits are per Mistral workspace, per Google Cloud project and per Groq organization, not per key.** Keys from the same project or org
   share one quota, so a backup only helps from another project or org (or as a paid key).
-- **Where to get keys:** https://aistudio.google.com/apikey and https://console.groq.com/keys. Limits are shown at
+- **Where to get keys:** https://console.mistral.ai/api-keys, https://console.groq.com/keys and
+  https://aistudio.google.com/apikey. Limits are shown at
   https://aistudio.google.com/rate-limit and https://console.groq.com/settings/limits.
 
 Run it:
 ```
-# worker/.env (or the shell): SECTION_MODE=agents, GEMINI_API_KEYS=..., GROQ_API_KEYS=...
+# worker/.env (or the shell): SECTION_MODE=agents, MISTRAL_API_KEY=..., GROQ_API_KEYS=..., GEMINI_API_KEYS=... (optional)
 D:\caches\venvs\uifp\Scripts\python.exe worker\worker.py run
 # lab: serpman\serve.cmd agents  (sets AGENTS_ENABLE=1; keys from worker/.env), Route, Next, then "agents landing"
 D:\caches\venvs\uifp\Scripts\python.exe worker\test_landing.py [--qa]     # offline: fake models, no quota
@@ -169,11 +178,11 @@ Where it lives:
 
 ## Accounts: username + password, invite only
 No email, no GitHub, no magic links, no sign-up. **You** create each account and hand out the **username and password**; users can only sign in.
-- **Create one from the PC:** `D:\caches\venvs\uifp\Scripts\python.exe tools\create_user.py --username ana [--quota 5]`. Without `--password`, it prints a generated one **once**; nothing is stored. Usernames are 3–24 characters of `a-z 0-9 . _ -`, case-insensitive and unique.
+- **Create one from the PC:** `D:\caches\venvs\uifp\Scripts\python.exe tools\create_user.py --username ana [--quota 10]`. Without `--password`, it prints a generated one **once**; nothing is stored. Usernames are 3–24 characters of `a-z 0-9 . _ -`, case-insensitive and unique.
 - **How it works:** Supabase's password login needs an email-shaped ID, so each username maps internally to a placeholder `<username>@users.serpman.invalid`. It is never shown, never emailed and not a real mailbox, and the app only ever displays the username (`profiles.username`).
   - If Supabase ever rejects that domain, set `LOGIN_ID_DOMAIN` in `worker/.env` and `NEXT_PUBLIC_LOGIN_ID_DOMAIN` in Vercel to the same domain you control.
 - **Dashboard alternative:** Authentication → Users → Add user, with ID `ana@users.serpman.invalid`, a password, and **Auto Confirm User** ticked. The username is taken from the part before `@`.
-- **Quotas and passwords:** each account gets a daily quota of 5 (`profiles.daily_quota`, or `--quota`). Forgotten passwords: open the user in the dashboard and set a new one.
+- **Quotas and passwords:** each account gets a daily quota of 10 sites (`profiles.daily_quota`, or `--quota`; migration `20261129000000_daily_quota_10.sql`). Forgotten passwords: open the user in the dashboard and set a new one.
 
 ## Finalize Supabase (once, in this order)
 1. **SQL editor:** run `supabase/migrations/20261120000000_init.sql`, then `20261121000000_site_mockups.sql`, then `20261122000000_engine_status.sql`, then `20261123000000_usernames.sql`, then `20261124000000_service_role_grants.sql` (newer projects don't grant tables to the secret key by default; the worker needs it), then `20261125000000_prompt_limit_cancel.sql` (200-character prompts, and `cancel_job()` for the studio's Cancel button).
@@ -203,7 +212,7 @@ D:\caches\venvs\uifp\Scripts\python.exe D:\serpman-studio\worker\worker.py run
 - On start it runs a **preflight**: tables, storage bucket and heartbeat. If something is missing (a migration, the wrong key), it prints the exact fix and **exits without claiming jobs**. It then re-queues any jobs it left unfinished on an earlier run.
 - Progress messages are best-effort, so a failed progress write never kills a job. Results (files, the site row, "done") are strict. A job the user cancelled is never saved or revived.
 - Keep the window open while you serve requests.
-- The studio shows **Engine online** within about 30 s. The worker writes a heartbeat to `engine_status`.
+- The studio shows **Engine online** within about 20 s. The worker writes a heartbeat to `engine_status` every 20 s from its own thread (`supa.Pulse`), also during a generation, so the badge stays online while a request is being built.
 - Ctrl+C marks it offline immediately. While offline, requests wait in the queue and run when you start it again.
 - `worker.py once --prompt "…"` builds one site locally (`out/<slug>/`) without Supabase.
 - **Restart the worker after any code update.** It loads the code once at start. The startup line shows `code from

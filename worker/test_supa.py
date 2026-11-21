@@ -112,8 +112,46 @@ def t_user_message():
     check("permissions" in msg2, "studio message for missing grants")
 
 
-for t in (t_upload_reset, t_insert_site_lost_reply, t_claim_not_retried, t_preflight_grants, t_backoff_503,
-          t_user_message):
+def t_pulse():
+    """The heartbeat thread keeps beating while the main thread is busy (a long model call), beats at once on a
+    state change, survives a failing beat, and sends 'offline' on stop."""
+    import time
+    import threading
+    beats, lock = [], threading.Lock()
+
+    def h(req: httpx.Request):
+        row = json.loads(req.content)
+        with lock:
+            beats.append((time.monotonic(), row["state"]))
+            if len(beats) == 3:                       # one DNS blip in the middle: the next tick retries
+                raise httpx.ConnectError("[Errno 11001] getaddrinfo failed")
+        return httpx.Response(201)
+    sb = supa.Supa(transport=httpx.MockTransport(h), sleep=lambda s: None)
+    p = sb.pulse("host", "agents", every=0.2).start()
+    p.set("busy")
+    time.sleep(1.3)                                   # "the job": the main thread does no beating at all
+    with lock:
+        busy = [t for t, s in beats if s == "busy"]
+    gaps = [b - a for a, b in zip(busy, busy[1:])]
+    check(len(busy) >= 4 and max(gaps) < 0.5, f"pulse: beats keep coming during a long job ({len(busy)} beats, "
+                                               f"max gap {max(gaps or [0]):.2f}s)")
+    p.set("idle")
+    time.sleep(0.05)
+    check(beats[-1][1] == "idle", "pulse: a state change is beaten at once")
+    p.stop("offline")
+    check(beats[-1][1] == "offline" and not p._thread.is_alive(), "pulse: stop sends offline and ends the thread")
+
+
+def t_progress_best_effort():
+    def handler(req, n):
+        raise httpx.ConnectError("[WinError 10065] A socket operation was attempted to an unreachable host")
+    sb, log = client(handler)
+    sb.progress("j", "generating")                  # must not raise, must not retry 4 times
+    check(len(log) == 2, f"progress (UI only): one retry on a network drop, then the job carries on ({len(log)} tries)")
+
+
+for t in (t_progress_best_effort, t_upload_reset, t_insert_site_lost_reply, t_claim_not_retried, t_preflight_grants, t_backoff_503,
+          t_user_message, t_pulse):
     t()
 print("\nALL PASS" if not FAILS else f"\n{len(FAILS)} FAILED")
 sys.exit(1 if FAILS else 0)

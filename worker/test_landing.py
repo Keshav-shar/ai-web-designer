@@ -15,6 +15,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 from html import escape
 from pathlib import Path
 
@@ -25,7 +26,8 @@ os.environ["LANDING_CACHE"] = str(TMP / "cache")
 os.environ["LANDING_LEDGER"] = str(TMP / "quota.json")
 os.environ["LANDING_OUT"] = str(TMP / "out")
 os.environ["LANDING_ENV_FILE"] = str(TMP / "no-such.env")        # never read the real worker/.env keys in tests
-for _k in [k for k in os.environ if k.startswith(("GEMINI_API_KEY", "GROQ_API_KEY"))]:
+os.environ["LANDING_UNAVAIL"] = str(TMP / "unavailable.json")
+for _k in [k for k in os.environ if k.startswith(("GEMINI_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY"))]:
     os.environ.pop(_k)
 os.environ["GEMINI_API_KEY"] = "fake-gemini"
 os.environ["GROQ_API_KEY"] = "fake-groq"
@@ -161,8 +163,12 @@ class FakeGroq:
     def models(self, key):
         return ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
 
+    rate_all = False                          # simulate: every Groq model's minute window is full (-> Mistral backup)
+
     def chat(self, model, messages, *, key, kid="", schema=None, name="out", max_out=2500, temperature=0.4, **kw):
         Calls.log.append(("groq", model, name, key))
+        if FakeGroq.rate_all:
+            raise providers.ProviderError("rate", "Rate limit reached for model (TPM)", 40.0)
         if key == "q1" and model == "openai/gpt-oss-120b":   # simulate: this org's minute window is full
             raise providers.ProviderError("rate", "Rate limit reached for model (TPM)", 30.0)
         st = STATE["st"]
@@ -185,11 +191,52 @@ class FakeGroq:
                                {"x-ratelimit-remaining-tokens": "7000", "x-ratelimit-reset-tokens": "1s"})
 
 
+class FakeMistral:
+    """Mistral La Plateforme: lists aliases with capabilities; A1 gets interleaved [IMAGE n] headers + image parts."""
+    quota_day: set = set()                  # (key, model) pairs whose monthly pool is gone
+    busy: set = set()
+    off_tier = {"mistral-medium-latest"}    # like the user's free tier: Medium answers "limit 0 req/min"
+    a1_content: list = []
+    a5_calls = 0
+
+    def __init__(self, buckets):
+        self.buckets = buckets
+
+    def models(self, key):
+        return ["mistral-medium-latest", "ministral-14b-latest", "ministral-8b-latest", "codestral-latest", "mistral-embed"]
+
+    def vision(self, model):
+        return model in ("mistral-medium-latest", "ministral-14b-latest", "ministral-8b-latest")
+
+    def chat(self, model, messages, *, key, kid="", schema=None, name="out", max_out=2500, temperature=0.4, **kw):
+        Calls.log.append(("mistral", model, name, key))
+        if model in self.off_tier:
+            raise providers.ProviderError("unavailable", f"{model} has a limit of 0 requests/min on this key's tier")
+        if (key, model) in self.quota_day:
+            raise providers.ProviderError("quota_day", "Monthly token limit exceeded")
+        if model in self.busy:
+            raise providers.ProviderError("overloaded", "HTTP 503: service unavailable")
+        user = messages[-1]["content"]
+        if name == "a1":
+            FakeMistral.a1_content = user
+            out = copy.deepcopy(flow.default_doc(H))
+            out["strategic_cards"][0]["heading"] = "Seen by Mistral"
+            return providers.Reply(json.dumps(out), model, "stop", {"in": 14000, "out": 1500})
+        if name == "a5":
+            FakeMistral.a5_calls += 1
+            spec = json.loads(user.split("\n\nYour previous")[0])
+            return providers.Reply(render_doc_page(spec), model, "stop", {"in": 6000, "out": 8000})
+        st = STATE["st"]
+        out = {"a2": lambda: flow.default_plan(st), "a3": lambda: flow.default_copy(st, H),
+               "a4": lambda: flow.default_decor(st)}[name]()
+        return providers.Reply(json.dumps(out), model, "stop", {"in": 1800, "out": 700})
+
+
 STATE: dict = {}
 
 
 def patch():
-    pipeline.Gemini, pipeline.Groq = FakeGemini, FakeGroq
+    pipeline.Gemini, pipeline.Groq, pipeline.Mistral = FakeGemini, FakeGroq, FakeMistral
     orig_put = S.State.put
 
     def spy_put(self, who, key, value):              # let the fake Groq agents see the run's blackboard
@@ -368,6 +415,9 @@ def t_validate(h):
     fx = validate_page.check(stray, spec, fix_colors_=True)
     check(not fx["errors"] and any("snapped" in f for f in fx["fixes"]) and "color-mix(in srgb" in fx["html"],
           "stray colours on a model page are snapped to the palette by code (alpha kept), not a reason to discard it")
+    hiz = validate_page.check(page.replace(":root{", ".nav{z-index:100}.u{z-index:-3}:root{"), spec, fix_colors_=True)
+    check(not hiz["errors"] and any("clamped 2 z-index" in f for f in hiz["fixes"]) and "z-index:49" in hiz["html"],
+          f"z-index outside 0-50 on a model page is clamped by code, not a reason to discard it ({hiz['errors'][:1]})")
     miss = validate_page.check(page, {**spec, "copy": spec["copy"] + ["Never written"]})
     check(any("copy missing" in e for e in miss["errors"]), "missing copy is blocking")
     nosec = validate_page.check(page.replace('data-section="hero"', 'data-x="hero"'), spec)
@@ -565,16 +615,162 @@ def t_pipeline_models(h, qa):
     pipeline._PREFERRED.clear()
 
 
+def _reset_router():
+    pipeline._PREFERRED.clear()
+    pipeline._NONSTRICT.clear()
+    keys._COOL.clear()
+    keys._DISABLED.clear()
+    keys._UNAVAIL.clear()
+
+
+def t_pipeline_mistral(h):
+    """Mistral key present: A1 (vision) and A5 on Mistral Large; Groq A2-A4 hand over to Mistral when their minute
+    windows are full; Mistral Large out -> Medium; both Mistral models out -> Gemini (the last fallback)."""
+    os.environ["MISTRAL_API_KEY"] = "fake-mistral"
+    os.environ["LANDING_LEDGER"] = str(TMP / "quota_mistral.json")
+    saved_limits = {m: dict(budget.LIMITS[m]) for m in budget.LIMITS if m.startswith(("ministral", "codestral", "mistral"))}
+    for m in saved_limits:                        # fakes answer instantly: don't sit out the real 2 req/min windows
+        budget.LIMITS[m]["rpm"] = 1000
+    cache.ROOT = TMP / "cache_mistral"
+    _reset_router()
+    NOTES.clear()
+    Calls.log.clear()
+    FakeGemini.a5_attempts = 0
+    try:
+        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
+        tr = {}
+        for t in r["trace"]:
+            tr.setdefault(t["agent"], t)
+        check(tr["a1"]["model"] == "ministral-14b-latest" and tr["a1"]["source"] == "model",
+              f"Medium off the tier: A1 on Ministral 14B (vision) ({tr['a1'].get('model')}, {tr['a1'].get('source')})")
+        check(tr["a5"]["model"] == "codestral-latest" and r["page_source"] == "model",
+              f"A5 composes on Codestral and its page ships ({tr['a5'].get('model')}, {r['page_source']})")
+        check(len(keys.Ring("mistral").order("ministral-14b-latest", budget.Ledger())) == 1 and not keys._DISABLED,
+              "a model off the tier never disables the key (it keeps serving the other models)")
+        check(any("limit of 0 requests/min" in n and "skipped for this key for 6 h" in n for n in NOTES),
+              "terminal: the off-tier model is named once, with the model that takes over")
+        n_med = len([c for c in Calls.log if c[1] == "mistral-medium-latest"])
+        keys._UNAVAIL.clear()                     # a fresh process: it must learn the refusal from disk, not by asking
+        check(keys.Ring("mistral").unavailable(0, "mistral-medium-latest"),
+              "the off-tier model is remembered across restarts (no request spent re-learning it)")
+        check(tr["a2"]["model"] == "openai/gpt-oss-120b" and tr["a4"]["model"] == "qwen/qwen3.8-27b",
+              "A2-A4 stay on Groq while Groq answers")
+        check(not [c for c in Calls.log if c[0] == "gemini"], "no Gemini call while Mistral answers")
+        check(any(n.startswith("models: A1 mistral-medium-latest -> ministral-14b-latest -> gemini-4-hydrogen")
+                  for n in NOTES), "terminal: A1 chain is Mistral Medium -> Ministral 14B -> Gemini")
+        cont = FakeMistral.a1_content
+        heads = [p["text"] for p in cont if p.get("type") == "text" and p["text"].startswith("[IMAGE")]
+        imgs = [i for i, p in enumerate(cont) if p.get("type") == "image_url"]
+        check(len(heads) == len(imgs) == len(h["images"]) and all(cont[i - 1]["text"].startswith("[IMAGE") for i in imgs)
+              and all(cont[i]["image_url"].startswith("data:image/jpeg;base64,") for i in imgs),
+              f"A1 on Mistral sees every image separately, each right after its role header ({len(imgs)} images)")
+        html = (Path(r["out"]) / "index.html").read_text(encoding="utf-8")
+        check("Seen by Mistral" in html, "Mistral A1's card copy reaches the page")
+
+        FakeGroq.rate_all = True                  # Groq minute windows full -> Mistral takes A2-A4
+        NOTES.clear()
+        r2 = pipeline.run(h, enabled=True, force_from="a2", qa=False, a5_repair=False, log=lambda *a: None)
+        m2 = {t["agent"]: t.get("model") for t in r2["trace"]}
+        check(all(m2[a] == "ministral-8b-latest" for a in ("a2", "a3", "a4")),
+              f"Groq rate-limited: A2-A4 answered by Mistral's Ministral 8B ({m2})")
+        check(len([c for c in Calls.log if c[1] == "mistral-medium-latest"]) == n_med,
+              "the off-tier model is not asked again in this process")
+        FakeGroq.rate_all = False
+        keys._COOL.clear()
+
+        FakeMistral.quota_day = {("fake-mistral", "codestral-latest")}      # Codestral's pool is out -> Ministral 14B
+        _reset_router()
+        NOTES.clear()
+        r3 = pipeline.run(h, enabled=True, force_from="a5", qa=False, a5_repair=False, log=lambda *a: None)
+        m3 = {t["agent"]: t.get("model") for t in r3["trace"]}
+        check(m3["a5"] == "ministral-14b-latest", f"Codestral out: A5 on Ministral 14B ({m3['a5']})")
+        check(any("mistral key 1/1 reached its daily limit for codestral-latest" in n for n in NOTES),
+              "terminal: Codestral's limit announced")
+
+        FakeMistral.busy = {"ministral-14b-latest"}                        # every Mistral model out -> Gemini
+        _reset_router()
+        r4 = pipeline.run(h, enabled=True, force_from="a1", qa=False, a5_repair=False, log=lambda *a: None)
+        m4 = {}
+        for t in r4["trace"]:                     # the first entry per agent: the model that answered
+            m4.setdefault(t["agent"], t.get("model"))
+        check((m4["a1"] or "").startswith("gemini") and (m4["a5"] or "").startswith("gemini"),
+              f"both Mistral models out: Gemini is the last fallback ({m4['a1']}, {m4['a5']})")
+        check(not any("fake-mistral" in n for n in NOTES), "terminal lines never contain the Mistral key")
+    finally:
+        FakeMistral.quota_day, FakeMistral.busy, FakeGroq.rate_all = set(), set(), False
+        keys._UNAVAIL.clear()
+        budget.LIMITS.update(saved_limits)
+        os.environ.pop("MISTRAL_API_KEY", None)
+        os.environ["LANDING_LEDGER"] = str(TMP / "quota.json")
+        cache.ROOT = TMP / "cache"
+        _reset_router()
+
+
+def t_mistral_provider():
+    """The real Mistral client over a mock transport: request shape, error kinds, pacing, models + vision flags."""
+    import httpx
+    seen, replies = [], []
+
+    def handler(req):
+        seen.append((req.url.path, json.loads(req.content or b"{}"), time.monotonic()))
+        return replies.pop(0)
+    m = providers.Mistral(budget.Buckets())
+    m.http = httpx.Client(transport=httpx.MockTransport(handler))
+    replies.append(httpx.Response(200, json={"data": [
+        {"id": "mistral-large-2512", "aliases": ["mistral-large-latest"], "capabilities": {"vision": True}},
+        {"id": "ministral-8b-2512", "capabilities": {"vision": False}}]}))
+    ms = m.models("k")
+    check("mistral-large-latest" in ms and m.vision("mistral-large-latest") and not m.vision("ministral-8b-2512"),
+          "Mistral models: aliases listed, vision flags read")
+    schema = {"type": "object", "properties": {"a": {"type": "string"}}, "required": ["a"], "additionalProperties": False}
+    ok = {"choices": [{"message": {"content": '{"a":"x"}'}, "finish_reason": "stop"}],
+          "usage": {"prompt_tokens": 10, "completion_tokens": 3}}
+    replies += [httpx.Response(200, json=ok), httpx.Response(200, json=ok)]
+    m.chat("mistral-large-latest", [{"role": "user", "content": "hi"}], key="k", kid="x", schema=schema, name="a2")
+    m.chat("mistral-large-latest", [{"role": "user", "content": "hi"}], key="k", kid="x", schema=schema, name="a2")
+    b = seen[1][1]
+    check(b.get("max_tokens") and "max_completion_tokens" not in b and "reasoning_effort" not in b
+          and b["response_format"]["type"] == "json_schema" and b["response_format"]["json_schema"]["strict"],
+          "Mistral request: max_tokens, strict json_schema, no Groq-only params")
+    check(seen[2][2] - seen[1][2] >= 1.05, f"Mistral calls on one key are paced ~1/s ({seen[2][2] - seen[1][2]:.2f}s)")
+    cases = [(httpx.Response(429, json={"message": "Monthly token limit exceeded"}), "quota_day"),
+             (httpx.Response(429, json={"message": "Requests rate limit exceeded"}, headers={"retry-after": "2"}), "rate"),
+             (httpx.Response(400, json={"message": "Invalid response_format: json_schema not supported"}), "bad_output"),
+             (httpx.Response(401, json={"message": "Unauthorized"}), "auth"),
+             (httpx.Response(429, json={"message": "Rate limit exceeded", "type": "rate_limited"},
+                             headers={"x-ratelimit-limit-req-minute": "0", "x-ratelimit-remaining-req-minute": "0"}),
+              "unavailable"),
+             (httpx.Response(403, json={"message": "This model is not available in your subscription tier",
+                                        "type": "tier_not_allowed"}), "unavailable")]
+    for resp, kind in cases:
+        replies.append(resp)
+        try:
+            m.chat("mistral-large-latest", [{"role": "user", "content": "hi"}], key="k", kid="y", schema=schema)
+            got = "ok"
+        except providers.ProviderError as e:
+            got = e.kind
+        check(got == kind, f"Mistral HTTP {resp.status_code} {resp.headers.get('x-ratelimit-limit-req-minute', '')}"
+                           f" -> {kind} ({got})")
+    replies.append(httpx.Response(429, json={"message": "Rate limit exceeded"},
+                                  headers={"x-ratelimit-limit-req-minute": "2", "x-ratelimit-remaining-req-minute": "0"}))
+    try:
+        m.chat("ministral-14b-latest", [{"role": "user", "content": "hi"}], key="k", kid="z")
+    except providers.ProviderError as e:
+        check(e.kind == "rate" and e.retry_after == 60.0, f"Mistral 2 req/min window full -> rate, wait 60 s ({e.kind}, {e.retry_after})")
+
+
 def t_keys_collect():
     saved = {k: os.environ.pop(k) for k in [k for k in os.environ if k.startswith(("GEMINI_API_KEY", "GROQ_API_KEY"))]}
     env_file = TMP / "keys.env"
-    env_file.write_text("# test\nGROQ_API_KEY=from-file\nGEMINI_API_KEY_2=file-two\nSUPABASE_URL=ignored\n", encoding="utf-8")
+    env_file.write_text("# test\nGROQ_API_KEY=from-file\nGEMINI_API_KEY_2=file-two\nSUPABASE_URL=ignored\n"
+                        "MISTRAL_API_KEY=m-file\nMISTRAL_API_KEY_2=m-two\n", encoding="utf-8")
     os.environ["LANDING_ENV_FILE"] = str(env_file)
     os.environ.update({"GEMINI_API_KEY": "a", "GEMINI_API_KEY_3": "c", "GEMINI_API_KEYS": "d, a ;e"})
     try:
         check(keys.collect("gemini") == ["a", "file-two", "c", "d", "e"],
               f"key order: X_API_KEY, X_API_KEY_2.., X_API_KEYS; env + file; duplicates dropped ({keys.collect('gemini')})")
         check(keys.collect("groq") == ["from-file"], "keys are read from the env file when the environment has none")
+        check(keys.collect("mistral") == ["m-file", "m-two"], f"MISTRAL_API_KEY / _2 are read ({len(keys.collect('mistral'))})")
         check(keys.kid("a") != "a" and len(keys.kid("a")) == 8, "keys are only ever shown as a short hash")
     finally:
         for k in ("GEMINI_API_KEY", "GEMINI_API_KEY_3", "GEMINI_API_KEYS"):
@@ -666,10 +862,13 @@ def main():
     t_state()
     t_budget()
     t_measure()
-    print("--- fake models (routing, repair, the design document, the A5 gate, cache, replay)")
+    t_mistral_provider()
+    print("--- fake models, no Mistral key: Gemini fallback (routing, repair, the design document, the A5 gate, cache)")
     H = load(names[0])
     patch()
     t_pipeline_models(H, qa)
+    print("--- fake models with a Mistral key (A1 / A5 on Mistral, Groq backup, Gemini last)")
+    t_pipeline_mistral(H)
     print("--- several keys per provider (failover + terminal notices)")
     t_keys_collect()
     t_multikey(H)

@@ -44,6 +44,9 @@ load_dotenv()
 os.environ.setdefault("SERPMAN_TMP", r"D:\caches\tmp")
 Path(os.environ["SERPMAN_TMP"]).mkdir(parents=True, exist_ok=True)
 
+import netfix  # noqa: E402
+netfix.install()                     # survive "[Errno 11001] getaddrinfo failed" blips on this PC (see netfix.py)
+
 import agent  # noqa: E402
 import assemble  # noqa: E402
 import mockup  # noqa: E402
@@ -236,12 +239,6 @@ def cmd_run(a) -> int:
     worker_id = f"{socket.gethostname()}-{os.getpid()}"
     hb_id = socket.gethostname()                   # one engine_status row per machine, reused across restarts
     mode = agent.section_mode(qwen)
-    last_beat = [0.0]
-
-    def beat(state: str, every: float = 25.0) -> None:
-        if state == "offline" or time.time() - last_beat[0] >= every:
-            sb.heartbeat(hb_id, state, mode)
-            last_beat[0] = time.time()
 
     # Preflight before loading the lab or claiming anything: a job is only claimed if it can be finished.
     problems = sb.preflight(hb_id)
@@ -254,19 +251,23 @@ def cmd_run(a) -> int:
     if requeued or failed:
         print(f"recovered unfinished jobs from an earlier run: {requeued} re-queued, {failed} marked failed", flush=True)
 
+    # the heartbeat runs on its own thread from here on: the badge stays online through model calls, QA and the
+    # mockup screenshot (beating only from progress events let long steps go silent for > 2 min -> "offline")
+    pulse = sb.pulse(hb_id, mode, every=15.0).start()   # < the 20 s keep-alive: each beat reuses its socket
     eng = Engine()
     loaded = code_stamp()
     print(f"worker {worker_id} polling (sections: {mode}; code from {stamp_str(loaded)}); Ctrl+C to stop", flush=True)
     if mode == "agents":
         from landing import keys as K
-        print(f"agents mode: {len(K.collect('gemini'))} Gemini key(s), {len(K.collect('groq'))} Groq key(s)"
+        print(f"agents mode: {len(K.collect('mistral'))} Mistral, {len(K.collect('groq'))} Groq, "
+              f"{len(K.collect('gemini'))} Gemini (last fallback) key(s)"
               " (agents without a key use their deterministic default)", flush=True)
     try:
-        _serve(sb, qwen, eng, worker_id, beat, a.theme, loaded)
+        _serve(sb, qwen, eng, worker_id, pulse.set, a.theme, loaded)
     except KeyboardInterrupt:
         print("stopping", flush=True)
     finally:
-        beat("offline")                            # the studio badge switches to offline right away
+        pulse.stop("offline")                      # the studio badge switches to offline right away
     return 0
 
 
@@ -284,6 +285,7 @@ def user_message(e: Exception) -> str:
 
 
 def _serve(sb, qwen, eng, worker_id, beat, theme, loaded: float = 0.0) -> None:
+    """beat(state): tells the heartbeat thread (supa.Pulse) the engine's state; it does the beating."""
     from supa import is_network
     idle, warned = 2.0, False
     while True:
@@ -310,7 +312,7 @@ def _serve(sb, qwen, eng, worker_id, beat, theme, loaded: float = 0.0) -> None:
             idle = min(20.0, idle * 1.5)
             continue
         idle = 2.0
-        beat("busy", every=0)
+        beat("busy")
         jid, uid = job["id"], job["user_id"]
         prompt = sanitize_prompt(job.get("prompt"))
         # The worker is the only place a prompt is split (split.py): a split stored by an older web build or
@@ -322,11 +324,15 @@ def _serve(sb, qwen, eng, worker_id, beat, theme, loaded: float = 0.0) -> None:
         except Exception as e:  # noqa: BLE001 - display only; the job runs on the split in hand
             print(f"warning: split not written back ({str(e)[:160]})", flush=True)
 
+        stage_now = [None]
+
         def emit(stage, message, data=None):
-            if stage in ("recipe", "generating", "assembling"):
+            # the job's status column only changes when the stage does: one PATCH per stage, not one per message
+            # (an agents run emits ~10 "generating" lines; each used to re-PATCH the same status)
+            if stage in ("recipe", "generating", "assembling") and stage != stage_now[0]:
+                stage_now[0] = stage
                 sb.progress(jid, stage)                  # best effort: drives the UI only
             sb.event(job, stage, message, data)          # best effort
-            beat("busy", every=10)
 
         base = f"{uid}/{jid}"
 
@@ -385,8 +391,9 @@ def cmd_doctor(a) -> int:
     mode = agent.section_mode(qwen)
     line("ok", "SECTION_MODE", f"{mode}" + ("" if os.getenv("SECTION_MODE") else " (default; add SECTION_MODE=agents to worker/.env for the agents landing)"))
     from landing import keys as K
-    ng, nq = len(K.collect("gemini")), len(K.collect("groq"))
-    line("ok" if (ng and nq) or mode != "agents" else "warn", "agent keys", f"Gemini {ng}, Groq {nq}")
+    nm, ng, nq = len(K.collect("mistral")), len(K.collect("gemini")), len(K.collect("groq"))
+    line("ok" if (nm and nq) or mode != "agents" else "warn", "agent keys",
+         f"Mistral {nm}, Groq {nq}, Gemini {ng} (last fallback)" + ("" if nm else " - add MISTRAL_API_KEY to worker/.env"))
     line("ok" if qwen.ok else "info", "Prompt split", "Qwen (QWEN_*)" if qwen.ok else "rule-based (split.py)")
     print("supabase")
     if not bad:
@@ -439,14 +446,19 @@ def cmd_doctor(a) -> int:
         line("FAIL", "studio", f"{site}: {type(e).__name__}")
     if a.keys:
         print("agent keys (model lists only, no generation)")
-        from landing.providers import Gemini, Groq, ProviderError
-        from landing import budget
-        for name, prov in (("gemini", Gemini()), ("groq", Groq(budget.Buckets()))):
+        from landing.providers import Gemini, Groq, Mistral, ProviderError
+        from landing import budget, pipeline as LP
+        for name, prov in (("mistral", Mistral(budget.Buckets())), ("groq", Groq(budget.Buckets())), ("gemini", Gemini())):
             for i, k in enumerate(K.collect(name)):
                 try:
-                    n = len(prov.models(k))
+                    ms = prov.models(k)
                     prov._models = None
-                    line("ok", f"{name} key {i + 1}", f"{n} models")
+                    extra = ""
+                    if name == "mistral":
+                        want = list(dict.fromkeys(LP.PREFS["mistral:vision"] + LP.PREFS["mistral:text"]))
+                        extra = "; " + ", ".join(f"{m} {'(vision)' if prov.vision(m) else '(text)' if m in ms else 'MISSING'}"
+                                                 for m in want)
+                    line("ok", f"{name} key {i + 1}", f"{len(ms)} models{extra}")
                 except ProviderError as e:
                     line("FAIL", f"{name} key {i + 1}", str(e)[:120])
     print("result: " + ("healthy" if not bad else f"{len(bad)} problem(s): " + ", ".join(bad)))

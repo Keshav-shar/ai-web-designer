@@ -12,10 +12,11 @@ type Ev = { id: number; stage: string; message: string; data: Record<string, any
 type Site = { id: string; title: string | null };
 export type Engine = { state: string; last_seen: string; section_mode?: string | null } | null;
 
-const ONLINE_MS = 2 * 60 * 1000;   // the worker beats every ~25 s; 2 min of silence = offline
+const ONLINE_MS = 2 * 60 * 1000;   // the worker beats every 20 s (own thread); 2 min of silence = offline
 const isOnline = (e: Engine) => !!e && e.state !== "offline" && Date.now() - new Date(e.last_seen).getTime() < ONLINE_MS;
 
-/** "Engine online / offline" from the worker's heartbeat row (engine_status), refreshed every 30 s. */
+/** "Engine online / offline" from the worker's heartbeat row (engine_status), refreshed every 20 s. The worker beats
+ *  every 20 s from its own thread, also in the middle of a generation, so the badge holds steady while it works. */
 function EngineBadge({ initial }: { initial: Engine }) {
   const [engine, setEngine] = useState<Engine>(initial);
   const [, tick] = useState(0);
@@ -26,7 +27,7 @@ function EngineBadge({ initial }: { initial: Engine }) {
       setEngine((data as Engine) ?? null);
       tick((n) => n + 1);
     };
-    const t = setInterval(load, 30_000);
+    const t = setInterval(load, 20_000);
     return () => clearInterval(t);
   }, []);
   const on = isOnline(engine);
@@ -39,8 +40,9 @@ function EngineBadge({ initial }: { initial: Engine }) {
       </p>
       {on && engine?.section_mode === "agents" && (
         <p className="mt-2 max-w-[70ch] text-[0.84rem] text-muted">
-          AI pipeline on: your prompt and the engine&rsquo;s reference images are sent to Google Gemini&rsquo;s free tier
-          (Google may use free-tier inputs to improve its products) and to Groq. Don&rsquo;t include private details.
+          AI pipeline on: your prompt and the engine&rsquo;s reference images are sent to Mistral AI&rsquo;s free tier
+          (Mistral may use free-tier inputs to train its models) and to Groq; Google Gemini&rsquo;s free tier is used
+          only as a fallback. Don&rsquo;t include private details.
         </p>
       )}
     </>

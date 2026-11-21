@@ -1,6 +1,6 @@
 """create_user.py - create an invited account: a USERNAME + password (no email anywhere in the app).
 
-    D:\\caches\\venvs\\uifp\\Scripts\\python.exe tools\\create_user.py --username ana [--quota 5]
+    D:\\caches\\venvs\\uifp\\Scripts\\python.exe tools\\create_user.py --username ana [--quota 10]
     ... --password "their-password"        # otherwise a strong one is generated and printed ONCE, here only
 
 Usernames: 3-24 characters of a-z 0-9 . _ - (case-insensitive, stored lower-case, unique).
@@ -48,7 +48,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--username", required=True)
     ap.add_argument("--password", help="at least 10 characters; omit to generate one")
-    ap.add_argument("--quota", type=int, help="sites per 24 h (profiles.daily_quota, default 5)")
+    ap.add_argument("--quota", type=int, help="sites per 24 h (profiles.daily_quota, default 10)")
     a = ap.parse_args(argv)
 
     load_env()

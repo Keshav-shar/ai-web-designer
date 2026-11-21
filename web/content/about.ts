@@ -27,7 +27,7 @@ export const ABOUT = {
     title: "Questions",
     items: [
       ["Where do the images come from?", "A SERP based web-crawling corpus fetches public design references, while specialized clustering algorithms classify them into 39 aesthetic families with ~20 semantic divisions each family. They are shown only to signed-in testers and credited as references."],
-      ["Is any of this written by AI?", "The lab that picks palettes, fonts and imagery makes no AI calls, keeping central engine consistent at O(n) updation complexity and high non-agentic feasability. When serving the results, Gemini and Groq models write the design document and compose the page from those picks; every page is then checked by code before it ships."],
+      ["Is any of this written by AI?", "The lab that picks palettes, fonts and imagery makes no AI calls, keeping central engine consistent at O(n) updation complexity and high non-agentic feasability. When serving the results, Mistral and Groq models write the design document and compose the page from those picks; every page is then checked by code before it ships."],
       ["What keeps it from looking generic?", "The recipe decides palette, type, scale, alignment and imagery from real references with grounded taste alignments, and guardrails repair anything that fails contrast or the vibe's own cues. You can read more about it in the Evidences page."],
     ],
   },

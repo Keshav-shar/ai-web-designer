@@ -3,6 +3,8 @@
    The engine's generated theme (theme/tokens.css, theme/site-components.css, written by tools/build_shell.py) is
    kept for engine demos but no longer skins the app. */
 @import "./theme/cosmogon.css" layer(components);
+/* the studio's pipeline film (components/pipeline) */
+@import "./theme/pipeline.css" layer(components);
 
 @theme inline {
   --color-cream: var(--cream);

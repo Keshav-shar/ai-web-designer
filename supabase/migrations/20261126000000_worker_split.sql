@@ -6,8 +6,9 @@
 --
 -- Order: restart the worker first (it already ignores any stored split), then apply this, then deploy the web.
 
--- 1) A new job has no split until the worker claims it. The existing check (object with 1..300-char queries)
---    evaluates to NULL for a NULL split, so it still guards every split the worker writes.
+-- 1) A new job has no split until the worker claims it.
+--    NOTE: the existing check does NOT pass a NULL split (it evaluates to FALSE); 20261128000000_fix_split_check.sql
+--    rewrites it as "split is null or (...)". Apply that migration too.
 alter table public.jobs alter column split drop not null;
 
 -- 2) Browsers can no longer write a split at all; they set the prompt and nothing else.

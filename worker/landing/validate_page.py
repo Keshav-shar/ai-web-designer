@@ -1,6 +1,6 @@
 """validate_page.py - sanitize a compiled landing page, re-wrap it, and check it invents nothing.
 
-Any page (A5's Gemini output or compile_spec's) goes through here:
+Any page (A5's model output or compile_spec's) goes through here:
   sanitize   keep <style> + <body>; drop <head>, scripts, frames, links, metas, forms, event handlers, external
              URLs (href: '#...' / mailto only; src / url(): the asset manifest only; CSS @import dropped)
   wrap       our own <head>: charset, viewport, CSP, title, the spec's Google Fonts links, plus GUARD css that
@@ -243,15 +243,33 @@ def backdrop_html(spec: dict) -> tuple[str, str]:
                  f'<img src="{H.escape(bg["image"])}" alt="">{tint}</div>')
 
 
+def clamp_z(text: str) -> tuple[str, int]:
+    """z-index values outside Z_MIN..Z_MAX moved inside: above -> Z_MAX - 1 (over the decor layers, under the grain),
+    below -> Z_MIN. -> (text, number changed)."""
+    n = 0
+
+    def sub(m):
+        nonlocal n
+        z = int(m.group(1))
+        if Z_MIN <= z <= Z_MAX:
+            return m.group(0)
+        n += 1
+        return f"z-index:{Z_MAX - 1 if z > Z_MAX else Z_MIN}"
+    return ZINDEX.sub(sub, text), n
+
+
 def check(raw: str, spec: dict, *, drop_motifs=(), inject_backdrop: bool = False, fix_colors_: bool = False) -> dict:
     """-> {html, errors (blocking), advisories, fixes, warnings, dropped}.
     errors = the page is unsafe, invents something or loses content; advisories = taste / completeness notes."""
     assets = {a["path"] for a in spec.get("assets", [])}
     css, body = split_doc(raw)
     css, dropped = sanitize_css(css, assets)
-    snapped = 0
-    if fix_colors_:                                   # code fix: stray colours -> the nearest palette colour
+    snapped = clamped = 0
+    if fix_colors_:                                   # code fixes: stray colours -> the nearest palette colour,
         css, body, snapped = fix_page_colors(css, body, [h for h in spec["palette"].values()])
+        css, n1 = clamp_z(css)                        # z-index outside 0-50 -> inside it (a fact, not a taste call)
+        body, n2 = clamp_z(body)
+        clamped = n1 + n2
     p = _San(assets, drop_motifs)
     p.feed(body)
     p.close()
@@ -321,6 +339,8 @@ def check(raw: str, spec: dict, *, drop_motifs=(), inject_backdrop: bool = False
         fixes.append(f"removed decor that covered text or an image: {', '.join(sorted(drop_motifs))}")
     if snapped:
         fixes.append(f"snapped {snapped} stray colour(s) to the nearest palette colour")
+    if clamped:
+        fixes.append(f"clamped {clamped} z-index value(s) into {Z_MIN}-{Z_MAX} (above {Z_MAX} -> {Z_MAX - 1}, below the grain)")
     if dropped:
         warnings.append(f"sanitized: {', '.join(dict.fromkeys(dropped))[:300]}")
     return {"html": wrap(css, body, spec), "errors": list(dict.fromkeys(errors)),
