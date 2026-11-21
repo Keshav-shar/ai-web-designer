@@ -1,6 +1,8 @@
 import { Poster } from "@/components/cosmos";
 import { PipelineShowcase } from "@/components/pipeline/showcase";
 import { Studio, type Engine } from "@/components/studio";
+import { BARS, Card, Tag } from "@/components/ui";
+import { PROSPECTS } from "@/content/prospects";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -66,6 +68,40 @@ export default async function StudioPage() {
         </p>
         <div className="mt-10">
           <PipelineShowcase />
+        </div>
+      </section>
+      {/* future prospects: what the engine does today and what is being worked on next */}
+      <section className="section band-sand relative z-10 border-y-2 border-ink" aria-labelledby="prospects-title">
+        <div className="container-x">
+          <div className="mb-12 max-w-[44rem]">
+            <p className="eyebrow">{PROSPECTS.eyebrow}</p>
+            <h2 id="prospects-title" className="title">{PROSPECTS.title}</h2>
+            <p className="lede mt-4">{PROSPECTS.lede}</p>
+          </div>
+          <ul className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {PROSPECTS.items.map((it, i) => (
+              <li key={it.name}>
+                <Card bar={BARS[i % BARS.length]} lift className="h-full">
+                  <div className="flex h-full flex-col p-7 pb-8">
+                    <span><Tag tone="gold">{PROSPECTS.status}</Tag></span>
+                    <h3 className="display mt-4 text-[1.75rem] leading-[1.08]">{it.name}</h3>
+                    <p className="mt-4">{it.body}</p>
+                  </div>
+                </Card>
+              </li>
+            ))}
+            <li>
+              <Card className="h-full bg-forest text-cream">
+                <div className="flex h-full flex-col justify-center p-7 pb-8">
+                  <p className="display mt-1 text-[2.1rem] italic leading-[1.02] text-gold"
+                    style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>
+                    {PROSPECTS.closing.lead}
+                  </p>
+                  <p className="mt-4">{PROSPECTS.closing.body}</p>
+                </div>
+              </Card>
+            </li>
+          </ul>
         </div>
       </section>
     </>

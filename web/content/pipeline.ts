@@ -27,8 +27,8 @@ export type SceneCopy = { id: string; act: 0 | 1 | 2; title: string; ms: number;
 export const ACTS = ["Core engine", "One query", "The page"] as const;
 
 export const SCENES: SceneCopy[] = [
-  { id: "serp", act: 0, title: "SERP engine", ms: 6500, beats: [
-    { at: 0, tag: "corpus", text: "The SERP engine fans one idea out into hundreds of searches across public design sites." },
+  { id: "serp", act: 0, title: "Locally-Designed SERP Engine", ms: 6500, beats: [
+    { at: 0, tag: "corpus", text: "The Locally-Designed SERP Engine fans one idea out into hundreds of searches across public design sites." },
     { at: 0.5, tag: "corpus", text: "It starts from real, published design: references people made, not a model's defaults." },
   ] },
   { id: "pool", act: 0, title: "Reference pool", ms: 5500, beats: [

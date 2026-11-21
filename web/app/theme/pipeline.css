@@ -55,6 +55,8 @@
            border-radius: 8px; box-shadow: 10px 10px 0 var(--ink); }
 .pl-dial { width: 72px; height: 72px; margin-bottom: 6px; animation: pl-spin 14s linear infinite; }
 @keyframes pl-spin { to { rotate: 360deg; } }
+.pl-serp-kicker { font-family: var(--ui); font-weight: 600; font-size: 13px; letter-spacing: .22em; text-transform: uppercase;
+                  color: var(--cream); margin-bottom: 4px; }
 .pl-serp-word { font-family: var(--display); font-weight: 900; font-style: italic; font-size: 86px; line-height: .9;
                 font-variation-settings: "SOFT" 100, "WONK" 1; text-shadow: .04em .04em 0 var(--gold), .08em .08em 0 var(--vermilion); }
 .pl-serp-sub { font-family: var(--ui); font-weight: 600; font-size: 22px; letter-spacing: .34em; text-transform: uppercase; color: var(--gold);

@@ -47,7 +47,7 @@ export function EngineLayer({ scene, rm, tiles, cream }: P & { tiles: Tile[]; cr
     <div className={cx("pl-engine", s >= S.cosmogon && "pl-gone")} style={{ transform }}>
       <div className={cx("pl-abs pl-dock", vis(s >= S.dock))} />
 
-      {/* the SERP engine block */}
+      {/* the Locally-Designed SERP Engine block */}
       <div className="pl-abs pl-serp" style={at(50, 190)}>
         <svg className="pl-dial" viewBox="0 0 100 100" aria-hidden="true">
           <circle cx="50" cy="50" r="44" fill="none" stroke={MARIGOLD} strokeWidth="6" strokeDasharray="10 7" />
@@ -55,6 +55,7 @@ export function EngineLayer({ scene, rm, tiles, cream }: P & { tiles: Tile[]; cr
           <path d="M50 50 L50 14" stroke="var(--vermilion)" strokeWidth="6" strokeLinecap="round" />
           <circle cx="50" cy="50" r="7" fill="var(--cream)" />
         </svg>
+        <div className="pl-serp-kicker">Locally-designed</div>
         <div className="pl-serp-word">SERP</div>
         <div className="pl-serp-sub">engine</div>
         <div className="pl-serp-meta">public design search · fan-out</div>
