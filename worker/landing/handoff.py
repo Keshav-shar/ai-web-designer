@@ -7,7 +7,8 @@ recorded; its `sections` are ignored: this path makes one thematic landing page)
   facts    measured alignment, type scale + roles, the lab's font pair and colour tokens
   enums    every real hex the lab measured or derived, every catalogue font the lab shortlisted
   images   the five labelled references for A1 (BACKGROUND / LAYOUT / PALETTE / ELEMENTS / TYPOGRAPHY), with metadata
-  assets   page-eligible images (text-free central graphics, the background) as assets/<ref_id>.webp
+  assets   page-eligible images (text-free central graphics, the background) as assets/<ref_id>.webp: only images
+           that show the request's subject (brief on_page); the rest inspire the agents' own components
 Colour role pairs that pass WCAG are computed after A1 assigns roles (role_pairs / repair_palette).
 """
 from __future__ import annotations
@@ -84,8 +85,8 @@ def build(o: dict, split: dict, brief: dict, files: dict, *, theme: str = "auto"
         im.update(role=role, image=image, use=use)
 
     assets = []
-    for a in brief["assets"]:
-        if a["role"] in ("central", "background") and a["ref_id"] in files:
+    for a in brief["assets"]:        # on_page False: not about the request -> an A1 reference only, never on the page
+        if a["role"] in ("central", "background") and a["ref_id"] in files and a.get("on_page", True):
             assets.append({"ref_id": a["ref_id"], "role": a["role"], "type": a.get("type"), "cluster": a["cluster"],
                            "fam": a["fam"], "id": a["id"], "text": bool(a.get("text")), "path": a["path"],
                            "note": a.get("note"), "local": str(files[a["ref_id"]])})

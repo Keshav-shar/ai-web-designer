@@ -239,8 +239,12 @@ class FakeOpenRouter:
     LIST = {"nvidia/nemotron-3.5-super-vl:free": {"vision": True, "structured": True, "max_out": 131072},
             "google/gemma-4-31b-it:free": {"vision": True, "structured": True, "max_out": 32768},
             "google/gemma-4-26b-a4b-it:free": {"vision": True, "structured": False, "max_out": 32768},
-            "nvidia/nemotron-3-ultra-550b-a55b:free": {"vision": False, "structured": False, "max_out": 65536}}
+            "nvidia/nemotron-3-ultra-550b-a55b:free": {"vision": False, "structured": False, "max_out": 65536},
+            "inclusionai/ling-3.2-flash:free": {"vision": True, "structured": True, "max_out": 262144}}
+    text_ok = False                          # A2-A4 on OpenRouter (the new priority); False = not on their chain
+    text_rate = False                        # OpenRouter's text models answer 429 (-> Groq takes A2-A4)
     quota_day = False                        # the account's free daily pool is used up
+    upstream: set = set()                    # models whose free host is full for every account (429 'upstream')
     a1_messages: list = []
 
     def __init__(self, buckets):
@@ -264,6 +268,8 @@ class FakeOpenRouter:
 
     def chat(self, model, messages, *, key, kid="", schema=None, name="out", max_out=2500, temperature=0.4, **kw):
         Calls.log.append(("openrouter", model, name, key))
+        if model.removeprefix(budget.OR_PREFIX) in FakeOpenRouter.upstream:
+            raise providers.ProviderError("upstream", f"rate-limited upstream: {model} is temporarily rate-limited upstream")
         if FakeOpenRouter.quota_day:
             raise providers.ProviderError("quota_day", "Rate limit exceeded: free-models-per-day")
         if name == "a1":
@@ -274,13 +280,76 @@ class FakeOpenRouter:
         if name == "a5":
             spec = json.loads(messages[-1]["content"].split("\n\nYour previous")[0])
             return providers.Reply(render_doc_page(spec), model, "stop", {"in": 9000, "out": 12000})
+        if name in ("a2", "a3", "a4") and FakeOpenRouter.text_ok:
+            if FakeOpenRouter.text_rate:
+                raise providers.ProviderError("rate", "Rate limit exceeded: free-models-per-min", 40.0)
+            st = STATE["st"]
+            out = {"a2": lambda: flow.default_plan(st), "a3": lambda: flow.default_copy(st, H),
+                   "a4": lambda: flow.default_decor(st)}[name]()
+            return providers.Reply(json.dumps(out), model, "stop", {"in": 1800, "out": 700})
         raise AssertionError(f"OpenRouter is not on {name}'s chain")
 
 
 STATE: dict = {}
 
 
+NEW_CHAINS = dict(pipeline.CHAINS)
+# the routing tests below were written for the previous order; t_priority checks the current one
+LEGACY_CHAINS = {"a1": ["openrouter:vision", "openrouter:vision-alt", "mistral:vision", "gemini"], "a2": ["groq:big", "mistral:text"],
+                 "a3": ["groq:big", "mistral:text"], "a4": ["groq:vision", "groq:big", "mistral:text"],
+                 "a5": ["openrouter:compose", "mistral:compose", "gemini"]}
+
+
+def t_priority(h):
+    """Current order: Gemini first everywhere -> OpenRouter -> (A2-A4) Groq -> Mistral last. Gemini overloaded ->
+    OpenRouter answers A1/A5 and A2-A4; OpenRouter's text models rate-limited -> Groq answers A2-A4."""
+    pipeline.CHAINS = NEW_CHAINS
+    os.environ.update(OPENROUTER_API_KEY="fake-or", MISTRAL_API_KEY="fake-mistral",
+                      LANDING_LEDGER=str(TMP / "quota_priority.json"))
+    cache.ROOT = TMP / "cache_priority"
+    _reset_router()
+    NOTES.clear()
+    FakeGemini.busy = {"gemini-4-hydrogen", "gemini-3.8-flash"}
+    FakeOpenRouter.text_ok = True
+    try:
+        n0 = len(Calls.log)
+        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
+        g_calls = [c for c in Calls.log[n0:] if c[0] == "gemini"]
+        check(len(g_calls) <= 2, f"a busy Gemini model is tried once, then skipped for the next agents ({len(g_calls)} calls)")
+        check(any("skipping it for 10 min" in n for n in NOTES), "terminal: the skip is announced")
+        m = {}
+        for t in r["trace"]:
+            m.setdefault(t["agent"], t.get("model") or "")
+        line = next((n for n in NOTES if n.startswith("models: ")), "")
+        check("A1 gemini-4-hydrogen -> gemini-3.8-flash -> openrouter/" in line
+              and line.split("A2 ")[1].split(";")[0].endswith("openai/gpt-oss-120b -> mistral-medium-latest -> "
+                                                              "ministral-8b-latest -> ministral-14b-latest"),
+              "chains: Gemini first, then OpenRouter, Groq for A2-A4, Mistral last")
+        check(m["a1"].startswith("openrouter/") and m["a5"].startswith("openrouter/"),
+              f"Gemini overloaded: A1 / A5 fall to OpenRouter ({m['a1']}, {m['a5']})")
+        check(all(m[a].startswith("openrouter/") for a in ("a2", "a3", "a4")),
+              f"Gemini overloaded: A2-A4 fall to OpenRouter's text models ({[m[a] for a in ('a2', 'a3', 'a4')]})")
+        FakeOpenRouter.text_rate = True
+        _reset_router()
+        r2 = pipeline.run(h, enabled=True, force_from="a2", qa=False, a5_repair=False, log=lambda *a: None)
+        m2 = {}
+        for t in r2["trace"]:
+            m2.setdefault(t["agent"], t.get("model") or "")
+        check(m2["a2"] == "openai/gpt-oss-120b" and m2["a4"] in ("qwen/qwen3.8-27b", "openai/gpt-oss-120b"),
+              f"OpenRouter's text models at their limit: Groq takes A2-A4 ({m2['a2']}, {m2['a4']})")
+        check(not any(c[0] == "mistral" for c in Calls.log[-20:]), "Mistral is never asked while a provider above it answers")
+    finally:
+        FakeGemini.busy, FakeOpenRouter.text_ok, FakeOpenRouter.text_rate = set(), False, False
+        for k in ("OPENROUTER_API_KEY", "MISTRAL_API_KEY"):
+            os.environ.pop(k, None)
+        os.environ["LANDING_LEDGER"] = str(TMP / "quota.json")
+        cache.ROOT = TMP / "cache"
+        pipeline.CHAINS = LEGACY_CHAINS
+        _reset_router()
+
+
 def patch():
+    pipeline.CHAINS = LEGACY_CHAINS
     pipeline.Gemini, pipeline.Groq, pipeline.Mistral = FakeGemini, FakeGroq, FakeMistral
     pipeline.OpenRouter = FakeOpenRouter
     orig_put = S.State.put
@@ -401,16 +470,16 @@ def t_copy(h):
 
 
 def t_backoff():
-    """A busy Gemini model (503) is retried on the same model with backoff before the router may switch."""
+    """A busy / unavailable Gemini model (503) is not waited on: it raises at once so the next model in line answers.
+    A plain 5xx gets one quick retry on the same model."""
     import httpx
-    calls, sleeps = [], []
-    replies = [503, 503, 200]
+    calls, sleeps, replies = [], [], []
 
     def handler(req):
         calls.append(str(req.url))
-        code = replies.pop(0)
+        code, msg = replies.pop(0)
         if code != 200:
-            return httpx.Response(code, json={"error": {"message": "This model is currently experiencing high demand."}})
+            return httpx.Response(code, json={"error": {"message": msg}})
         return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "ok"}]}, "finishReason": "STOP"}],
                                          "usageMetadata": {"promptTokenCount": 3, "candidatesTokenCount": 1}})
     g = providers.Gemini()
@@ -418,12 +487,21 @@ def t_backoff():
     real_sleep = providers.time.sleep
     providers.time.sleep = sleeps.append
     try:
+        replies[:] = [(503, "This model is currently experiencing high demand."), (200, "")]
+        try:
+            g.generate("gemini-4-hydrogen", "sys", [{"text": "hi"}], key="k")
+            kind = "ok"
+        except providers.ProviderError as e:
+            kind = e.kind
+        check(kind == "overloaded" and len(calls) == 1 and not sleeps,
+              f"a busy Gemini model is not retried or waited on: the router switches at once ({kind}, {len(calls)} call)")
+        calls.clear()
+        replies[:] = [(500, "Internal error"), (200, "")]
         r = g.generate("gemini-4-hydrogen", "sys", [{"text": "hi"}], key="k")
+        check(r.text == "ok" and len(calls) == 2 and sleeps == list(providers.GEMINI_BACKOFF),
+              f"a plain 5xx gets one quick retry on the same model ({len(calls)} calls, waits {sleeps})")
     finally:
         providers.time.sleep = real_sleep
-    check(r.text == "ok" and len(calls) == 3 and all("gemini-4-hydrogen" in u for u in calls),
-          f"503s are retried on the same model ({len(calls)} calls)")
-    check(sleeps == list(providers.OVERLOAD_BACKOFF[:2]), f"with growing backoff ({sleeps})")
 
 
 def t_svg():
@@ -863,13 +941,14 @@ def t_pipeline_openrouter(h):
         for t in r["trace"]:
             tr.setdefault(t["agent"], t)
         vl, ultra = budget.OR_PREFIX + "nvidia/nemotron-3.5-super-vl:free", budget.OR_PREFIX + "nvidia/nemotron-3-ultra-550b-a55b:free"
-        check(tr["a1"]["model"] == vl and tr["a1"]["source"] == "model", f"A1 on Nemotron VL ({tr['a1'].get('model')})")
+        ling = budget.OR_PREFIX + "inclusionai/ling-3.2-flash:free"
+        check(tr["a1"]["model"] == ling and tr["a1"]["source"] == "model", f"A1 on Ling 3.2 Flash ({tr['a1'].get('model')})")
         check(tr["a5"]["model"] == ultra and r["page_source"] == "model",
               f"A5 composes on Nemotron Ultra and its page ships ({tr['a5'].get('model')}, {r['page_source']})")
         a1_chain = next((n for n in NOTES if n.startswith("models: A1 ")), "")
-        check(a1_chain.startswith(f"models: A1 {vl} -> {budget.OR_PREFIX}google/gemma-4-31b-it:free -> mistral")
-              and "gemma-4-26b" not in a1_chain.split(";")[0],
-              f"A1 chain: Nemotron VL -> Gemma 4 31B (26B lacks structured outputs) -> Mistral ({a1_chain[:140]})")
+        check(a1_chain.startswith(f"models: A1 {ling} -> {vl} -> mistral") and "gemma" not in a1_chain.split(";")[0],
+              f"A1's OpenRouter models: Ling -> Nemotron VL, no OpenRouter Gemma (rate-limited upstream; it runs on "
+              f"the Gemini keys) ({a1_chain[:140]})")
         msgs = FakeOpenRouter.a1_messages
         cont = msgs[-1]["content"]
         imgs = [i for i, x in enumerate(cont) if x.get("type") == "image_url"]
@@ -1141,6 +1220,180 @@ def t_doc_page_qa(h):
     check(not c["blocking"], f"a composed 1976-style page has nothing blocking ({c['blocking'][:2]})")
 
 
+def t_relevance_gate():
+    """Only images that show the request's subject go on the page; the rest stay style references."""
+    check(B.query_subject("A wisconsin puppy website") == "A wisconsin puppy", "site words are stripped from the subject")
+    o = {"el": {"central": {"picks": [{"fam": "f", "id": "a", "role": "primary"}],
+                            "cands": [{"fam": "f", "id": "b"}, {"fam": "f", "id": "c"}]}}, "payload": {"elements": {}}}
+    over = []
+    rel = {"a": -0.1, "b": 0.01, "c": 0.06}
+    out = B.clean_central(o, None, over, lambda f, i: rel[i])
+    check([p["id"] for p in out] == ["c", "a"] and out[0]["role"] == "primary" and over,
+          "an off-subject pick: the most relevant candidate over REL_T joins first (logged)")
+    out = B.clean_central(o, None, [], lambda f, i: {"a": 0.05}.get(i, -1.0))
+    check([p["id"] for p in out] == ["a"], "a relevant pick is kept as it is")
+    out = B.clean_central(o, None, [], lambda f, i: -0.2)
+    check([p["id"] for p in out] == ["a"], "nothing relevant: the picks stay (as style references only)")
+
+
+def t_drawn_centerpiece(h):
+    """No image shows the request's subject: A1 may still ask for a centerpiece; A5 gets a drawing item to build
+    (inline SVG / CSS) and the fallback page leaves it out."""
+    h2 = {**h, "assets": [a for a in h["assets"] if a["role"] != "central"]}
+    st = S.State(h2)
+    d = flow.default_doc(h2)
+    d["centerpiece"] = {"use": True, "description": "A round kawaii puppy, cream coat, 4px plum outline, glossy eyes",
+                        "where": "right half of the hero"}
+    flow.after_a1(st, d, h2)
+    cp = st["doc"]["centerpiece"]
+    check(cp["use"] and cp["drawn"], "no on-page image: A1's centerpiece is kept, to be drawn")
+    flow.after_a2(st, flow.default_plan(st))
+    flow.after_a3(st, flow.default_copy(st, h2))
+    flow.after_a4(st, flow.default_decor(st))
+    sp = flow.spec(st)
+    its = [it for s in sp["sections"] for it in s["items"] if it["item_id"] == "centerpiece"]
+    check(len(its) == 1 and its[0]["kind"] == "drawing" and "puppy" in its[0]["description"]
+          and "centerpiece" in sp["item_ids"] and not any(a["role"] == "centerpiece" for a in sp["assets"]),
+          "A5's spec carries a drawing item (hook checked), no image asset")
+    fb, _ = flow.fallback(st, h2)
+    check("centerpiece" not in fb["item_ids"], "the fallback page (which can't draw) leaves the centerpiece out")
+
+
+def t_upstream(h):
+    """A free model rate-limited upstream (its host is full for every account): the router moves on at once, never
+    cycles the keys or waits, and skips it on every key for the agents that follow."""
+    pipeline.CHAINS = NEW_CHAINS
+    os.environ.update(OPENROUTER_API_KEY="fake-or-1,fake-or-2,fake-or-3", MISTRAL_API_KEY="fake-mistral",
+                      LANDING_LEDGER=str(TMP / "quota_upstream.json"))
+    cache.ROOT = TMP / "cache_upstream"
+    _reset_router()
+    NOTES.clear()
+    FakeGemini.busy = {"gemini-4-hydrogen", "gemini-3.8-flash"}
+    FakeOpenRouter.text_ok = True
+    FakeOpenRouter.upstream = {"inclusionai/ling-3.2-flash:free"}
+    try:
+        n0, t0 = len(Calls.log), time.time()
+        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
+        ling = [c for c in Calls.log[n0:] if c[0] == "openrouter" and "ling" in c[1]]
+        check(len(ling) == 1, f"Ling rate-limited upstream: asked once, then skipped on every key for every agent "
+                              f"({len(ling)} call(s))")
+        check(time.time() - t0 < 30, f"no waiting on an upstream limit ({time.time() - t0:.0f}s)")
+        m = {}
+        for t in r["trace"]:
+            m.setdefault(t["agent"], t.get("model") or "")
+        check(m["a1"].endswith("nemotron-3.5-super-vl:free"), f"A1 moves on to Nemotron VL ({m['a1']})")
+        check(all(m[a] in ("openai/gpt-oss-120b", "qwen/qwen3.8-27b") for a in ("a2", "a3", "a4")),
+              f"A2-A4 move on to Groq: Nemotron is out of their chain ({[m[a] for a in ('a2', 'a3', 'a4')]})")
+        check(any("rate-limited upstream" in n and "skipping it for 5 min" in n for n in NOTES),
+              "terminal: the upstream skip is announced")
+    finally:
+        FakeGemini.busy, FakeOpenRouter.text_ok, FakeOpenRouter.upstream = set(), False, set()
+        for k in ("OPENROUTER_API_KEY", "MISTRAL_API_KEY"):
+            os.environ.pop(k, None)
+        os.environ["LANDING_LEDGER"] = str(TMP / "quota.json")
+        cache.ROOT = TMP / "cache"
+        pipeline.CHAINS = LEGACY_CHAINS
+        _reset_router()
+
+
+def t_gemma_thinking():
+    """Gemma 4 on the Gemini API rejects thinkingLevel: it is left out for Gemma, and a model that rejects it is
+    remembered per model, so Hydrogen keeps its thinking level in the same process."""
+    g, bodies = providers.Gemini(), []
+    ok = {"candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": "{}"}]}}], "usageMetadata": {}}
+
+    class R:
+        def __init__(self, code, js):
+            self.status_code, self._js, self.text, self.headers = code, js, json.dumps(js), {}
+
+        def json(self):
+            return self._js
+
+    class Http:
+        @staticmethod
+        def post(url, json=None, headers=None, timeout=None):
+            bodies.append((url, json))
+            if "gemini-x-old" in url and "thinkingConfig" in json["generationConfig"]:
+                return R(400, {"error": {"message": "Thinking level is not supported for this model."}})
+            return R(200, ok)
+    g.http = Http()
+    g.generate("gemma-4-31b-it", "sys", [{"text": "hi"}], key="k")
+    check("thinkingConfig" not in bodies[-1][1]["generationConfig"] and "systemInstruction" in bodies[-1][1],
+          "Gemma: no thinkingLevel sent (system instruction and JSON stay)")
+    g.generate("gemini-x-old", "sys", [{"text": "hi"}], key="k")
+    check("gemini-x-old" in providers.Gemini.no_thinking and providers.Gemini.thinking,
+          "a model that rejects thinkingLevel is remembered for that model only")
+    g.generate("gemini-4-hydrogen", "sys", [{"text": "hi"}], key="k")
+    check("thinkingConfig" in bodies[-1][1]["generationConfig"], "Hydrogen keeps its thinking level")
+    providers.Gemini.no_thinking.discard("gemini-x-old")
+
+
+def t_modal():
+    """The user's Modal GPU: off unless MODAL_BASE + MODAL_API_KEY are set, never listed (that would boot it); the
+    streamed reply is assembled into one completion."""
+    os.environ.pop("MODAL_BASE", None)
+    check(pipeline.Ctx(True).resolve("modal") == [], "Modal not configured: its alias is empty (skipped)")
+    os.environ.update(MODAL_BASE="https://ws--cosmogon-vlm-serve.modal.run/v1", MODAL_API_KEY="fake-modal")
+    try:
+        ctx = pipeline.Ctx(True)
+        r = ctx.resolve("modal")
+        check(r == ["modal/" + pipeline.PREFS["modal"][0]] and ctx.pname(r[0]) == "modal"
+              and providers.modal_base() == "https://ws--cosmogon-vlm-serve.modal.run",
+              f"Modal configured: one model, routed to the modal provider ({r})")
+        b = {"model": r[0], "messages": []}
+        ctx.modal.shape(b)
+        check(b["model"] == pipeline.PREFS["modal"][0] and b["stream"], "Modal: prefix stripped on the wire, streamed")
+        done = providers.sse_completion([
+            'data: {"choices":[{"delta":{"content":"<style>"}}]}', "",
+            'data: {"choices":[{"delta":{"content":"</style><body></body>"},"finish_reason":"stop"}]}',
+            'data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":7}}', "data: [DONE]"])
+        check(done["choices"][0]["message"]["content"] == "<style></style><body></body>"
+              and done["choices"][0]["finish_reason"] == "stop" and done["usage"]["completion_tokens"] == 7,
+              "Modal: the streamed reply is assembled (content, finish, usage)")
+    finally:
+        for k in ("MODAL_BASE", "MODAL_API_KEY"):
+            os.environ.pop(k, None)
+
+
+def t_eta():
+    """The Studio's time left: the steps ahead at their typical times; a slow step keeps a sliver; a finished job pulls
+    each step's typical time toward what it took; the Studio line names a model switch."""
+    import eta as ETA
+    now, p = [1000.0], TMP / "timing.json"
+    p.unlink(missing_ok=True)
+    e = ETA.Eta(p, clock=lambda: now[0])
+    full = sum(ETA.DEFAULT_S[s] for s in ETA.BASE)
+    check(abs(e.remaining() - full) <= 1, f"a fresh job: every step's typical time ({e.remaining()} vs {full:.0f})")
+    now[0] += 30
+    check(abs(e.remaining() - (full - 30)) <= 1, "time spent in a step comes off")
+    e.enter("a1")
+    now[0] += 400                                          # far over A1's typical time
+    after_a1 = sum(ETA.DEFAULT_S[s] for s in ETA.BASE[2:])
+    check(abs(e.remaining() - (after_a1 + 0.15 * ETA.DEFAULT_S["a1"])) <= 1, "an overrunning step keeps a sliver")
+    e.enter("a5")
+    e.enter("repair")
+    check(e.order()[-2:] == ["repair", "publish"], "a repair counts once it starts")
+    e.enter("publish")
+    now[0] += 10
+    e.finish(True)
+    learned = json.loads(p.read_text(encoding="utf-8"))
+    check(learned["a1"] > ETA.DEFAULT_S["a1"] and learned["a2"] == ETA.DEFAULT_S["a2"],
+          f"a slow A1 raises A1's typical time; an unvisited step keeps its own ({learned['a1']})")
+    seen = {"a5": "Gemini 4 Hydrogen"}
+    line = ETA.describe({"kind": "try", "agent": "a5", "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"}, seen)
+    check(line == "Composing the page · Gemini 4 Hydrogen is busy, switched to Nemotron Ultra", f"Studio line: {line}")
+
+
+def t_progress(h):
+    """The pipeline reports every step to its progress hook, in order (the Studio's live lines and time left)."""
+    evs = []
+    pipeline.run(h, enabled=False, force_from="a1", qa=False, log=lambda *a: None, progress=evs.append)   # no cache
+    seq = [(e["kind"], e.get("agent")) for e in evs]
+    want = [("start", "a1"), ("done", "a1"), ("start", "a2"), ("done", "a2"), ("start", "a3"), ("done", "a3"),
+            ("start", "a4"), ("done", "a4"), ("start", "a5"), ("start", "fallback")]
+    check(seq[:len(want)] == want and seq[-1] == ("finish", None), f"progress events in order ({seq})")
+
+
 def main():
     qa = "--qa" in sys.argv
     names = sorted(p.stem for p in FIX.glob("*.json") if not p.stem.startswith("doc_"))
@@ -1159,6 +1412,7 @@ def main():
         t_backdrop(h)
         t_copy_fold(h)
         t_decor_layers(h)
+        t_drawn_centerpiece(h)
         if qa:
             r = pipeline.run(h, enabled=False, qa=True, log=lambda *a: None)
             check(not any("overlaps text" in p or "overflow" in p for x in r["qa"].values() for p in x["problems"]),
@@ -1167,16 +1421,24 @@ def main():
     if qa:
         t_nested_overlap()
     t_svg()
+    t_relevance_gate()
     t_backoff()
     t_state()
     t_budget()
     t_measure()
     t_mistral_provider()
     t_openrouter_provider()
+    t_gemma_thinking()
+    t_modal()
+    t_eta()
     print("--- fake models, no Mistral key: Gemini fallback (routing, repair, the design document, the A5 gate, cache)")
     H = load(names[0])
     patch()
     t_pipeline_models(H, qa)
+    print("--- the current provider priority (Gemini -> OpenRouter -> Groq -> Mistral)")
+    t_priority(H)
+    t_upstream(H)
+    t_progress(H)
     print("--- fake models with a Mistral key (A1 / A5 on Mistral, Groq backup, Gemini last)")
     t_pipeline_mistral(H)
     print("--- fake models with an OpenRouter key (A1 / A5 on OpenRouter, Mistral next)")

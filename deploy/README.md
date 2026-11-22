@@ -104,6 +104,16 @@ Two workers would not double-process a job (claims are atomic in Supabase), but 
 - The service restarts the worker 10 s after any crash, and starts it at boot.
 - If you Stop/Start the instance its public IP changes (only your `ssh`/`scp` address changes).
 - Supabase's free project stays awake: the worker writes a heartbeat every 15 s.
+- Each finished job logs `job <id>: took Ns (route .., a1 .., ...)`; those times keep the Studio's "about N min
+  left" current (`studio/out/_agents/timing.json`, a moving average per step).
+
+### Optional: your own GPU fallback on Modal (A1 / A5)
+When every free model is busy, A1 / A5 can fall through to a model you run yourself on Modal (`modal_vlm.py`:
+vLLM + Qwen3-VL-30B-A3B FP8 on one L40S, paid per second from Modal's $30/month Starter credit). Setup and costs are
+in the file's header: `modal deploy deploy/modal_vlm.py`, then `MODAL_BASE` + `MODAL_API_KEY` in `worker/.env` (PC and
+server) and a worker restart. With `MODAL_WARM=job` (default) the worker boots the GPU when a job starts and keeps it
+up until the job ends (no cold start mid-job, ~10-15 GPU-minutes per job whether used or not); `MODAL_WARM=off` boots it
+only on first use (2-4 min wait then).
 
 ## 7. Teardown (day 7, ~15 min)
 1. Bring back what is worth keeping (PowerShell on the PC):
@@ -132,6 +142,8 @@ Two workers would not double-process a job (claims are atomic in Supabase), but 
 | `cosmogon-worker.service` | systemd unit (restart always, clean SIGTERM exit) |
 | `worker.linux.env` | Linux paths and thread limits (non-secret) |
 | `requirements-linux.txt` | pinned packages from the PC's venv (torch installed separately, CPU wheels) |
+| `datasums.py` | data.tar checksums + a small repair archive for damaged files (no 2.6 GB re-upload) |
+| `modal_vlm.py` | optional: the A1 / A5 GPU fallback on Modal (see 6) |
 
 ## Code changes that make the move possible (no behaviour change on the PC)
 - `worker/brief.py`: the cream root follows `SERPMAN_P1`; manifest paths are rebased when the data moved (`local_dest`).

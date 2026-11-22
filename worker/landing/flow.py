@@ -184,7 +184,9 @@ def normalize_doc(doc: dict, st: S.State, h: dict) -> tuple[dict, list]:
                                "ignored_irrelevant_subjects": [S.cut(x, 60) for x in (bl.get("ignored_irrelevant_subjects") or [])[:6]],
                                "base_surface": S.cut(bl.get("base_surface", ""), 240), "elements": elements["background"]},
           "elements": elements, "content_sections": sections,
-          "centerpiece": {"use": bool(cp.get("use")) and has_c, "description": S.cut(cp.get("description", ""), 240),
+          # no image shows the request's subject (has_c False): A1 may still ask for one, and A5 draws it (drawn)
+          "centerpiece": {"use": bool(cp.get("use")), "drawn": bool(cp.get("use")) and not has_c,
+                          "description": S.cut(cp.get("description", ""), 600),
                           "where": S.cut(cp.get("where", ""), 200)},
           "composition_and_overlap_rules": {
               "alignment_grid": S.cut(rules.get("alignment_grid", ""), 240),
@@ -472,8 +474,14 @@ def legacy_copy(st: S.State) -> dict[str, list]:
 def _fallback_state(st: S.State, h: dict, decorate: bool) -> tuple[S.State, list]:
     from .spatial import agent_areas, scene_for_agent
     fs, log = S.State(h), []
+    cp = st["doc"]["centerpiece"]
     for k in LEGACY_KEYS:
-        fs.put("code", k, st[k])
+        v = st[k]
+        if k == "layout_spec" and not (cp["use"] and not cp.get("drawn")) and v.get("hero", "").startswith("split"):
+            _log(log, "layout_spec.hero", v["hero"], "centered",
+                 "no image in this page's hero: a split layout would leave half the canvas empty")
+            v = {**v, "hero": "centered"}
+        fs.put("code", k, v)
     used = S.uses_bg_image(fs["background_spec"], fs["assets"])
     fb2 = defaults.a2(_view(fs), bg_image=used)
     wg, l1 = spatial.normalize_wireframe(fb2["wireframe_grid"], fb2["wireframe_grid"], used)
@@ -488,7 +496,7 @@ def _fallback_state(st: S.State, h: dict, decorate: bool) -> tuple[S.State, list
                 items.append(x)
             continue
         if x["kind"] == "centerpiece":
-            if st["doc"]["centerpiece"]["use"]:
+            if st["doc"]["centerpiece"]["use"] and not st["doc"]["centerpiece"].get("drawn"):
                 items.append({**x, "text": S.cut(st["doc"]["centerpiece"]["description"], 110) or x["text"]})
             continue
         src = by_kind.get(x["kind"])
@@ -499,7 +507,8 @@ def _fallback_state(st: S.State, h: dict, decorate: bool) -> tuple[S.State, list
             items.append(x)
     L = fs["layout_spec"]
     cl, l2 = spatial.normalize_content({**d3["content_layer"], "brand": st["copy_final"]["brand"], "items": items}, wg,
-                                       fs["pairs"], d3, has_centerpiece=st["doc"]["centerpiece"]["use"],
+                                       fs["pairs"], d3, has_centerpiece=st["doc"]["centerpiece"]["use"]
+                                       and not st["doc"]["centerpiece"].get("drawn"),   # the fallback can't draw
                                        has_bg_image=used, card_ids=[c["card_id"] for c in fs["strategic_cards"]],
                                        fb_wireframe=wg, hero_style=L["hero"], nav_style=L["nav"])
     fs.put("code", "content", cl)

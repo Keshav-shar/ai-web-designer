@@ -386,6 +386,14 @@
           "text": {
             "type": "boolean",
             "description": "lab text detector: the image carries baked-in text"
+          },
+          "relevance": {
+            "type": "number",
+            "description": "CLIP similarity to the request's subject minus a neutral baseline (central / background only)"
+          },
+          "on_page": {
+            "type": "boolean",
+            "description": "false: not about the request; a style reference for the agents only, never placed on the page"
           }
         }
       }

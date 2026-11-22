@@ -15,7 +15,9 @@ TORCH="torch==2.10.0 torchvision==0.25.0"
 say() { printf '\n\033[1;32m== %s\033[0m\n' "$*"; }
 
 [ "$(id -u)" -eq 0 ] || { echo "run with sudo"; exit 1; }
-for f in code.tar.gz data.tar; do [ -f "$SRC/$f" ] || { echo "missing $SRC/$f"; exit 1; }; done
+[ -f "$SRC/code.tar.gz" ] || { echo "missing $SRC/code.tar.gz"; exit 1; }
+# data.tar is needed only until the data is unpacked and verified (.unpacked); after that it can be deleted
+[ -f "$ROOT/data/.unpacked" ] || [ -f "$SRC/data.tar" ] || { echo "missing $SRC/data.tar"; exit 1; }
 
 say "1/8 swap (4 GB): the engine peaks at ~1.6 GB and Chromium adds ~0.4 GB on a 2 GB machine"
 if ! swapon --show=NAME --noheadings | grep -qx /swapfile; then
@@ -28,13 +30,20 @@ free -h
 say "2/8 system packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq --no-install-recommends ca-certificates curl tar time >/dev/null
+# libatomic1: Playwright's bundled Node driver needs it on arm64 and the minimal Ubuntu image lacks it
+# (without it the driver exits at once: "Connection closed while reading from the driver")
+apt-get install -y -qq --no-install-recommends ca-certificates curl tar time libatomic1 >/dev/null
 
 say "3/8 unpack code and data into $ROOT"
 mkdir -p "$ROOT"/{data,cache,tmp}
-tar -xzf "$SRC/code.tar.gz" -C "$ROOT"
-if [ ! -f "$ROOT/data/.unpacked" ] || [ "$SRC/data.tar" -nt "$ROOT/data/.unpacked" ]; then
-  tar -xf "$SRC/data.tar" -C "$ROOT/data" && touch "$ROOT/data/.unpacked"
+if [ -d "$ROOT/studio/out" ]; then                # a re-run keeps the server's own agent state (quota ledger, cache)
+  tar -xzf "$SRC/code.tar.gz" -C "$ROOT" --exclude='studio/out/*'
+else
+  tar -xzf "$SRC/code.tar.gz" -C "$ROOT"
+fi
+if [ ! -f "$ROOT/data/.unpacked" ]; then
+  tar -xf "$SRC/data.tar" -C "$ROOT/data"         # its own line: under `set -e` a failure here stops the script
+  touch "$ROOT/data/.unpacked"
 fi
 mkdir -p "$ROOT/studio/out/_agents" "$ROOT/studio/out/_landing"
 du -sh "$ROOT/data/serpman_data/ui_drafts/p1/context-cream" "$ROOT/data/serpman_data/ui_drafts/p1/_context" \

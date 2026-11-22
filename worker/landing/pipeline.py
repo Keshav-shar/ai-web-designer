@@ -32,7 +32,8 @@ from pathlib import Path
 import jsonschema
 
 from . import budget, cache, compile_spec, defaults, flow, keys, qa as QA, schemas as sc, state as S, validate_page
-from .providers import Gemini, Groq, Mistral, OpenRouter, ProviderError, image_part, image_part_or
+from .providers import (MODAL_PREFIX, Gemini, Groq, Mistral, Modal, OpenRouter, ProviderError, image_part, image_part_or,
+                        modal_base)
 
 PROMPTS = Path(__file__).resolve().parents[2] / "contracts" / "prompts" / "agents"
 OUT = Path(os.getenv("LANDING_OUT", r"D:\serpman-studio\out\_landing"))
@@ -50,24 +51,38 @@ OUT = Path(os.getenv("LANDING_OUT", r"D:\serpman-studio\out\_landing"))
 # image-capable models with structured outputs, "openrouter:compose" models whose output cap fits A5's page).
 # A1 = Ling 3.2 Flash (the user's pick 2026-11-22 after comparing raw A1 documents on the same five references):
 # richest per-image description, thinking off. Nemotron VL and the Gemmas stay as fallbacks.
-PREFS = {"openrouter:vision": ["inclusionai/ling-3.2-flash:free", "nvidia/nemotron-3.5-super-vl:free",
-                               "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"],
+PREFS = {"openrouter:vision": ["inclusionai/ling-3.2-flash:free"],
+         # A1's second OpenRouter pick, behind Gemini 3.6 Flash (measured 2026-11-22 on the real A1 request: 3.6
+         # Flash 66 s, Ling 75 s, Nemotron VL out of output at 9K tokens after 59 s, ~90 s once retried)
+         "openrouter:vision-alt": ["nvidia/nemotron-3.5-super-vl:free"],
          # A5 = Nemotron 3 Ultra 550B (the user's pick 2026-11-22, after comparing raw A5 pages on one A1-A4 spec);
-         # Nemotron VL and Gemma 4 31B stay behind it
-         "openrouter:compose": ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3.5-super-vl:free",
-                                "google/gemma-4-31b-it:free"],
+         # Nemotron VL behind it. Gemma 4 left OpenRouter (its free endpoints are rate-limited upstream for every
+         # account, 2026-11-22): it runs on the user's own Gemini keys instead ("gemini:gemma")
+         "openrouter:compose": ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3.5-super-vl:free"],
          "mistral:vision": ["mistral-medium-latest", "ministral-14b-latest"],
          "mistral:compose": ["mistral-medium-latest", "codestral-latest", "ministral-14b-latest"],
          "mistral:text": ["mistral-medium-latest", "ministral-8b-latest", "ministral-14b-latest"],
-         "openrouter:text": ["inclusionai/ling-3.2-flash:free", "nvidia/nemotron-3.5-super-vl:free"],
-         "gemini": ["gemini-4-hydrogen", "gemini-3.8-flash"], "groq:big": ["openai/gpt-oss-120b"],
+         # A2-A4: Ling only; Nemotron VL ran out of output on all three text agents (2026-11-22), the user removed it
+         "openrouter:text": ["inclusionai/ling-3.2-flash:free"],
+         "gemini": ["gemini-4-hydrogen", "gemini-3.8-flash"],
+         "gemini:flash": ["gemini-3.6-flash"],
+         # Gemma 4 on the Gemini API with the user's own Gemini keys: its own quota, not OpenRouter's shared pool.
+         # Images and strict JSON work; thinkingLevel is rejected (providers.Gemini leaves it out for gemma)
+         "gemini:gemma": ["gemma-4-31b-it", "gemma-4-26b-a4b-it"],
+         # the user's own GPU endpoint (deploy/modal_vlm.py); used only when MODAL_BASE + MODAL_API_KEY are set
+         "modal": [os.getenv("MODAL_MODEL", "Qwen/Qwen3-VL-30B-A3B-Instruct-FP8")],
+         "groq:big": ["openai/gpt-oss-120b"],
          "groq:vision": ["qwen/qwen3.8-27b"]}
-# Priority (the user's call, 2026-11-22): Gemini first everywhere, then OpenRouter; A2-A4 then Groq; Mistral last.
-CHAINS = {"a1": ["gemini", "openrouter:vision", "mistral:vision"],
+# Priority (the user's calls, 2026-11-22): A1 / A5 on the user's picks first (Gemini, then Ling for A1 / Nemotron
+# Ultra for A5). A1: then Gemini 3.6 Flash (faster than Nemotron VL there), Nemotron VL; A5: then Nemotron VL, 3.6 Flash
+# (it ran out of output at 20K tokens on the real A5 request, Ultra finished in 177 s). Then Gemma 4 on the user's
+# Gemini keys, the user's Modal GPU (only when configured), Mistral last. A2-A4: Ling, then Groq, Mistral last.
+CHAINS = {"a1": ["gemini", "openrouter:vision", "gemini:flash", "openrouter:vision-alt", "gemini:gemma", "modal",
+                 "mistral:vision"],
           "a2": [ "openrouter:text", "groq:big", "mistral:text"],
           "a3": ["openrouter:text", "groq:big", "mistral:text"],
           "a4": ["openrouter:text", "groq:vision", "groq:big", "mistral:text"],
-          "a5": ["gemini", "openrouter:compose", "mistral:compose"]}
+          "a5": ["gemini", "openrouter:compose", "gemini:flash", "gemini:gemma", "modal", "mistral:compose"]}
 # A4 is text-only (A1 describes the images); Qwen keeps its own minute window apart from A2/A3's gpt-oss.
 # If every model of a chain is out, the agent falls back to code (the default document / compile_spec).
 MISTRAL_PREFIXES = ("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")
@@ -80,6 +95,13 @@ A1_RES = {"LAYOUT_REF": "high", "TYPOGRAPHY_REF": "high", "ELEMENTS_REF": "mediu
           "PALETTE_REF": "low"}
 WAIT_MAX = 20.0                         # longer waits for a minute window -> try the next model instead
 WAIT_MAX_MISTRAL = 65.0                 # Mistral's free tier is 2 req/min: waiting out the minute is normal there
+# Gemini gets short limits of its own: it answers fast or not at all, and the next model in line takes over
+GEMINI_TIMEOUT = {"a1": 60.0, "a2": 25.0, "a3": 25.0, "a4": 25.0, "a5": 75.0}
+# OpenRouter's free models are slow but good (Ling ~150-220 s on A1 and ~100 s on A3, Nemotron Ultra ~140-200 s on A5)
+OPENROUTER_TIMEOUT = {"a1": 240.0, "a2": 120.0, "a3": 120.0, "a4": 120.0, "a5": 240.0}
+GEMINI_SKIP_S = 600.0                   # a Gemini model that was busy / timed out is skipped this long, on every key
+UPSTREAM_SKIP_S = 300.0                 # an OpenRouter free model rate-limited upstream: skipped this long, on every key
+MODAL_TIMEOUT = {"a1": 600.0, "a2": 300.0, "a3": 300.0, "a4": 300.0, "a5": 600.0}   # per read: covers a cold boot
 TIMEOUT = {"a1": 100.0, "a2": 30.0, "a3": 30.0, "a4": 30.0, "a5": 100.0}
 STICKY_S = 600.0                       # after a switch to the alternate, stay on it this long before retrying the primary
 ORDER = ["a1", "a2", "a3", "a4", "a5"]
@@ -104,16 +126,19 @@ class NoModel(RuntimeError):
 
 
 class Ctx:
-    def __init__(self, enabled: bool, log=print):
+    def __init__(self, enabled: bool, log=print, progress=None):
         self.enabled, self.log = enabled, log
+        self.progress = progress or (lambda ev: None)    # {kind: start / try / done / check / finish, agent, model}
         self.buckets, self.ledger = budget.Buckets(), budget.Ledger()
         self.gemini, self.groq, self.mistral = Gemini(), Groq(self.buckets), Mistral(self.buckets)
-        self.openrouter = OpenRouter(self.buckets)
-        self.rings = {p: keys.Ring(p if enabled else "") for p in ("openrouter", "mistral", "groq", "gemini")}
+        self.openrouter, self.modal = OpenRouter(self.buckets), Modal(self.buckets)
+        self.rings = {p: keys.Ring(p if enabled else "") for p in ("openrouter", "mistral", "groq", "gemini", "modal")}
         self.resolved: dict[str, list[str]] = {}
 
     @staticmethod
     def pname(model: str) -> str:
+        if model.startswith(MODAL_PREFIX):
+            return "modal"
         if model.startswith(budget.OR_PREFIX):
             return "openrouter"
         if model.startswith(("gemini", "gemma")):
@@ -122,6 +147,8 @@ class Ctx:
 
     def resolve(self, alias: str) -> list[str]:
         """Alias -> its preferred models that this provider lists (checked with the first key that works)."""
+        if alias not in self.resolved and alias.split(":", 1)[0] == "modal":   # listing would boot the GPU: trust the config
+            self.resolved[alias] = [MODAL_PREFIX + m for m in PREFS[alias]] if modal_base() and len(self.rings["modal"]) else []
         if alias not in self.resolved:
             name = alias.split(":", 1)[0]
             ring, prov = self.rings[name], self.provider(name)
@@ -136,7 +163,7 @@ class Ctx:
                     picks = [m for m in PREFS[alias] if m in live]
                     if alias == "mistral:vision":
                         picks = [m for m in picks if prov.vision(m)]
-                    if alias == "openrouter:vision":
+                    if alias.startswith("openrouter:vision"):
                         picks = [m for m in picks if prov.vision(m) and prov.structured(m)]
                     if alias == "openrouter:compose":      # no stated cap: keep it and let the reply decide
                         picks = [m for m in picks if (prov.caps(m).get("max_out") or MAX_OUT["a5"]) >= MAX_OUT["a5"]]
@@ -154,7 +181,8 @@ class Ctx:
         return self.resolved[alias]
 
     def provider(self, name: str):
-        return {"gemini": self.gemini, "groq": self.groq, "mistral": self.mistral, "openrouter": self.openrouter}[name]
+        return {"gemini": self.gemini, "groq": self.groq, "mistral": self.mistral, "openrouter": self.openrouter,
+                "modal": self.modal}[name]
 
     def _openrouter_key(self, ring, i: int) -> None:
         """Check an OpenRouter key once (a bad key raises 'auth') and adopt the account's free daily pool and how much
@@ -224,6 +252,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                               f"all {len(ring)} {ring.provider} key(s) are out for today or rejected"})
                 minute_only = False
                 continue
+            ctx.progress({"kind": "try", "agent": agent, "model": model})
             req = build(model)
             next_model = False
             for n, i in enumerate(order):
@@ -247,7 +276,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                 budget.GEMINI_IMAGE.get(p.get("res", "high"), 1120) for p in parts if "image" in p) + (
                                 budget.est_text(json.dumps(schema, separators=(",", ":"))) if schema else 0)
                             reply = ctx.gemini.generate(model, system, parts, key=key, schema=schema, max_out=out_cap,
-                                                        temperature=TEMP[agent], timeout=TIMEOUT[agent],
+                                                        temperature=TEMP[agent], timeout=GEMINI_TIMEOUT[agent],
                                                         thinking=THINK.get(agent, "low"))
                         else:
                             kind, messages, schema, est = req
@@ -266,7 +295,8 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                 time.sleep(wait)
                             reply = prov.chat(model, messages, key=key, kid=kid, schema=schema, name=agent,
                                                   max_out=out_cap, temperature=TEMP[agent], strict=strict,
-                                                  timeout=TIMEOUT[agent])
+                                                  timeout=(OPENROUTER_TIMEOUT if kind == "openrouter" else
+                                                           MODAL_TIMEOUT if kind == "modal" else TIMEOUT)[agent])
                         u = reply.usage
                         ctx.ledger.record(model, u.get("in", 0) + u.get("out", 0) + u.get("thinking", 0), kid)
                         ctx.buckets.note(model, max(0, u.get("in", 0) - u.get("cached", 0)) + u.get("out", 0)
@@ -293,6 +323,15 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                         + " (skipped for this key for 6 h)")
                             tried.append({"model": model, "key": label, "skip": "not on this key's tier"})
                             minute_only = False
+                            break
+                        if e.kind == "upstream":           # the free model's host is full for everyone: no key helps
+                            for j in range(len(ring)):
+                                ring.cool_down(j, model, UPSTREAM_SKIP_S)
+                            tried.append({"model": model, "key": label, "error": "rate-limited upstream"})
+                            keys.notify(f"{agent.upper()}: {model} is rate-limited upstream (shared free capacity, every "
+                                        f"key) -> {after(model)}; skipping it for {UPSTREAM_SKIP_S / 60:.0f} min")
+                            minute_only = False
+                            next_model = True
                             break
                         if e.kind == "rate":
                             ring.cool_down(i, model, e.retry_after or 60)
@@ -328,8 +367,19 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                         + (f" -> using {nxt}" if nxt else ""))
                             tried.append({"model": model, "key": label, "error": "key rejected"})
                             break
+                        if req[0] == "gemini" and e.kind in ("overloaded", "timeout", "server"):
+                            for j in range(len(ring)):                # Google-side trouble: every key, for a while
+                                ring.cool_down(j, model, GEMINI_SKIP_S)
+                            tried.append({"model": model, "key": label, "error": str(e)[:240],
+                                          "s": round(time.time() - t_key, 1)})
+                            keys.notify(f"{agent.upper()}: {model} {e.kind} ({str(e)[:90]}) -> {after(model)}; "
+                                        f"skipping it for {GEMINI_SKIP_S / 60:.0f} min")
+                            next_model = True
+                            break
                         if e.kind == "timeout" and attempt == 0:   # slow is not broken: once more, same model
-                            keys.notify(f"{agent.upper()}: {model} took over {TIMEOUT[agent]:.0f}s; retrying it once")
+                            keys.notify(f"{agent.upper()}: {model} took over "
+                                        f"{(OPENROUTER_TIMEOUT if req[0] == 'openrouter' else TIMEOUT)[agent]:.0f}s; "
+                                        f"retrying it once")
                             continue
                         tried.append({"model": model, "key": label, "error": str(e)[:240],  # not a key problem
                                       "s": round(time.time() - t_key, 1)})
@@ -391,6 +441,15 @@ def semantic(agent: str, out: dict) -> list[str]:
 
 def run_agent(ctx: Ctx, st: S.State, agent: str, schema: dict, build, default, force: bool, trace: list,
               extra_key=None) -> dict:
+    ctx.progress({"kind": "start", "agent": agent})
+    out = _run_agent(ctx, st, agent, schema, build, default, force, trace, extra_key)
+    t = trace[-1] if trace and trace[-1].get("agent") == agent else {}
+    ctx.progress({"kind": "done", "agent": agent, "source": t.get("source"), "model": t.get("model"), "ms": t.get("ms")})
+    return out
+
+
+def _run_agent(ctx: Ctx, st: S.State, agent: str, schema: dict, build, default, force: bool, trace: list,
+               extra_key=None) -> dict:
     slc = S.slice_for(st, agent)
     dig = S.digest(st) if agent in ("a2", "a3", "a4") else None
     sys_text = prompt(agent) + (prompt("preamble") if dig is not None else "")
@@ -495,10 +554,12 @@ def classify(chk: dict, qa_res: dict | None) -> dict:
 
 # --------------------------------------------------------------------------- the run
 def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir: Path | None = None,
-        qa: bool = True, log=print, a5_repair: bool = True) -> dict:
+        qa: bool = True, log=print, a5_repair: bool = True, progress=None) -> dict:
+    """progress(event) (optional) hears every step: {kind: start | try | done, agent, model} for A1-A5,
+    {kind: check} while A5's page is measured, {kind: start, agent: repair | fallback}, {kind: finish, source}."""
     from . import providers as P
     t0 = time.time()
-    ctx = Ctx(enabled, log)
+    ctx = Ctx(enabled, log, progress)
     if enabled:
         keys.notify(f"models: {ctx.describe()}")
         first = {a: (ctx.chain(a) or ["code default"])[0].removeprefix(budget.OR_PREFIX) for a in ("a1", "a5")}
@@ -522,7 +583,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                     parts += [{"text": sc.image_header(lbl, pos, im["cluster"], im["text"])},
                               {"image": im["local"], "res": A1_RES[lbl]}]
                 return ("gemini", prompt("a1"), parts, s1)
-            if ctx.pname(model) == "openrouter":    # text first, then each image right after its role header
+            if ctx.pname(model) in ("openrouter", "modal"):   # text first, then each image right after its role header
                 content = [{"type": "text", "text": text}]
                 est = budget.est_text(prompt("a1") + text)
                 for pos, lbl, im in sent:
@@ -530,7 +591,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                     content += [{"type": "text", "text": head}, image_part_or(im["local"], OR_SIDE[A1_RES[lbl]])]
                     est += budget.est_text(head) + budget.OR_IMAGE[A1_RES[lbl]]
                 msgs = [{"role": "system", "content": prompt("a1")}, {"role": "user", "content": content}]
-                return ("openrouter", msgs, s1, est)
+                return (ctx.pname(model), msgs, s1, est)
             if ctx.pname(model) == "mistral":       # every image right after its role header, like Gemini's parts
                 content = [{"type": "text", "text": text}]
                 est = budget.est_text(prompt("a1") + text)
@@ -629,10 +690,12 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                       "blocking": c1["blocking"][:4], "advisory": c1["advisory"][:6], "fixes": c1["fixes"]})
         if c1["blocking"]:
             cache.drop("a5", k5)
+    ctx.progress({"kind": "start", "agent": "a5"})
     if not cands and ctx.enabled:
         tried = []
         try:
             raw, model, meta, tried = call(ctx, "a5", build5(None), MAX_OUT["a5"])
+            ctx.progress({"kind": "check", "agent": "a5", "model": model, "ms": meta.get("ms")})
             c1 = evaluate(raw, "model", model)
             trace.append({"agent": "a5", "source": "model", "model": model, "key": meta.get("key"),
                           "usage": meta.get("usage"), "est_in": meta.get("est_in"), "ms": meta.get("ms"), "tried": tried,
@@ -646,6 +709,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         notes = last["blocking"] + last["advisory"]
         keys.notify(f"A5: {len(last['blocking'])} blocking / {len(last['advisory'])} advisory finding(s) on "
                     f"{last['model']}'s page; sending them back once")
+        ctx.progress({"kind": "start", "agent": "repair", "model": last["model"]})
         try:
             raw2, model2, meta2, _ = call(ctx, "a5", build5(notes[:10]), MAX_OUT["a5"])
             c2 = evaluate(raw2, "repaired", model2)
@@ -664,6 +728,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         overrides += [{"token": "a5", "from": None, "to": None, "why": f} for f in best["fixes"]]
     else:                                                # the deterministic compile_spec page, same design document
         why = "agents off" if not ctx.enabled else (cands[-1]["blocking"][:4] if cands else "no model page")
+        ctx.progress({"kind": "start", "agent": "fallback"})
         if cands:
             cache.drop("a5", k5)
         spec, flog = flow.fallback(st, h)
@@ -703,6 +768,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
               "ms": int((time.time() - t0) * 1000)}
     (od / "result.json").write_text(json.dumps({k: v for k, v in result.items() if k != "spec"}, indent=1, default=str),
                                     encoding="utf-8")
+    ctx.progress({"kind": "finish", "source": source})
     return result
 
 

@@ -112,6 +112,9 @@ def _http() -> httpx.Client:
 class Gemini:
     per_part_res = True                       # flipped off for the process if the API rejects per-part resolution
     thinking = True
+    # models that rejected thinkingConfig (Gemma 4: "Thinking level is not supported for this model", 2026-11-22):
+    # left out for THAT model only, so Hydrogen / Flash keep their thinking level in the same process
+    no_thinking: set[str] = set()
 
     def __init__(self):
         self.http = _http()
@@ -148,7 +151,7 @@ class Gemini:
             cfg = {"temperature": temperature, "maxOutputTokens": max_out}
             if schema is not None:
                 cfg.update(responseMimeType="application/json", responseJsonSchema=sc.inline_refs(sc.provider_schema(schema)))
-            if self.thinking:
+            if self.thinking and not model.startswith("gemma") and model not in Gemini.no_thinking:
                 cfg["thinkingConfig"] = {"thinkingLevel": thinking}
             if not self.per_part_res and any("image" in p for p in parts):
                 cfg["mediaResolution"] = "MEDIA_RESOLUTION_HIGH"
@@ -186,8 +189,8 @@ class Gemini:
             if r.status_code == 400 and self.per_part_res and "mediaresolution" in low.replace("_", ""):
                 Gemini.per_part_res = False
                 continue
-            if r.status_code == 400 and self.thinking and "thinking" in low:
-                Gemini.thinking = False
+            if r.status_code == 400 and "thinkingConfig" in cfg and "thinking" in low:
+                Gemini.no_thinking.add(model)
                 continue
             if r.status_code == 429:
                 delay = 0.0
@@ -201,21 +204,20 @@ class Gemini:
             if r.status_code == 404:
                 raise ProviderError("bad_request", f"model {model} not found")
             if r.status_code in (500, 502, 503, 504):
+                busy = "high demand" in low or "overloaded" in low or "unavailable" in low or r.status_code == 503
                 overloads += 1
-                if overloads <= len(OVERLOAD_BACKOFF):     # be patient with the same model before switching
-                    from . import keys
-                    wait = OVERLOAD_BACKOFF[overloads - 1]
-                    keys.notify(f"{model} busy (HTTP {r.status_code}); retrying the same model in {wait:.0f}s "
-                                f"({overloads}/{len(OVERLOAD_BACKOFF)})")
-                    time.sleep(wait)
+                # Gemini saying it is busy / unavailable: switch at once (the next model in line answers sooner than a
+                # retry does); any other server error gets one quick retry on the same model
+                if not busy and overloads <= len(GEMINI_BACKOFF):
+                    time.sleep(GEMINI_BACKOFF[overloads - 1])
                     continue
-                busy = "high demand" in low or "overloaded" in low or r.status_code == 503
                 raise ProviderError("overloaded" if busy else "server", f"HTTP {r.status_code}: {_brief(msg)}")
             raise ProviderError("server" if r.status_code >= 500 else "bad_request", f"HTTP {r.status_code}: {_brief(msg)}")
         raise ProviderError("server", "retries exhausted")
 
 
-OVERLOAD_BACKOFF = (5.0, 15.0, 30.0)                # seconds between retries of a busy model
+OVERLOAD_BACKOFF = (5.0, 15.0, 30.0)                # seconds between retries of a busy model (Mistral, OpenRouter)
+GEMINI_BACKOFF = (3.0,)                             # Gemini: one quick retry on a plain 5xx; busy/unavailable -> switch
 # A dropped connection (WinError 10051 "unreachable network", 10054 reset, DNS blips) is usually over within seconds on
 # this PC: retry the same request a few times before the router gives the model up (it used to be 1 s / 2 s only).
 NET_BACKOFF = (2.0, 4.0, 8.0, 15.0)
@@ -303,8 +305,7 @@ class OpenAICompat:
                 self.buckets.pace(self.name, kid, self.pace_s)
             t0 = time.time()
             try:
-                r = self.http.post(f"{self.base}/chat/completions", json=body,
-                                   headers={"Authorization": f"Bearer {key}"}, timeout=httpx.Timeout(timeout, connect=15))
+                r = self._post(body, key, timeout)
             except httpx.TimeoutException as e:
                 raise ProviderError("timeout", f"no reply within {timeout:.0f}s ({type(e).__name__})") from None
             except httpx.HTTPError as e:
@@ -324,6 +325,8 @@ class OpenAICompat:
                         overloads += 1
                         time.sleep(self.backoff()[overloads - 1])
                         continue
+                    if code == "429" and "upstream" in json.dumps(err).lower():
+                        raise ProviderError("upstream", f"rate-limited upstream (inside a 200 reply): {why}", 0.0)
                     raise ProviderError("rate" if code == "429" else "server", f"error inside a 200 reply: {why}",
                                         20.0 if code == "429" else 0.0)
                 ch = d["choices"][0]
@@ -375,6 +378,10 @@ class OpenAICompat:
             raise ProviderError("overloaded" if r.status_code == 503 else "server" if r.status_code >= 500 else
                                 "bad_request", f"HTTP {r.status_code}: {_brief(msg)}")
         raise ProviderError("server", "retries exhausted")
+
+    def _post(self, body: dict, key: str, timeout: float) -> httpx.Response:
+        return self.http.post(f"{self.base}/chat/completions", json=body, headers={"Authorization": f"Bearer {key}"},
+                              timeout=httpx.Timeout(timeout, connect=15))
 
     def shape(self, body: dict) -> None:
         """Provider-specific changes to a request body, made once before it is sent."""
@@ -523,6 +530,12 @@ class OpenRouter(OpenAICompat):
     def special(self, r: httpx.Response, low: str, model: str) -> ProviderError | None:
         h = {k.lower(): v for k, v in r.headers.items()}
         brief = _brief(r.text[:600])
+        if r.status_code == 429 and "upstream" in low:
+            # "<model> is temporarily rate-limited upstream": the free model's host (Ant for Ling, Google AI Studio for
+            # Gemma) is saturated for EVERY OpenRouter user, so another key or account can't help (measured on all 4
+            # keys, 2026-11-22): the router moves to the next model at once and skips this one for a while
+            raw = re.search(r'"raw":\s*"([^"]{1,200})', r.text)
+            return ProviderError("upstream", f"rate-limited upstream: {raw.group(1) if raw else brief}")
         if r.status_code == 429:
             ra = float(h.get("retry-after") or 0)
             if not ra and h.get("x-ratelimit-reset"):
@@ -548,6 +561,89 @@ class OpenRouter(OpenAICompat):
 
     def backoff(self) -> tuple:
         return OVERLOAD_BACKOFF
+
+
+# --------------------------------------------------------------------------- Modal (the user's own GPU endpoint)
+MODAL_PREFIX = "modal/"                  # pipeline ids: 'modal/<hf model id>' (the prefix is stripped on the wire)
+
+
+def modal_base() -> str:
+    """The user's Modal endpoint (deploy/modal_vlm.py), e.g. https://<workspace>--cosmogon-vlm-serve.modal.run;
+    '' when MODAL_BASE isn't set (the pipeline then skips the modal alias). Read at call time."""
+    v = os.getenv("MODAL_BASE", "").strip().rstrip("/")
+    return v[:-3] if v.endswith("/v1") else v
+
+
+class Modal(OpenAICompat):
+    """vLLM's OpenAI-compatible server on the user's Modal account (deploy/modal_vlm.py), at MODAL_BASE with
+    MODAL_API_KEY (the token vLLM checks). Not a shared pool: no per-minute or daily limit, the GPU is the only cap.
+    Replies are streamed: a long A5 page keeps bytes flowing, so the web proxy never cuts a quiet request, and a cold
+    container (minutes to boot; the worker warms it at the start of every job, worker.ModalWarmer) is a slow first
+    byte rather than an error. Its models are never listed: a listing would itself boot the GPU."""
+    name = "modal"
+    max_field = "max_tokens"
+    drop_params = ()
+
+    @property
+    def base(self) -> str:
+        return modal_base() + "/v1"
+
+    def models(self, key: str) -> list[str]:
+        return []
+
+    def vision(self, model: str) -> bool:
+        return True
+
+    def shape(self, body: dict) -> None:
+        body["model"] = body["model"].removeprefix(MODAL_PREFIX)
+        body["stream"] = True
+        body["stream_options"] = {"include_usage": True}
+
+    def _post(self, body: dict, key: str, timeout: float) -> httpx.Response:
+        """Stream the reply and hand chat() one ordinary completion (content, finish_reason, usage)."""
+        with self.http.stream("POST", f"{self.base}/chat/completions", json=body,
+                              headers={"Authorization": f"Bearer {key}"},
+                              timeout=httpx.Timeout(timeout, connect=30)) as r:
+            if r.status_code != 200:
+                r.read()
+                return r
+            return httpx.Response(200, json=sse_completion(r.iter_lines()), headers=dict(r.headers))
+
+    def backoff(self) -> tuple:
+        return (10.0, 20.0, 30.0, 60.0)       # a 502/503 while the container boots: give it time
+
+
+def sse_completion(lines) -> dict:
+    """OpenAI-style server-sent events (data: {...chunk...} / data: [DONE]) -> one chat completion dict."""
+    text, finish, usage = [], "", {}
+    for line in lines:
+        if not line.startswith("data:"):
+            continue
+        data = line[5:].strip()
+        if data == "[DONE]":
+            break
+        d = json.loads(data)
+        if d.get("error"):
+            return {"error": d["error"]}
+        for ch in d.get("choices") or []:
+            text.append((ch.get("delta") or {}).get("content") or "")
+            finish = ch.get("finish_reason") or finish
+        if d.get("usage"):
+            usage = d["usage"]
+    return {"choices": [{"message": {"content": "".join(text)}, "finish_reason": finish}], "usage": usage}
+
+
+def modal_health(timeout: float) -> str:
+    """GET <MODAL_BASE>/health (vLLM's, no key needed). The request itself boots a cold container; it returns once
+    the server is up (or the timeout passes). -> 'up', 'HTTP <n>', the error name, or 'off' when not configured."""
+    base = modal_base()
+    if not base:
+        return "off"
+    try:
+        r = httpx.get(f"{base}/health", timeout=httpx.Timeout(timeout, connect=30), follow_redirects=True)
+        return "up" if r.status_code == 200 else f"HTTP {r.status_code}"
+    except httpx.HTTPError as e:
+        return type(e).__name__
 
 
 def image_part_or(path: str | Path, side: int, quality: int = 90) -> dict:

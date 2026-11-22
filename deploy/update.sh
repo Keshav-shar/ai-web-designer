@@ -14,7 +14,12 @@ install -m 644 "$ROOT/studio/deploy/worker.linux.env" "$ROOT/worker.env"
 sed "s/__USER__/$U/" "$ROOT/studio/deploy/cosmogon-worker.service" > /etc/systemd/system/cosmogon-worker.service
 chown -R "$U:$U" "$ROOT/studio" "$ROOT/lab"
 systemctl daemon-reload
-systemctl restart cosmogon-worker
-sleep 3
-systemctl --no-pager --lines=5 status cosmogon-worker || true
-echo "updated; follow with: journalctl -u cosmogon-worker -f"
+# restart only if it is already serving: before the switch-over (step 5) an update must not start it
+if systemctl is-active --quiet cosmogon-worker; then
+  systemctl restart cosmogon-worker
+  sleep 3
+  systemctl --no-pager --lines=5 status cosmogon-worker || true
+  echo "updated and restarted; follow with: journalctl -u cosmogon-worker -f"
+else
+  echo "updated (the service is not running, so it was not started)"
+fi

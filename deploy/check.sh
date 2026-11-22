@@ -19,10 +19,20 @@ step "2/3 test_landing.py (offline)"
 LANDING_TEST_TMP="$ROOT/tmp" "$PY" test_landing.py 2>&1 | grep -E "^FAIL|ALL PASS|FAILED" || fail=1
 
 step "3/3 one page, end to end (uses 2-3 free model requests)"
-/usr/bin/time -v "$PY" worker.py once --prompt "a retro 1976 analog synth and vinyl festival, warm and loud" \
-  --out "$ROOT/tmp/check-page" 2> "$ROOT/tmp/check-time.txt" || fail=1
-grep -E "Maximum resident set size|Elapsed \(wall clock\)" "$ROOT/tmp/check-time.txt" || true
-ls -la "$ROOT/tmp/check-page" 2>/dev/null | head -12
+# time's report goes to its own file (-o), so the worker's own stderr (router notices, any traceback) stays visible
+# and is also kept in check-page.log for later reading
+/usr/bin/time -v -o "$ROOT/tmp/check-time.txt" "$PY" worker.py once \
+  --prompt "a retro 1976 analog synth and vinyl festival, warm and loud" --out "$ROOT/tmp/check-page" \
+  2> >(tee "$ROOT/tmp/check-page.log" >&2)
+rc=$?
+grep -E "Maximum resident set size|Elapsed \(wall clock\)|Exit status" "$ROOT/tmp/check-time.txt" || true
+if [ $rc -ne 0 ] || [ ! -f "$ROOT/tmp/check-page/index.html" ]; then
+  fail=1
+  echo "--- the page run failed (exit $rc); last lines of $ROOT/tmp/check-page.log:"
+  tail -n 40 "$ROOT/tmp/check-page.log"
+else
+  ls -la "$ROOT/tmp/check-page" | head -12
+fi
 free -h
 
 if [ $fail -eq 0 ]; then

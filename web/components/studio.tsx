@@ -40,9 +40,9 @@ function EngineBadge({ initial }: { initial: Engine }) {
       </p>
       {on && engine?.section_mode === "agents" && (
         <p className="mt-2 max-w-[70ch] text-[0.84rem] text-muted">
-          AI pipeline on: your prompt and the engine&rsquo;s reference images are sent to free models on OpenRouter
-          (NVIDIA Nemotron, Google Gemma; free endpoints may log inputs or use them for training) and to Groq; Mistral
-          AI&rsquo;s and Google Gemini&rsquo;s free tiers are used only as fallbacks. Don&rsquo;t include private details.
+          AI pipeline on: your prompt and the engine&rsquo;s reference images are sent to Google Gemini and Gemma&rsquo;s
+          free tier, to free models on OpenRouter (Ling, NVIDIA Nemotron) and to Groq; free tiers may log inputs or use
+          them for training. Mistral AI&rsquo;s free tier is the last fallback. Don&rsquo;t include private details.
         </p>
       )}
     </>
@@ -58,6 +58,72 @@ const STATUS: Record<string, string> = {
 };
 const FAILED_FALLBACK = "The engine couldn't build this one. Try rephrasing it: what it is + how it should feel.";
 
+/** The pipeline's steps as the worker reports them (worker/eta.py); repair / backup page count as the check step. */
+const STEPS: [string, string][] = [["route", "Routing"], ["a1", "References"], ["a2", "Layout"], ["a3", "Copy"],
+  ["a4", "Decor"], ["a5", "Compose"], ["check", "Check"], ["publish", "Preview"]];
+const stepIndex = (s?: string) => s === "repair" || s === "fallback" ? 6 : Math.max(0, STEPS.findIndex(([k]) => k === s));
+
+function timeLeft(s: number): string {
+  if (s <= 1) return "Finishing up";
+  if (s < 45) return "Under a minute left";
+  if (s < 90) return "About a minute left";
+  return `About ${Math.round(s / 60)} min left`;
+}
+const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+/** Live progress: the step track, the latest pipeline line, the expected time left (counted down between events). */
+function Progress({ events, recv, title, onCancel, cancelling }: {
+  events: Ev[]; recv: Map<number, number>; title: string; onCancel: () => void; cancelling: boolean;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const timed = [...events].reverse().find((e) => typeof e.data?.eta_s === "number");
+  const since = timed ? (now - (recv.get(timed.id) ?? now)) / 1000 : 0;
+  const left = timed ? Math.max(0, timed.data!.eta_s - since) : null;
+  const elapsed = timed ? timed.data!.elapsed_s + since : null;
+  const cur = stepIndex(timed?.data?.step);
+  const lines = events.filter((e) => e.data?.ui).map((e) => e.message);
+  const recent = lines.slice(-4, -1).reverse();
+  return (
+    <Card bar="gold" className="overflow-hidden">
+      <div className="space-y-4 px-5 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-ui text-[0.95rem] font-semibold uppercase tracking-[0.12em] text-ink">{title}</p>
+            {left !== null && (
+              <p className="meta mt-1">{timeLeft(left)} · {clock(elapsed ?? 0)} elapsed</p>
+            )}
+          </div>
+          <button type="button" onClick={onCancel} disabled={cancelling} className="btn btn-ghost btn-sm shrink-0">
+            {cancelling ? "Cancelling…" : "Cancel"}
+          </button>
+        </div>
+        {timed && (
+          <ol className="grid grid-cols-8 gap-1.5" aria-label="Pipeline steps">
+            {STEPS.map(([k, label], i) => (
+              <li key={k} className="min-w-0" aria-current={i === cur ? "step" : undefined}>
+                <span className={cx("block h-1.5 rounded-full", i < cur ? "bg-teal" : i === cur ? "bg-gold" : "bg-line")} />
+                <span className={cx("mt-1 hidden truncate text-[0.72rem] sm:block", i === cur ? "font-semibold text-ink" : "text-muted")}>
+                  {label}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+        {recent.length > 0 && (
+          <ul className="space-y-0.5 text-[0.84rem] text-muted">
+            {recent.map((m, i) => <li key={i} className="truncate">{m}</li>)}
+          </ul>
+        )}
+      </div>
+      <div className="shimmer h-1" />
+    </Card>
+  );
+}
+
 /** The studio: one prompt in (<= 200 characters), the generated website shown inline as a mockup. */
 export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boolean; initialJob: Job | null; latest: Site | null; engine: Engine }) {
   const [prompt, setPrompt] = useState("");
@@ -68,10 +134,16 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
   const [busy, setBusy] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const seen = useRef(new Set<number>());
+  const recv = useRef(new Map<number, number>());   // when each event reached this browser (drives the countdown)
 
-  const add = useCallback((list: Ev[]) => {
+  const add = useCallback((list: Ev[], loaded = false) => {
     const fresh = list.filter((e) => !seen.current.has(e.id));
-    fresh.forEach((e) => seen.current.add(e.id));
+    const t = Date.now();
+    fresh.forEach((e) => {
+      seen.current.add(e.id);
+      // live events: now; events loaded after a reload: the server's own time (never in the future)
+      recv.current.set(e.id, loaded && typeof e.data?.at === "number" ? Math.min(t, e.data.at) : t);
+    });
     if (fresh.length) setEvents((prev) => [...prev, ...fresh].sort((a, b) => a.id - b.id));
   }, []);
 
@@ -93,7 +165,7 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
             sb.from("job_events").select("id, stage, message, data").eq("job_id", job.id).order("id"),
             sb.from("jobs").select("status").eq("id", job.id).maybeSingle(),
           ]);
-          add((evs as Ev[]) ?? []);
+          add((evs as Ev[]) ?? [], true);
           if (row?.status) setJobStatus(row.status);
         }
       });
@@ -106,8 +178,10 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
   const last = [...events].reverse().find((e) => e.stage in STATUS);
   const sec = useMemo(() => [...events].reverse().find((e) => e.stage === "generating" && e.data?.n), [events]);
   const running = !!job && !done && !failed;
+  const uiLine = useMemo(() => [...events].reverse().find((e) => e.data?.ui), [events]);
   const status = !running ? null
     : last?.stage === "generating" && sec ? `Composing sections (${sec.data!.i + 1}/${sec.data!.n})…`
+    : uiLine && last && last.stage !== "routing" && last.stage !== "recipe" ? uiLine.message
     : STATUS[last?.stage ?? jobStatus ?? "queued"] ?? STATUS.queued;
   const shown: Site | null = done ? { id: done.data!.site_id, title: job?.prompt ?? null } : !job ? latest : null;
 
@@ -194,15 +268,7 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
 
       <div aria-live="polite">
         {status && (
-          <Card bar="gold" className="overflow-hidden">
-            <div className="flex items-center justify-between gap-4 px-5 py-4">
-              <p className="font-ui text-[0.95rem] font-semibold uppercase tracking-[0.12em] text-ink">{status}</p>
-              <button type="button" onClick={cancel} disabled={cancelling} className="btn btn-ghost btn-sm shrink-0">
-                {cancelling ? "Cancelling…" : "Cancel"}
-              </button>
-            </div>
-            <div className="shimmer h-1" />
-          </Card>
+          <Progress events={events} recv={recv.current} title={status} onCancel={cancel} cancelling={cancelling} />
         )}
         {failed && <p role="alert" className="notice">{failed === "Cancelled." ? "Cancelled. You can start a new one." : failed}</p>}
       </div>

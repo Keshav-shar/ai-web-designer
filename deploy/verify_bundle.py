@@ -63,7 +63,7 @@ for p in ["a retro 1976 analog synth and vinyl festival", "minimal scandinavian 
     r = LP.run(h, enabled=False, out_dir=od, qa=True, log=lambda *a: None)
     probs = [x for w in (r["qa"] or {}).values() for x in w["problems"]]
     out["jobs"].append({"prompt": p, "family": brief["meta"]["routed_family"], "page": r["page_source"],
-                        "assets": len(list((od / "assets").glob("*"))), "qa_problems": len(probs),
+                        "assets": len(list((od / "assets").glob("*"))), "qa_problems": len(probs), "qa": [x[:140] for x in probs[:3]],
                         "s": round(time.time() - t)})
 out["leaks"] = sorted(leaks)[:20]
 print("VERIFY " + json.dumps(out))
@@ -109,7 +109,9 @@ def main() -> int:
                        encoding="utf-8", errors="replace")
     summary = [x for x in t.stdout.splitlines() if x.startswith(("FAIL", "ALL PASS")) or "FAILED" in x]
     print("bundled test_landing.py:", *summary[-6:], sep="\n  ")
-    ok = not res["leaks"] and all(j["page"] in ("compile_spec", "model") and j["assets"] > 0 for j in res["jobs"]) \
+    # images resolve from the bundle (some job places one; off-subject routes place none by design: brief.REL_T)
+    ok = not res["leaks"] and all(j["page"] in ("compile_spec", "model") for j in res["jobs"]) \
+        and any(j["assets"] > 0 for j in res["jobs"]) \
         and any(x.startswith("ALL PASS") for x in summary)
     print("BUNDLE OK: self-contained" if ok else "BUNDLE PROBLEM: see above")
     if not keep:

@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 
 ENV_FILE = Path(os.getenv("LANDING_ENV_FILE", r"D:\serpman-studio\worker\.env"))
-NAME = re.compile(r"^(GEMINI|GROQ|MISTRAL|OPENROUTER)_API_KEY(S|_\d+)?$")
+NAME = re.compile(r"^(GEMINI|GROQ|MISTRAL|OPENROUTER|MODAL)_API_KEY(S|_\d+)?$")   # MODAL: the vLLM token of MODAL_BASE
 # process-wide (and kept across the lab's hot reloads): a rejected key stays skipped and a cooling key keeps
 # cooling for the life of the serve / worker process, not just one pipeline run. Keyed by kid, never by value.
 _announced: set[str] = globals().get("_announced", set())

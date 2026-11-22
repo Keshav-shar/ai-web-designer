@@ -225,29 +225,71 @@ def texty(reading) -> str | None:
     return None
 
 
-def clean_central(o: dict, text_lines, over: list) -> list[dict]:
+# Query relevance: only images that show what the site is about go ON the page; the rest stay style references
+# (A1 reads them for shapes, colour and finish; A5 recreates the components). score = mean CLIP similarity of the
+# image to the request's subject (site words stripped) minus its similarity to neutral design prompts.
+# Calibrated 2026-11-22 on contact sheets for six requests: images that show the subject score >= +0.028 (a cafe
+# interior for a coffee roastery, a spa bathroom for skincare, packaging +0.141); the lab's picks for
+# "A wisconsin puppy website" (kawaii icons, a game score card) scored -0.075..-0.130, and nothing in the corpus
+# shows a puppy (best: a glass bear, +0.020).
+REL_T = 0.025
+REL_NEUTRAL = ["a website", "a web page design", "a graphic design", "an image", "a picture", "an abstract pattern",
+               "a user interface", "an illustration"]
+SITE_WORDS = re.compile(r"\b(website|web ?site|site|landing page|home ?page|web ?page|page|app|online store|e-?shop)\b",
+                        re.I)
+
+
+def query_subject(query: str) -> str:
+    """'A wisconsin puppy website' -> 'A wisconsin puppy' (the word 'website' would pull site screenshots)."""
+    return re.sub(r"\s+", " ", SITE_WORDS.sub(" ", query or "")).strip(" ,.-") or (query or "")
+
+
+def neutral_base(enc, E):
+    return (E @ enc(REL_NEUTRAL).T).mean(1)
+
+
+def relevance_scores(enc, E, query: str, base=None):
+    """Per image row of E (unit CLIP image embeddings): similarity to the request's subject minus the neutral
+    baseline (pass base = neutral_base(enc, E) to reuse it). Shared by the worker and the lab bench."""
+    s = query_subject(query)
+    P = enc([s, f"a picture of {s}", f"an illustration of {s}"])
+    return (E @ P.T).mean(1) - (neutral_base(enc, E) if base is None else base)
+
+
+def clean_central(o: dict, text_lines, over: list, relevance=None) -> list[dict]:
     """Central graphics go ON the page, so drop any with baked-in text (marketplace listings, posters, mockups)
-    and refill from the lab's own ranked candidates. text_lines(fam, id) -> (lines, hmax) or None."""
+    and refill from the lab's own ranked candidates. text_lines(fam, id) -> (lines, hmax) or None.
+    relevance(fam, id) -> score or None: when no pick shows the request's subject, the most relevant text-free lab
+    candidate that clears REL_T joins first; off-subject picks stay as style references (build_brief marks on_page)."""
     el = o.get("el") or {}
     picks = (el.get("central") or {}).get("picks") or o["payload"]["elements"].get("central") or []
-    if text_lines is None:
-        return picks
     cands = [c for c in (el.get("central") or {}).get("cands", []) if c not in picks]
+    free = (lambda c: True) if text_lines is None else (lambda c: texty(text_lines(c["fam"], c["id"])) is None)
     used = {(p["fam"], p["id"]) for p in picks}
     out = []
     for p in picks:
-        why = texty(text_lines(p["fam"], p["id"]))
+        why = None if text_lines is None else texty(text_lines(p["fam"], p["id"]))
         if why is None:
             out.append(p)
             continue
-        repl = next((c for c in cands if (c["fam"], c["id"]) not in used
-                     and texty(text_lines(c["fam"], c["id"])) is None), None)
+        repl = next((c for c in cands if (c["fam"], c["id"]) not in used and free(c)), None)
         over.append({"token": f"central:{p.get('role', '')}", "from": p["id"], "to": repl["id"] if repl else None,
                      "why": f"{why} (baked-in text); "
                             + ("next text-free lab candidate used" if repl else "no text-free candidate, dropped")})
         if repl:
             used.add((repl["fam"], repl["id"]))
             out.append({**repl, "role": p.get("role", "supporting")})
+    rel = (lambda c: relevance(c["fam"], c["id"])) if relevance else None
+    if rel is None or any((rel(p) if rel(p) is not None else -1) >= REL_T for p in out):
+        return out
+    used |= {(p["fam"], p["id"]) for p in out}
+    scored = [(s, c) for c in cands if (c["fam"], c["id"]) not in used and free(c)
+              for s in [rel(c)] if s is not None and s >= REL_T]
+    if scored:
+        s, best = max(scored, key=lambda x: x[0])
+        over.append({"token": "central:relevant", "from": None, "to": best["id"],
+                     "why": f"no lab pick shows the request's subject; a candidate at relevance {s:+.3f} goes on the page"})
+        out.insert(0, {**best, "role": "primary"})
     return out
 
 
@@ -257,7 +299,7 @@ FOLDER_MAX = 18
 
 def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id: str | None = None,
                 theme: str = "auto", resolve=None, text_lines=None, folder_sections: list | None = None,
-                sections_override: list[str] | None = None) -> tuple[dict, dict[str, Path]]:
+                sections_override: list[str] | None = None, relevance=None) -> tuple[dict, dict[str, Path]]:
     """-> (brief, {ref_id: local file}). `sections_src` = prompt_context(enc, full_query) (section_plan's category +
     the request's niche scores; a bare section_plan.suggest dict still works and falls back to the family niche).
     text_lines(fam, id) (the worker passes the lab's ColorStore reading) enables the baked-in-text filter.
@@ -321,6 +363,15 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
                 "type": typ, "note": note, "path": f"assets/{rid}.webp"}   # assets.py re-encodes to webp
         if text_lines is not None:
             item["text"] = texty(text_lines(ref["fam"], ref["id"])) is not None
+        if relevance is not None and role in ("central", "background"):
+            s = relevance(ref["fam"], ref["id"])
+            if s is not None:
+                item["relevance"] = round(float(s), 3)
+                item["on_page"] = bool(s >= REL_T)
+                if not item["on_page"]:
+                    over.append({"token": f"{role}:on_page", "from": ref["id"], "to": "style reference only",
+                                 "why": f"not about the request (relevance {s:+.3f} < {REL_T:+.3f}); the agents "
+                                        "read it for style, the page never shows it"})
         assets.append(item)
         files[rid] = local
 
@@ -329,7 +380,7 @@ def build_brief(o: dict, *, query: str, split: dict, sections_src: dict, job_id:
     add(bg if bg.get("id") else None, "background", bg.get("cluster"), f"L0 background ({bg.get('approach')})")
     el = p.get("elements") or {}
     add(el.get("hero_ref"), "hero", "website", "hero reference")
-    for c in clean_central(o, text_lines, over):
+    for c in clean_central(o, text_lines, over, relevance):
         add(c, "central", c.get("type"), f"{c.get('role')} central graphic")
     add(p.get("palette"), "palette", "palette", "palette source image")
     n_folder = 0

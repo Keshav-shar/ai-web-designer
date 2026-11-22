@@ -425,6 +425,7 @@ def assemble_doc_spec(st: State) -> dict:
                                     if a else None)})
     bg = backdrop(st)
     centre = centerpiece_asset(st["assets"]) if d["centerpiece"]["use"] else None
+    drawn = d["centerpiece"]["use"] and not centre and bool(d["centerpiece"].get("drawn"))   # A5 draws it
     psec = {s["section_id"]: s for s in plan["sections"]}
     scol = {s["section_id"]: s for s in cp["section_colors"]}
     cards = {c["card_id"]: c for c in d["strategic_cards"]}
@@ -443,8 +444,10 @@ def assemble_doc_spec(st: State) -> dict:
                                          "body": cd.get("body", ""), "accent": f"var(--{acc.replace('_', '-')})"})
             its.append(it)
             flat.append({"item_id": x["item_id"], "kind": x["kind"], "section_id": sid, "level": x["level"]})
-        if centre and sid == hero:
+        if (centre or drawn) and sid == hero:
             its.append({"item_id": "centerpiece", "kind": "image", "src": centre["path"],
+                        "alt": cut(d["centerpiece"]["description"], 120), "where": d["centerpiece"]["where"]} if centre else
+                       {"item_id": "centerpiece", "kind": "drawing", "description": d["centerpiece"]["description"],
                         "alt": cut(d["centerpiece"]["description"], 120), "where": d["centerpiece"]["where"]})
             flat.append({"item_id": "centerpiece", "kind": "centerpiece", "section_id": sid, "level": "body"})
         sections.append({"section_id": sid, "role": s["role"], "what": s["what"], "where": s["where"],

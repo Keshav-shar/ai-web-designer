@@ -37,6 +37,7 @@ LIMITS = {
     "qwen/qwen3.8-27b": {"rpm": 30, "rpd": 1000, "tpm": 8000, "tpd": 200_000},
 }
 DEFAULT = {"rpm": 10, "rpd": 200, "tpm": 8000}
+MODAL_LIMITS = {"rpm": 1000, "rpd": 1_000_000, "tpm": 50_000_000}   # the user's own GPU (Modal): no shared pool
 # OpenRouter (openrouter.ai/docs/api-reference/limits, read 2026-11-22): free ':free' models allow 20 requests/min and
 # a per-ACCOUNT daily pool shared by every free model: 50 requests, or 1000 once $10 of credit was ever bought.
 # GET /key reports the pool (free_model_daily_requests); pipeline.Ctx adopts it with set_free_daily() / Ledger.sync().
@@ -70,6 +71,8 @@ def limits(model: str) -> dict:
         return LIMITS[model]
     if model.startswith(OR_PREFIX):
         return OPENROUTER_FREE if model.endswith(":free") else OPENROUTER_PAID
+    if model.startswith("modal/"):
+        return MODAL_LIMITS
     if model.startswith(("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")):
         return MISTRAL_DEFAULT
     return DEFAULT

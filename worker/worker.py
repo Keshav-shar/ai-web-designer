@@ -47,11 +47,14 @@ Path(os.environ["SERPMAN_TMP"]).mkdir(parents=True, exist_ok=True)
 import netfix  # noqa: E402
 netfix.install()                     # survive "[Errno 11001] getaddrinfo failed" blips on this PC (see netfix.py)
 
+import threading  # noqa: E402
+
 import agent  # noqa: E402
+import eta as ETA  # noqa: E402
 import assemble  # noqa: E402
 import mockup  # noqa: E402
 import assets as A  # noqa: E402
-from brief import build_brief, clip_text_scores, prompt_context  # noqa: E402
+from brief import build_brief, clip_text_scores, neutral_base, prompt_context, relevance_scores  # noqa: E402
 from labio import lab_path  # noqa: E402
 from qwen import Qwen  # noqa: E402
 from split import MAX_PROMPT, normalize  # noqa: E402
@@ -91,6 +94,7 @@ class Engine:
         self.enc = re_.TextEncoder()
         self.L = re_.Lab(self.ix)
         self.text_score = self._clip_text_score()
+        self.rel_base = neutral_base(self.enc, self.ix.E)     # the query-relevance gate's baseline (brief.REL_T)
         print(f"engine ready in {time.time() - t0:.0f}s: {len(self.ix.ids)} images, {len(self.ix.families)} families,"
               f" lab AI {'on' if self.L.ai.ok else 'off'}", flush=True)
 
@@ -122,11 +126,59 @@ class Engine:
         folders = self.folder_sections(split["vibe_query"], o["routed"], P["w"])
         brief, files = build_brief(o, query=prompt, split=split, sections_src=src, job_id=job_id, theme=theme,
                                    resolve=self.resolve, text_lines=self.text_lines, folder_sections=folders,
-                                   sections_override=sections_override)
+                                   sections_override=sections_override, relevance=self.relevance(split["full_query"]))
         return o, brief, files
 
+    def relevance(self, query: str):
+        """-> relevance(fam, id): how much a corpus image shows the request's subject (brief.REL_T gates the page)."""
+        sc = relevance_scores(self.enc, self.ix.E, query, self.rel_base)
 
-def run_job(eng: Engine, qwen: Qwen, prompt: str, split: dict, job_id: str | None, theme: str, emit,
+        def rel(fam: str, id_: str):
+            k = self.ix.key.get((fam, id_))
+            return None if k is None else float(sc[k])
+        return rel
+
+
+class ModalWarmer:
+    """Agents mode with the user's Modal GPU configured (MODAL_BASE): from the moment a job starts until it ends, keep the
+    endpoint up, so when A1 / A5 fall through the free models to it they never wait for a cold start. The first /health
+    request boots the container (it returns once vLLM is up, minutes on a cold start, while routing and the free models
+    run); one a minute holds it; Modal stops it scaledown_window after the last. This spends GPU time on every job,
+    used or not: MODAL_WARM=off turns it off (the endpoint then boots on first use)."""
+    EVERY = 60.0
+
+    def __init__(self, agents: bool):
+        from landing import providers as P
+        self.P = P
+        self.on = agents and bool(P.modal_base()) and os.getenv("MODAL_WARM", "job").strip().lower() != "off"
+        self.stop = threading.Event()
+        self.state = "off"
+
+    def __enter__(self):
+        if self.on:
+            threading.Thread(target=self._loop, name="modal-warm", daemon=True).start()
+        return self
+
+    def _loop(self) -> None:
+        t0, first = time.time(), True
+        while not self.stop.is_set():
+            self.state = self.P.modal_health(600.0 if first else 60.0)
+            if first:
+                print(f"modal: GPU endpoint {self.state} after {time.time() - t0:.0f}s (kept warm for this job)", flush=True)
+                first = False
+            self.stop.wait(self.EVERY)
+
+    def __exit__(self, *exc) -> None:
+        self.stop.set()
+
+
+def run_job(eng: Engine, qwen: Qwen, *args, **kw) -> dict:
+    """Shared by `once` and `run` (see _run_job); in agents mode the user's Modal GPU is kept warm meanwhile."""
+    with ModalWarmer(agent.section_mode(qwen) == "agents"):
+        return _run_job(eng, qwen, *args, **kw)
+
+
+def _run_job(eng: Engine, qwen: Qwen, prompt: str, split: dict, job_id: str | None, theme: str, emit,
             publish_assets=None, copy: dict | None = None, serve: bool = True, force_fam: str | None = None,
             sections_override: list[str] | None = None) -> dict:
     """Shared by `once` and `run`. emit(stage, message, data) reports progress; publish_assets(brief, files) is
@@ -182,7 +234,18 @@ def run_landing(eng: Engine, o: dict, brief: dict, files: dict, split: dict, the
     h = LH.build(o, split, brief, files, theme=theme, resolve=eng.resolve, text_lines=eng.text_lines)
     od = Path(os.environ["SERPMAN_TMP"]) / f"landing-{job_id or 'local'}-{int(time.time())}"
     emit("generating", "the agent pipeline is designing the landing page", {"mode": "agents"})
-    r = LP.run(h, enabled=True, out_dir=od, qa=True, log=lambda m: emit("generating", str(m)[:200], None))
+    seen_model: dict[str, str] = {}
+
+    def progress(ev: dict) -> None:            # pipeline steps -> one short Studio line each (data.ui), with the ETA
+        kind, ag = ev.get("kind"), ev.get("agent")
+        step = "check" if kind == "check" else ag if ag in ETA.DEFAULT_S else None
+        text = ETA.describe(ev, seen_model)
+        if text and kind != "finish":
+            emit("generating", text, {"ui": True, "step": step, "kind": kind, "agent": ag,
+                                      "model": ETA.model_name(ev.get("model")) if ev.get("model") else None})
+
+    r = LP.run(h, enabled=True, out_dir=od, qa=True, log=lambda m: emit("generating", str(m)[:200], None),
+               progress=progress)
     for t in r["trace"]:
         emit("generating", f"{t['agent']}: {t['source']}" + (f" ({t['model']})" if t.get("model") else ""),
              {k: t.get(k) for k in ("agent", "source", "model", "usage", "ms")})
@@ -190,7 +253,8 @@ def run_landing(eng: Engine, o: dict, brief: dict, files: dict, split: dict, the
     files_out = {f"assets/{p.name}": p.read_bytes() for p in (od / "assets").glob("*.webp")}
     if publish_assets:
         publish_assets(h["brief"], files_out)
-    emit("assembling", f"page by {r['page_source']}", {"qa": {w: len(x['problems']) for w, x in (r['qa'] or {}).items()}})
+    emit("assembling", "Rendering the preview", {"ui": True, "step": "publish", "page_source": r["page_source"],
+                                              "qa": {w: len(x['problems']) for w, x in (r['qa'] or {}).items()}})
     return {"brief": h["brief"], "page": page, "css": "/* landing page: styles are inline in index.html */\n",
             "files": files_out, "landing": {k: r[k] for k in ("page_source", "trace", "overrides", "qa", "ledger")},
             "sections": [{"id": "landing", "html": "", "fallback": r["page_source"] in ("compile_spec", "safe_spec"),
@@ -259,9 +323,14 @@ def cmd_run(a) -> int:
     print(f"worker {worker_id} polling (sections: {mode}; code from {stamp_str(loaded)}); Ctrl+C to stop", flush=True)
     if mode == "agents":
         from landing import keys as K
-        print(f"agents mode: {len(K.collect('openrouter'))} OpenRouter (A1 / A5), {len(K.collect('mistral'))} Mistral, "
-              f"{len(K.collect('groq'))} Groq, {len(K.collect('gemini'))} Gemini (last fallback) key(s)"
-              " (agents without a key use their deterministic default)", flush=True)
+        from landing import providers as LPR
+        modal = "on" if LPR.modal_base() and K.collect("modal") else "off"
+        print(f"agents mode: {len(K.collect('gemini'))} Gemini, {len(K.collect('openrouter'))} OpenRouter, "
+              f"{len(K.collect('groq'))} Groq, {len(K.collect('mistral'))} Mistral key(s); Modal GPU {modal}"
+              + (f" (warm: {os.getenv('MODAL_WARM', 'job')})" if modal == "on" else "")
+              + ". A1: Gemini -> Ling -> Gemini 3.6 Flash -> Nemotron VL -> Gemma 4 -> Modal -> Mistral; A5: "
+              "Gemini -> Nemotron Ultra -> Nemotron VL -> 3.6 Flash -> Gemma 4 -> Modal -> Mistral; A2-A4: Ling -> "
+              "Groq -> Mistral", flush=True)
     def _on_term(signum, frame):                   # systemd / docker stop: the same clean exit as Ctrl+C
         raise KeyboardInterrupt
     import signal
@@ -329,8 +398,14 @@ def _serve(sb, qwen, eng, worker_id, beat, theme, loaded: float = 0.0) -> None:
             print(f"warning: split not written back ({str(e)[:160]})", flush=True)
 
         stage_now = [None]
+        eta = ETA.Eta()                                  # the Studio's "about N min left"
 
         def emit(stage, message, data=None):
+            step = (data or {}).get("step") or {"routing": "route", "recipe": "route", "assembling": "publish"}.get(stage)
+            if step:
+                eta.enter(step)
+            if stage not in ("done", "failed"):
+                data = {**(data or {}), **eta.stamp()}
             # the job's status column only changes when the stage does: one PATCH per stage, not one per message
             # (an agents run emits ~10 "generating" lines; each used to re-PATCH the same status)
             if stage in ("recipe", "generating", "assembling") and stage != stage_now[0]:
@@ -363,6 +438,9 @@ def _serve(sb, qwen, eng, worker_id, beat, theme, loaded: float = 0.0) -> None:
             sb.event(job, "done", "site ready", {"site_id": site["id"],
                                                  "fallback": sum(s["fallback"] for s in out["sections"])})
             print(f"job {jid}: site ready", flush=True)
+            eta.finish(True)                             # each step's typical time follows this job
+            print(f"job {jid}: took {eta.stamp()['elapsed_s']}s (" + ", ".join(
+                f"{s} {v:.0f}s" for s, v in eta.spent.items()) + ")", flush=True)
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             detail = f"{type(e).__name__}: {e}"[:400]
