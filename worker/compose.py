@@ -22,8 +22,11 @@ CONTRACTS = Path(__file__).resolve().parents[1] / "contracts"
 _KIT: dict | None = None
 FRAME_IDS = {"nav", "footer", "overlay_fx", "cookie_consent", "toasts_modals"}
 
-HERO_TYPES = ["3D render", "abstract art", "illustration", "photo", "pattern / texture", "fashion / product", "moodboard"]
-SCREEN_TYPES = ["UI kit", "app screen", "dashboard", "website", "game / HUD", "code / tutorial", "social post"]
+# the corpus's cluster types are exact strings ("pattern / texture", "fashion / product"): keep them, or those images
+# never match; the extra names are kept for clusters added later
+HERO_TYPES = ["3D render", "abstract art", "illustration", "photo", "pattern / texture", "fashion / product", "texture",
+              "pattern", "user-specified extra details", "fashion", "moodboard"]
+SCREEN_TYPES = ["UI kit", "app screen", "dashboard", "website", "game / HUD", "code / tutorial", "social post","unique","other"]
 GALLERY_TYPES = ["fashion / product", "illustration", "3D render", "photo", "print / packaging", "abstract art",
                  "social post", "moodboard", "pattern / texture", "website"]
 LOGO_TYPES = ["logo / branding"]

@@ -30,7 +30,8 @@ NAME = re.compile(r"^(GEMINI|GROQ|MISTRAL|OPENROUTER|MODAL)_API_KEY(S|_\d+)?$") 
 # cooling for the life of the serve / worker process, not just one pipeline run. Keyed by kid, never by value.
 _announced: set[str] = globals().get("_announced", set())
 _DISABLED: dict[str, str] = globals().get("_DISABLED", {})
-_COOL: dict[tuple[str, str], float] = globals().get("_COOL", {})
+_COOL: dict[tuple[str, str], float] = globals().get("_COOL", {})   # unused since cooldowns were removed
+_RR: dict[tuple[str, str], int] = globals().get("_RR", {})           # (provider, model) -> next round-robin start
 # (kid, model) -> (until, why): a model this key's tier doesn't offer (Mistral limit 0 / tier_not_allowed). The key
 # stays usable for every other model; the model is rechecked after UNAVAILABLE_S (in case the plan changes).
 _UNAVAIL: dict[tuple[str, str], tuple[float, str]] = globals().get("_UNAVAIL", {})
@@ -98,7 +99,7 @@ class Ring:
         sig = provider + ":" + ",".join(self.ids)
         if self.keys and sig not in _announced:          # once per process, again only if the key set changes
             _announced.add(sig)
-            notify(f"{provider}: {len(self.keys)} key(s) loaded" + (" (failover order 1..n)" if len(self.keys) > 1 else ""))
+            notify(f"{provider}: {len(self.keys)} key(s) loaded" + (" (round-robin)" if len(self.keys) > 1 else ""))
 
     @property
     def disabled(self) -> dict[int, str]:
@@ -111,39 +112,30 @@ class Ring:
         return f"{self.provider} key {i + 1}/{len(self.keys)}"
 
     def order(self, model: str, ledger) -> list[int]:
-        """Usable keys for this model: not rejected, not out of today's quota; cooling keys go last (shortest first)."""
+        """Usable keys for this model (not rejected, not out of today's quota), round-robin: each call starts one key
+        further along than the last call for this provider + model, so the load spreads over every key."""
         ok = [i for i in range(len(self.keys)) if self.ids[i] not in _DISABLED
-              and not self.unavailable(i, model) and ledger.left(model, self.ids[i])["requests"] > 0]
-        return sorted(ok, key=lambda i: (self.cooling_for(i, model), i))
+              and ledger.left(model, self.ids[i])["requests"] > 0]
+        if len(ok) < 2:
+            return ok
+        slot = (self.provider, model)
+        start = _RR.get(slot, 0) % len(ok)
+        _RR[slot] = start + 1
+        return ok[start:] + ok[:start]
 
+    # No cooldowns (2026-11-22): a model that was busy, rate-limited upstream, timed out or refused by a tier is
+    # simply tried again on the next call. These stay as no-ops so the router's calls keep working.
     def cooling_for(self, i: int, model: str) -> float:
-        return max(0.0, _COOL.get((self.ids[i], model), 0.0) - time.monotonic())
+        return 0.0
 
     def cool_down(self, i: int, model: str, seconds: float) -> None:
-        _COOL[(self.ids[i], model)] = time.monotonic() + max(5.0, seconds or 60.0)
+        pass
 
     def unavailable(self, i: int, model: str) -> bool:
-        u = _UNAVAIL.get((self.ids[i], model))
-        if u and u[0] > time.monotonic():
-            return True
-        d = _unavail_disk().get(f"{self.ids[i]}|{model}")
-        if d:                                            # learned by an earlier process: adopt it for the rest
-            _UNAVAIL[(self.ids[i], model)] = (time.monotonic() + d["until"] - time.time(), d.get("why", ""))
-            return True
         return False
 
     def mark_unavailable(self, i: int, model: str, why: str) -> None:
-        _UNAVAIL[(self.ids[i], model)] = (time.monotonic() + UNAVAILABLE_S, why[:200])
-        p = Path(os.getenv("LANDING_UNAVAIL", str(UNAVAIL_FILE)))
-        try:
-            d = _unavail_disk()
-            d[f"{self.ids[i]}|{model}"] = {"until": time.time() + UNAVAILABLE_S, "why": why[:200]}
-            p.parent.mkdir(parents=True, exist_ok=True)
-            tmp = p.with_suffix(".tmp")
-            tmp.write_text(json.dumps(d, indent=1), encoding="utf-8")
-            os.replace(tmp, p)
-        except OSError:
-            pass
+        pass
 
     def disable(self, i: int, why: str) -> None:
         _DISABLED[self.ids[i]] = why[:200]

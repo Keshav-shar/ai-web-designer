@@ -68,7 +68,10 @@ class Reply:
             m = re.search(r"\{.*\}", t, re.S)
             if not m:
                 raise ProviderError("bad_output", f"no JSON object in reply ({t[:120]!r})") from None
-            return json.loads(m.group(0))
+            try:
+                return json.loads(m.group(0))
+            except json.JSONDecodeError as e:     # malformed JSON is a bad reply (next model), never a crashed job
+                raise ProviderError("bad_output", f"malformed JSON in reply ({e.msg} at char {e.pos})") from None
 
 
 def jpeg_b64(path: str | Path, side: int, quality: int = 85) -> str:
@@ -115,6 +118,10 @@ class Gemini:
     # models that rejected thinkingConfig (Gemma 4: "Thinking level is not supported for this model", 2026-11-22):
     # left out for THAT model only, so Hydrogen / Flash keep their thinking level in the same process
     no_thinking: set[str] = set()
+    # models whose constrained decoding refused the JSON schema (Gemma 4 on A1's schema: "The specified schema produces
+    # a constraint that has too many states for serving", 2026-11-22): plain JSON mode for that model, the schema in the
+    # system text, the pipeline validates the reply (the same fallback the OpenAI-compatible providers have)
+    no_schema: set[str] = set()
 
     def __init__(self):
         self.http = _http()
@@ -149,13 +156,19 @@ class Gemini:
         overloads = nets = 0
         for attempt in range(14):
             cfg = {"temperature": temperature, "maxOutputTokens": max_out}
-            if schema is not None:
+            sys_text = system
+            if schema is not None and model in Gemini.no_schema:
+                cfg["responseMimeType"] = "application/json"
+                sys_text = system + ("\n\nReply with ONE JSON object that matches this JSON schema exactly (every "
+                                     "property, enum values only):\n" + json.dumps(sc.inline_refs(sc.provider_schema(schema)),
+                                                                                  separators=(",", ":")))
+            elif schema is not None:
                 cfg.update(responseMimeType="application/json", responseJsonSchema=sc.inline_refs(sc.provider_schema(schema)))
             if self.thinking and not model.startswith("gemma") and model not in Gemini.no_thinking:
                 cfg["thinkingConfig"] = {"thinkingLevel": thinking}
             if not self.per_part_res and any("image" in p for p in parts):
                 cfg["mediaResolution"] = "MEDIA_RESOLUTION_HIGH"
-            body = {"systemInstruction": {"parts": [{"text": system}]},
+            body = {"systemInstruction": {"parts": [{"text": sys_text}]},
                     "contents": [{"role": "user", "parts": self._parts(parts)}], "generationConfig": cfg}
             t0 = time.time()
             try:
@@ -191,6 +204,12 @@ class Gemini:
                 continue
             if r.status_code == 400 and "thinkingConfig" in cfg and "thinking" in low:
                 Gemini.no_thinking.add(model)
+                continue
+            if r.status_code == 400 and "responseJsonSchema" in cfg and re.search(r"too many states|schema", low):
+                Gemini.no_schema.add(model)
+                from . import keys
+                keys.notify(f"{model}: the JSON schema is too complex for its constrained decoding; using plain JSON "
+                            f"mode (checked locally) for it from now on")
                 continue
             if r.status_code == 429:
                 delay = 0.0
@@ -323,6 +342,10 @@ class OpenAICompat:
                     why = _brief(json.dumps(err))[:200] if err else "the reply has no choices"
                     if code in ("502", "503", "504") and overloads < len(self.backoff()):
                         overloads += 1
+                        from . import keys
+                        keys.notify(f"{model}: upstream error inside the reply after {(time.time() - t0):.0f}s ({why[:80]}); "
+                                    f"retrying the same model in {self.backoff()[overloads - 1]:.0f}s "
+                                    f"({overloads}/{len(self.backoff())})")
                         time.sleep(self.backoff()[overloads - 1])
                         continue
                     if code == "429" and "upstream" in json.dumps(err).lower():

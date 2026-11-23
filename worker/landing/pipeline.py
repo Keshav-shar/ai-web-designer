@@ -100,6 +100,9 @@ GEMINI_TIMEOUT = {"a1": 60.0, "a2": 25.0, "a3": 25.0, "a4": 25.0, "a5": 75.0}
 # OpenRouter's free models are slow but good (Ling ~150-220 s on A1 and ~100 s on A3, Nemotron Ultra ~140-200 s on A5)
 OPENROUTER_TIMEOUT = {"a1": 240.0, "a2": 120.0, "a3": 120.0, "a4": 120.0, "a5": 240.0}
 GEMINI_SKIP_S = 600.0                   # a Gemini model that was busy / timed out is skipped this long, on every key
+# the quick give-up above is for Hydrogen / 3.8 Flash (overloaded: a fast failure beats a slow one); 3.6 Flash and
+# Gemma on the Gemini keys are fallbacks that are slow but answer (3.6 Flash: 66 s on the real A1 request)
+GEMINI_PATIENT = {"a1": 150.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0}
 UPSTREAM_SKIP_S = 300.0                 # an OpenRouter free model rate-limited upstream: skipped this long, on every key
 MODAL_TIMEOUT = {"a1": 600.0, "a2": 300.0, "a3": 300.0, "a4": 300.0, "a5": 600.0}   # per read: covers a cold boot
 TIMEOUT = {"a1": 100.0, "a2": 30.0, "a3": 30.0, "a4": 30.0, "a5": 100.0}
@@ -276,7 +279,9 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                 budget.GEMINI_IMAGE.get(p.get("res", "high"), 1120) for p in parts if "image" in p) + (
                                 budget.est_text(json.dumps(schema, separators=(",", ":"))) if schema else 0)
                             reply = ctx.gemini.generate(model, system, parts, key=key, schema=schema, max_out=out_cap,
-                                                        temperature=TEMP[agent], timeout=GEMINI_TIMEOUT[agent],
+                                                        temperature=TEMP[agent],
+                                                        timeout=(GEMINI_TIMEOUT if model in PREFS["gemini"]
+                                                                 else GEMINI_PATIENT)[agent],
                                                         thinking=THINK.get(agent, "low"))
                         else:
                             kind, messages, schema, est = req
@@ -309,6 +314,9 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                              "est_in": est, "strict": strict}, tried
                     except ProviderError as e:
                         if e.kind == "truncated" and attempt == 0:
+                            keys.notify(f"{agent.upper()}: {model} ran out of output at {out_cap} tokens after "
+                                        f"{time.time() - t_key:.0f}s; retrying once with {int(out_cap * 1.6)}")
+                            ctx.progress({"kind": "retry", "agent": agent, "model": model, "why": "truncated"})
                             out_cap = int(out_cap * 1.6)
                             continue
                         if e.kind == "bad_output" and req[0] != "gemini" and strict:
@@ -320,7 +328,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                         if e.kind == "unavailable":     # the tier doesn't offer this model: not a key problem
                             ring.mark_unavailable(i, model, str(e))
                             keys.notify(f"{label}: {str(e)[13:120]} -> " + (f"using {nxt}" if nxt else after(model))
-                                        + " (skipped for this key for 6 h)")
+                                        )
                             tried.append({"model": model, "key": label, "skip": "not on this key's tier"})
                             minute_only = False
                             break
@@ -329,7 +337,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                                 ring.cool_down(j, model, UPSTREAM_SKIP_S)
                             tried.append({"model": model, "key": label, "error": "rate-limited upstream"})
                             keys.notify(f"{agent.upper()}: {model} is rate-limited upstream (shared free capacity, every "
-                                        f"key) -> {after(model)}; skipping it for {UPSTREAM_SKIP_S / 60:.0f} min")
+                                        f"key) -> {after(model)}")
                             minute_only = False
                             next_model = True
                             break
@@ -373,10 +381,11 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                             tried.append({"model": model, "key": label, "error": str(e)[:240],
                                           "s": round(time.time() - t_key, 1)})
                             keys.notify(f"{agent.upper()}: {model} {e.kind} ({str(e)[:90]}) -> {after(model)}; "
-                                        f"skipping it for {GEMINI_SKIP_S / 60:.0f} min")
+                                        "retried on the next call")
                             next_model = True
                             break
                         if e.kind == "timeout" and attempt == 0:   # slow is not broken: once more, same model
+                            ctx.progress({"kind": "retry", "agent": agent, "model": model, "why": "timeout"})
                             keys.notify(f"{agent.upper()}: {model} took over "
                                         f"{(OPENROUTER_TIMEOUT if req[0] == 'openrouter' else TIMEOUT)[agent]:.0f}s; "
                                         f"retrying it once")
@@ -439,6 +448,45 @@ def semantic(agent: str, out: dict) -> list[str]:
     return errs
 
 
+# A3's copy kinds (sc.COPY_KINDS) for the names models also use
+KIND_ALIAS = {"heading": "h2", "title": "h2", "subheading": "h3", "subtitle": "h3", "body": "paragraph",
+              "text": "paragraph", "intro_body": "paragraph", "intro_heading": "h2", "list": "list_item",
+              "tag": "label", "badge": "label", "button": "cta", "link": "nav_link", "wordmark": "logo"}
+
+
+def lenient(st: S.State, agent: str, out):
+    """Before validation, settle values a model gets slightly wrong instead of dropping the agent to its default (a
+    Studio job lost A2's whole plan over one missing 'notes', 2026-11-22). Fills blanks and maps synonyms only; never
+    invents content."""
+    if not isinstance(out, dict):
+        return out
+    if agent == "a2":
+        lay = S.layer_of(st["doc"]) if st.get("doc") else {}
+        for L in (out.get("layout_plan") or {}).get("layers") or []:
+            if isinstance(L, dict):
+                L.setdefault("notes", "")
+                z = L.get("z")
+                if z not in sc.DECOR_Z:                     # e.g. 10 (the text layer): the element's own A1 layer
+                    near = z if isinstance(z, (int, float)) else 5
+                    L["z"] = lay[L["element_id"]][1] if L.get("element_id") in lay else \
+                        min(sc.DECOR_Z, key=lambda v: abs(v - near))
+    elif agent == "a3":
+        for it in (out.get("copy") or {}).get("items") or []:
+            if isinstance(it, dict):
+                k = str(it.get("kind", "")).strip().lower()
+                if k not in sc.COPY_KINDS:
+                    it["kind"] = KIND_ALIAS.get(k, "paragraph")
+                for f in ("text", "href", "card_id"):
+                    it.setdefault(f, "")
+    elif agent == "a4":
+        for a in (out.get("decor") or {}).get("assets") or []:
+            if isinstance(a, dict):
+                for f in ("svg", "css", "anchor", "placement", "notes"):
+                    a.setdefault(f, "")
+                a.setdefault("opacity", 1)
+    return out
+
+
 def run_agent(ctx: Ctx, st: S.State, agent: str, schema: dict, build, default, force: bool, trace: list,
               extra_key=None) -> dict:
     ctx.progress({"kind": "start", "agent": agent})
@@ -466,11 +514,16 @@ def _run_agent(ctx: Ctx, st: S.State, agent: str, schema: dict, build, default, 
     errors, tried, model, meta = [], [], None, {}
     try:
         out, model, meta, tried = call(ctx, agent, build(None), MAX_OUT[agent])
-        jsonschema.validate(out, schema)
-        errors = semantic(agent, out)
+        out = lenient(st, agent, out)
+        try:
+            jsonschema.validate(out, schema)
+            errors = semantic(agent, out)
+        except jsonschema.ValidationError as e:          # a schema miss gets the repair call too, not the default
+            errors = [f"schema: {e.message[:200]} (at {'/'.join(str(p) for p in e.absolute_path) or 'top'})"]
         if errors:                                       # one repair call: the same contract plus what failed
             out2, model, meta2, tried2 = call(ctx, agent, build(errors), MAX_OUT[agent])
             tried += tried2
+            out2 = lenient(st, agent, out2)
             jsonschema.validate(out2, schema)
             if not semantic(agent, out2):
                 out, meta = out2, {**meta2, "repaired": True}
@@ -537,13 +590,24 @@ MOTIF_COVERS = re.compile(r"motif (\S+) \(([^)]*)\) covers (?:text|image)")
 BLOCKING_QA = ("overlaps text of", "horizontal overflow")
 
 
-def classify(chk: dict, qa_res: dict | None) -> dict:
-    """-> {blocking, advisory, fix_motifs}: what discards a page, what is fed back, what code removes."""
-    blocking, advisory, fix = list(chk["errors"]), list(chk.get("advisories", [])), set()
+OVERFLOW_FIX = "html,body{overflow-x:clip}"     # decoration past the page edge: clipped, no scroll container (sticky works)
+MIN_PAGE_TEXT = 60                               # visible characters below which a page has nothing to render
+
+
+def classify(chk: dict, qa_res: dict | None, broken: str | None = None, strict: bool = False) -> dict:
+    """-> {blocking, advisory, fix_motifs}: what discards a page, what is fed back, what code removes.
+    A5's pages (strict=False, the user's call 2026-11-22): only a page that can't render is discarded (`broken`);
+    every check (copy, hooks, h1 count, palette, overlap, overflow) is advice for the one repair round and ranks the
+    candidates. The compile_spec fallback keeps the strict gate (strict=True) that drives its own measured repairs."""
+    if strict:
+        blocking, advisory = list(chk["errors"]), list(chk.get("advisories", []))
+    else:
+        blocking, advisory = ([broken] if broken else []), list(chk["errors"]) + list(chk.get("advisories", []))
+    fix = set()
     for w, r in (qa_res or {}).items():
         for p in r["problems"]:
             m = MOTIF_COVERS.search(p)
-            if any(b in p for b in BLOCKING_QA):
+            if strict and any(b in p for b in BLOCKING_QA):
                 blocking.append(f"{p} (at {w}px)")
             elif m:
                 fix.add(m.group(1))
@@ -663,20 +727,33 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
     def evaluate(raw: str, source: str, model: str | None) -> dict:
         """Sanitize + check + measure page; code adds a missing backdrop. Decor the browser finds over text or an
         image is first moved behind the content and measured again; only what still covers something is removed."""
+        def look(chk):          # measured whatever the checks said: the page ships unless it can't render
+            body = chk["html"].split("<body", 1)[-1]
+            if len(re.sub(r"<style.*?</style>|<[^>]+>|\s+", "", body, flags=re.S)) < MIN_PAGE_TEXT:
+                return None, "the page has no content to render"
+            try:
+                return measure(chk["html"], spec), None
+            except Exception as e:  # noqa: BLE001
+                return None, f"the browser could not render the page ({type(e).__name__}: {str(e)[:120]})"
+
         chk = validate_page.check(raw, spec, inject_backdrop=True, fix_colors_=True)
-        q = measure(chk["html"], spec) if not chk["errors"] else None
-        c = classify(chk, q)
+        q, broken = look(chk)
+        c = classify(chk, q, broken)
         if c["fix_motifs"]:
             flagged = set(c["fix_motifs"])
             chk = validate_page.check(raw, spec, demote_motifs=flagged, inject_backdrop=True, fix_colors_=True)
-            q = measure(chk["html"], spec) if not chk["errors"] else None
-            c = classify(chk, q)
+            q, broken = look(chk)
+            c = classify(chk, q, broken)
             if c["fix_motifs"]:
                 drop = set(c["fix_motifs"])
                 chk = validate_page.check(raw, spec, demote_motifs=flagged - drop, drop_motifs=drop,
                                           inject_backdrop=True, fix_colors_=True)
-                q = measure(chk["html"], spec) if not chk["errors"] else None
-                c = classify(chk, q)
+                q, broken = look(chk)
+                c = classify(chk, q, broken)
+        if any("horizontal overflow" in a for a in c["advisory"]) and "</style>" in chk["html"]:
+            chk["html"] = chk["html"].replace("</style>", OVERFLOW_FIX + "</style>", 1)   # code fixes it, no repair
+            chk["fixes"] = list(chk["fixes"]) + ["clipped decoration past the page edge (horizontal overflow)"]
+            c["advisory"] = [a for a in c["advisory"] if "horizontal overflow" not in a]
         n = len(cands) + 1
         (od / f"a5-{n}.html").write_text(chk["html"], encoding="utf-8")
         cand = {"n": n, "source": source, "model": model, "raw": raw, "chk": chk, "qa": q, **c, "fixes": chk["fixes"],
@@ -736,7 +813,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         page = validate_page.check(compile_spec.render(spec), spec)
         qa_res = measure(page["html"], spec) if not page["errors"] else None
         for _round in range(2):                          # repair what the browser measured, recheck
-            c = classify(page, qa_res)
+            c = classify(page, qa_res, strict=True)
             if not (c["blocking"] or c["fix_motifs"]):
                 break
             spec2, fix = qa_repair(spec, problems(qa_res))
@@ -746,7 +823,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
             spec = spec2
             page = validate_page.check(compile_spec.render(spec), spec)
             qa_res = measure(page["html"], spec) if not page["errors"] else None
-        c = classify(page, qa_res)
+        c = classify(page, qa_res, strict=True)
         source = "compile_spec"
         if c["blocking"] or c["fix_motifs"]:            # last resort: known-clean by construction
             spec, slog = flow.safe(st, h)

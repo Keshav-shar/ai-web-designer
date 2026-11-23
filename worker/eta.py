@@ -124,6 +124,9 @@ def describe(ev: dict, prev_model: dict[str, str]) -> str | None:
         return f"{base} · {was} is busy, switched to {name}" if was and was != name else f"{base} · {name}"
     if k == "done" and ev.get("source") in ("model", "repaired") and ev.get("ms"):
         return f"{STEP_TEXT.get(agent, agent)} · done by {model_name(ev.get('model'))} in {ev['ms'] / 1000:.0f} s"
+    if k == "retry":
+        why = {"truncated": "ran out of room, retrying with more", "timeout": "is slow, asking once more"}
+        return f"{STEP_TEXT.get(agent, agent)} · {model_name(ev.get('model'))} {why.get(ev.get('why'), 'retrying')}"
     if k == "check":
         return STEP_TEXT["check"]
     return None

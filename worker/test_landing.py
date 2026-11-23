@@ -315,8 +315,9 @@ def t_priority(h):
         n0 = len(Calls.log)
         r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
         g_calls = [c for c in Calls.log[n0:] if c[0] == "gemini"]
-        check(len(g_calls) <= 2, f"a busy Gemini model is tried once, then skipped for the next agents ({len(g_calls)} calls)")
-        check(any("skipping it for 10 min" in n for n in NOTES), "terminal: the skip is announced")
+        check(len(g_calls) > 2, f"no cooldown: a busy Gemini model is asked again by the next agents ({len(g_calls)} calls)")
+        check(any("retried on the next call" in n for n in NOTES) and not any("skipping it for" in n for n in NOTES),
+              "terminal: the switch is announced, with no skip window")
         m = {}
         for t in r["trace"]:
             m.setdefault(t["agent"], t.get("model") or "")
@@ -659,8 +660,13 @@ def t_measure():
     chk = {"errors": ["colours not in the spec palette: #123456"], "advisories": ["decor not on the page: x"]}
     q = {1440: {"problems": ["text of a overlaps text of b", "motif m1 (z20) covers text of h1", "dead space: p is 9px"]}}
     c = pipeline.classify(chk, q)
+    check(not c["blocking"] and c["fix_motifs"] == {"m1"} and len(c["advisory"]) == 4,
+          "A5's gate: a page that renders is never discarded; its findings are advice, decor over text is fixed")
+    c = pipeline.classify(chk, q, "the page has no content to render")
+    check(c["blocking"] == ["the page has no content to render"], "A5's gate: only a page that can't render blocks")
+    c = pipeline.classify(chk, q, strict=True)
     check(len(c["blocking"]) == 2 and c["fix_motifs"] == {"m1"} and len(c["advisory"]) == 2,
-          "the gate classifies: blocking / fixed by code / advisory")
+          "the fallback's strict gate: blocking / fixed by code / advisory")
 
 
 def t_state():
@@ -734,8 +740,10 @@ def t_pipeline_models(h, qa):
     check(any("needs 4.5:1" in w or "reaches 4.5:1" in w for w in ov), "A3's unreadable colour is fixed (logged)")
     check(any("removed svg[onload]" in w or "<script>" in w for w in ov), "A4's svg is sanitized (logged)")
     cands = r["candidates"]
-    check(len(cands) == 2 and cands[0]["blocking"] and not cands[1]["blocking"],
-          f"A5: the hostile page is blocked, the repaired one ships ({[len(c['blocking']) for c in cands]})")
+    check(len(cands) == 2 and not any(c["blocking"] for c in cands) and cands[0]["advisory"]
+          and len(cands[1]["advisory"]) < len(cands[0]["advisory"]) and r["page_source"] == "repaired",
+          f"A5: the hostile page is sanitized, not discarded; its findings go to the repair and the better page ships "
+          f"({[len(c['advisory']) for c in cands]}, {r['page_source']})")
     check(r["page_source"] == "repaired" and all((Path(r["out"]) / c["file"]).exists() for c in cands),
           f"every candidate is kept on disk; the repaired page ships ({r['page_source']})")
     html = (Path(r["out"]) / "index.html").read_text(encoding="utf-8")
@@ -783,6 +791,29 @@ def _reset_router():
     keys._COOL.clear()
     keys._DISABLED.clear()
     keys._UNAVAIL.clear()
+    keys._RR.clear()
+
+
+def t_round_robin(_h=None):
+    """Several keys: each call for the same provider + model starts one key further along; a model has its own turn."""
+    _reset_router()
+    saved = os.environ.get("OPENROUTER_API_KEY")
+    os.environ["OPENROUTER_API_KEY"] = "rr-1,rr-2,rr-3"
+    try:
+        ring, led = keys.Ring("openrouter"), budget.Ledger()
+        firsts = [ring.order("m-a", led)[0] for _ in range(4)]
+        check(firsts == [0, 1, 2, 0], f"round-robin: the first key rotates per call ({firsts})")
+        check(sorted(ring.order("m-a", led)) == [0, 1, 2], "round-robin: every key stays in the order as failover")
+        check(ring.order("m-b", led)[0] == 0, "round-robin: each model keeps its own rotation")
+        keys._DISABLED[ring.ids[1]] = "rejected"
+        check(1 not in ring.order("m-a", led), "a rejected key is left out of the rotation")
+        check(ring.cooling_for(0, "m-a") == 0.0 and not ring.unavailable(0, "m-a"), "no cooldown state at all")
+    finally:
+        if saved is None:
+            os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            os.environ["OPENROUTER_API_KEY"] = saved
+        _reset_router()
 
 
 def t_pipeline_mistral(h):
@@ -809,12 +840,12 @@ def t_pipeline_mistral(h):
               f"A5 composes on Codestral and its page ships ({tr['a5'].get('model')}, {r['page_source']})")
         check(len(keys.Ring("mistral").order("ministral-14b-latest", budget.Ledger())) == 1 and not keys._DISABLED,
               "a model off the tier never disables the key (it keeps serving the other models)")
-        check(any("limit of 0 requests/min" in n and "skipped for this key for 6 h" in n for n in NOTES),
-              "terminal: the off-tier model is named once, with the model that takes over")
+        check(any("limit of 0 requests/min" in n and "skipped for" not in n for n in NOTES),
+              "terminal: the off-tier model is named, with the model that takes over (no skip window)")
         n_med = len([c for c in Calls.log if c[1] == "mistral-medium-latest"])
-        keys._UNAVAIL.clear()                     # a fresh process: it must learn the refusal from disk, not by asking
-        check(keys.Ring("mistral").unavailable(0, "mistral-medium-latest"),
-              "the off-tier model is remembered across restarts (no request spent re-learning it)")
+        keys._UNAVAIL.clear()
+        check(not keys.Ring("mistral").unavailable(0, "mistral-medium-latest"),
+              "no cooldown: the off-tier model is not remembered (it is simply asked again)")
         check(tr["a2"]["model"] == "openai/gpt-oss-120b" and tr["a4"]["model"] == "qwen/qwen3.8-27b",
               "A2-A4 stay on Groq while Groq answers")
         check(not [c for c in Calls.log if c[0] == "gemini"], "no Gemini call while Mistral answers")
@@ -835,8 +866,8 @@ def t_pipeline_mistral(h):
         m2 = {t["agent"]: t.get("model") for t in r2["trace"]}
         check(all(m2[a] == "ministral-8b-latest" for a in ("a2", "a3", "a4")),
               f"Groq rate-limited: A2-A4 answered by Mistral's Ministral 8B ({m2})")
-        check(len([c for c in Calls.log if c[1] == "mistral-medium-latest"]) == n_med,
-              "the off-tier model is not asked again in this process")
+        check(len([c for c in Calls.log if c[1] == "mistral-medium-latest"]) > n_med,
+              "no cooldown: the off-tier model is asked again in this process")
         FakeGroq.rate_all = False
         keys._COOL.clear()
 
@@ -1275,8 +1306,8 @@ def t_upstream(h):
         n0, t0 = len(Calls.log), time.time()
         r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
         ling = [c for c in Calls.log[n0:] if c[0] == "openrouter" and "ling" in c[1]]
-        check(len(ling) == 1, f"Ling rate-limited upstream: asked once, then skipped on every key for every agent "
-                              f"({len(ling)} call(s))")
+        check(len(ling) > 1, f"no cooldown: Ling rate-limited upstream is asked again by the next agents "
+                             f"({len(ling)} call(s))")
         check(time.time() - t0 < 30, f"no waiting on an upstream limit ({time.time() - t0:.0f}s)")
         m = {}
         for t in r["trace"]:
@@ -1284,8 +1315,8 @@ def t_upstream(h):
         check(m["a1"].endswith("nemotron-3.5-super-vl:free"), f"A1 moves on to Nemotron VL ({m['a1']})")
         check(all(m[a] in ("openai/gpt-oss-120b", "qwen/qwen3.8-27b") for a in ("a2", "a3", "a4")),
               f"A2-A4 move on to Groq: Nemotron is out of their chain ({[m[a] for a in ('a2', 'a3', 'a4')]})")
-        check(any("rate-limited upstream" in n and "skipping it for 5 min" in n for n in NOTES),
-              "terminal: the upstream skip is announced")
+        check(any("rate-limited upstream" in n and "skipping it for" not in n for n in NOTES),
+              "terminal: the upstream limit is announced, with no skip window")
     finally:
         FakeGemini.busy, FakeOpenRouter.text_ok, FakeOpenRouter.upstream = set(), False, set()
         for k in ("OPENROUTER_API_KEY", "MISTRAL_API_KEY"):
@@ -1294,6 +1325,33 @@ def t_upstream(h):
         cache.ROOT = TMP / "cache"
         pipeline.CHAINS = LEGACY_CHAINS
         _reset_router()
+
+
+def t_lenient(h):
+    """Values a model gets slightly wrong are settled before validation, not a default: A2's missing notes / a z on
+    the text layer, A3's synonym kinds; A3's own kinds (h2, paragraph...) are left alone."""
+    st = S.State(h)
+    flow.after_a1(st, flow.default_doc(h), h)
+    lay = S.layer_of(st["doc"])
+    eid = next(iter(lay))
+    out = pipeline.lenient(st, "a2", {"layout_plan": {"layers": [{"element_id": eid, "z": 10}]}})
+    L = out["layout_plan"]["layers"][0]
+    check(L["notes"] == "" and L["z"] == lay[eid][1], f"A2: missing notes filled, z 10 -> the element's layer ({L})")
+    items = pipeline.lenient(st, "a3", {"copy": {"items": [{"kind": "heading"}, {"kind": "paragraph"},
+                                                          {"kind": "weird"}]}})["copy"]["items"]
+    check([x["kind"] for x in items] == ["h2", "paragraph", "paragraph"] and items[0]["card_id"] == "",
+          f"A3: synonym kinds mapped, its own kinds kept ({[x['kind'] for x in items]})")
+
+
+def t_bad_json():
+    """A model that returns malformed JSON (a Studio job crashed on it, 2026-11-22): a bad reply, so the router moves
+    to the next model; never an exception that ends the job."""
+    try:
+        providers.Reply('{"a": 1 "b": 2}', "m", "stop").json()
+        check(False, "malformed JSON raises a ProviderError")
+    except providers.ProviderError as e:
+        check(e.kind == "bad_output", f"malformed JSON -> bad_output ({e})")
+    check(providers.Reply('```json\n{"a": 1}\n```', "m", "stop").json() == {"a": 1}, "fenced JSON still parses")
 
 
 def t_gemma_thinking():
@@ -1326,6 +1384,23 @@ def t_gemma_thinking():
     g.generate("gemini-4-hydrogen", "sys", [{"text": "hi"}], key="k")
     check("thinkingConfig" in bodies[-1][1]["generationConfig"], "Hydrogen keeps its thinking level")
     providers.Gemini.no_thinking.discard("gemini-x-old")
+    big = {"type": "object", "properties": {"a": {"type": "string"}}, "required": ["a"]}
+    orig = Http.post
+
+    def post2(url, json=None, headers=None, timeout=None):
+        if "responseJsonSchema" in json["generationConfig"]:
+            bodies.append((url, json))
+            return R(400, {"error": {"message": "The specified schema produces a constraint that has too many states "
+                                                "for serving."}})
+        return orig(url, json=json, headers=headers, timeout=timeout)
+    g.http = type("H2", (), {"post": staticmethod(post2)})()
+    g.generate("gemma-4-31b-it", "sys", [{"text": "hi"}], key="k", schema=big)
+    last = bodies[-1][1]
+    check("gemma-4-31b-it" in providers.Gemini.no_schema and "responseJsonSchema" not in last["generationConfig"]
+          and last["generationConfig"]["responseMimeType"] == "application/json"
+          and "JSON schema" in last["systemInstruction"]["parts"][0]["text"],
+          "a schema Gemma can't decode: plain JSON mode for that model, the schema in the system text")
+    providers.Gemini.no_schema.discard("gemma-4-31b-it")
 
 
 def t_modal():
@@ -1382,6 +1457,9 @@ def t_eta():
     seen = {"a5": "Gemini 4 Hydrogen"}
     line = ETA.describe({"kind": "try", "agent": "a5", "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"}, seen)
     check(line == "Composing the page · Gemini 4 Hydrogen is busy, switched to Nemotron Ultra", f"Studio line: {line}")
+    line = ETA.describe({"kind": "retry", "agent": "a5", "why": "truncated",
+                         "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"}, seen)
+    check(line == "Composing the page · Nemotron Ultra ran out of room, retrying with more", f"Studio line: {line}")
 
 
 def t_progress(h):
@@ -1413,6 +1491,7 @@ def main():
         t_copy_fold(h)
         t_decor_layers(h)
         t_drawn_centerpiece(h)
+        t_lenient(h)
         if qa:
             r = pipeline.run(h, enabled=False, qa=True, log=lambda *a: None)
             check(not any("overlaps text" in p or "overflow" in p for x in r["qa"].values() for p in x["problems"]),
@@ -1428,6 +1507,7 @@ def main():
     t_measure()
     t_mistral_provider()
     t_openrouter_provider()
+    t_bad_json()
     t_gemma_thinking()
     t_modal()
     t_eta()
@@ -1438,6 +1518,7 @@ def main():
     print("--- the current provider priority (Gemini -> OpenRouter -> Groq -> Mistral)")
     t_priority(H)
     t_upstream(H)
+    t_round_robin(H)
     t_progress(H)
     print("--- fake models with a Mistral key (A1 / A5 on Mistral, Groq backup, Gemini last)")
     t_pipeline_mistral(H)

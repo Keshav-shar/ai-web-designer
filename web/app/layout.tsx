@@ -7,9 +7,19 @@ import { Monogram, Texture } from "@/components/cosmos";
 import { SiteNav } from "@/components/site-nav";
 
 export const metadata: Metadata = {
-  title: { default: "Cosmogon Labs", template: "%s · Cosmogon Labs" },
-  description: "Describe a website in one sentence. Cosmogon Labs routes its feeling through real design references and composes the page. Private research demo.",
-  robots: { index: false, follow: false },
+  title: {
+    default: "Cosmogon Labs",
+    template: "%s · Cosmogon Labs",
+  },
+  description:
+    "Describe a website design idea in a few lines. Cosmogon Labs routes its feeling through real structed design reference engine and composes the full UI design for your entire product suite. Invite-Only Research Demo.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+  verification: {
+    google: "paoiRtAIfn_L0HxOTaJuf6PzR5GhFviRhB1ntt85JTc",
+  },
 };
 
 export const viewport: Viewport = { themeColor: "#FBF5EF", width: "device-width", initialScale: 1 };
@@ -46,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </nav>
               <div className="flex w-full flex-wrap justify-between gap-4 border-t pt-6 text-[0.84rem]" style={{ borderColor: "rgba(251,245,239,.2)", color: "rgba(251,245,239,.8)" }}>
                 <span>© Cosmogon Labs. Textures and reference images belong to their authors and are credited as design references.</span>
-                <span>Composed in one sentence · checked by machine</span>
+                <span> For any Feedbacks or Suggestions, feel free to contact: kesharma21@gmail.com </span>
               </div>
             </div>
           </div>
