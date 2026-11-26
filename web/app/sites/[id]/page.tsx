@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { SiteMockup } from "@/components/site-mockup";
 import type { SiteRow } from "@/lib/site";
 import { supabaseServer } from "@/lib/supabase/server";
+import { NOINDEX } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Site", ...NOINDEX };
 
 export default async function SitePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

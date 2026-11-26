@@ -2,8 +2,9 @@ import { Texture } from "@/components/cosmos";
 import { Display, Eyebrow } from "@/components/ui";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { LoginForm } from "./login-form";
+import { NOINDEX } from "@/lib/seo";
 
-export const metadata = { title: "Sign in" };
+export const metadata = { title: "Sign in", ...NOINDEX };
 
 // Only messages this app itself sends are shown; anything else in ?error= becomes a generic line.
 const KNOWN = new Set([

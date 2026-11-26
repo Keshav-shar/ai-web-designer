@@ -5,8 +5,10 @@ import { Card, Tag } from "@/components/ui";
 import { PROSPECTS } from "@/content/prospects";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { supabaseServer } from "@/lib/supabase/server";
+import { SITE_DESC, pageMeta } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const metadata = { ...pageMeta("/", "Cosmogon Labs · a taste engine for the web", SITE_DESC), title: { absolute: "Cosmogon Labs · a taste engine for the web" } };
 
 async function load() {
   const none = { signedIn: false, job: null, latest: null, engine: null as Engine };

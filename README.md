@@ -204,7 +204,7 @@ No email, no GitHub, no magic links, no sign-up. **You** create each account and
    - Keep the **Email** provider **on**. It is the password mechanism behind usernames; no emails are ever sent.
    - Turn **"Allow new users to sign up" off** and **"Confirm email" off**.
    - Turn GitHub and every other provider off.
-3. **Authentication → URL Configuration:** Site URL `https://ai-web-designer-gamma.vercel.app`.
+3. **Authentication → URL Configuration:** Site URL `https://cosmogon-labs.vercel.app`.
 4. Create the accounts (above).
 5. **Project Settings → API keys:** copy the **service_role** (secret) key into `worker/.env` on this PC. It is gitignored:
    ```
@@ -215,7 +215,7 @@ No email, no GitHub, no magic links, no sign-up. **You** create each account and
    Never put it in Vercel or `web/.env`. The web app only uses the publishable (anon) key.
 
 ## Web
-- **Vercel** (https://ai-web-designer-gamma.vercel.app): Root Directory `web`, framework Next.js (pinned by `web/vercel.json`), one production branch. Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and optionally `QWEN_BASE`, `QWEN_SPLIT_MODEL`, `QWEN_API_KEY` for the split.
+- **Vercel** (https://cosmogon-labs.vercel.app): Root Directory `web`, framework Next.js (pinned by `web/vercel.json`), one production branch. Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and optionally `QWEN_BASE`, `QWEN_SPLIT_MODEL`, `QWEN_API_KEY` for the split.
 - **Local:** `cd web; npm install; npm run dev`, with the same two `NEXT_PUBLIC_*` values in `web/.env`.
 
 ## Run the worker (manual)

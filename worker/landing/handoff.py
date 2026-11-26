@@ -23,6 +23,22 @@ from . import schemas as sc
 
 HEX = re.compile(r"^#[0-9A-Fa-f]{6}$")
 MAX_HEX, MAX_FONTS = 24, 16
+# Families never offered to or kept from the agents (the user's call, R0 2026-11-26: Monofett's pill letters read as a
+# smeared bold at every size and were unreadable on buttons and headings). Lower-case names.
+BLOCKED_FONTS = {"monofett"}
+
+
+def blocked(family: str) -> bool:
+    return (family or "").strip().strip("'\"").lower() in BLOCKED_FONTS
+
+
+def image_size(path) -> tuple[int, int] | None:
+    try:
+        from PIL import Image
+        with Image.open(path) as im:
+            return im.size
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _hexes(*groups) -> list[str]:
@@ -87,9 +103,11 @@ def build(o: dict, split: dict, brief: dict, files: dict, *, theme: str = "auto"
     assets = []
     for a in brief["assets"]:        # on_page False: not about the request -> an A1 reference only, never on the page
         if a["role"] in ("central", "background") and a["ref_id"] in files and a.get("on_page", True):
+            wh = image_size(files[a["ref_id"]])          # the frame A5 builds follows the image's real proportions
             assets.append({"ref_id": a["ref_id"], "role": a["role"], "type": a.get("type"), "cluster": a["cluster"],
                            "fam": a["fam"], "id": a["id"], "text": bool(a.get("text")), "path": a["path"],
-                           "note": a.get("note"), "local": str(files[a["ref_id"]])})
+                           "note": a.get("note"), "local": str(files[a["ref_id"]]), "relevance": a.get("relevance"),
+                           "width": wh[0] if wh else None, "height": wh[1] if wh else None})
     v = brief["vibe"]
     ta = brief["taste"]
     return {
@@ -131,8 +149,8 @@ def font_pool(pair: list[str], candidates: list[str]) -> dict[str, dict]:
     """The lab's pair + a buffer of up to BUFFER more families from the lab's own candidates, picked round-robin by
     category so the type system can vary its levels; topped up from the catalogue only for a missing core category."""
     cat = g.font_catalog()
-    out = [n for n in dict.fromkeys(pair) if n in cat]
-    rest = [n for n in dict.fromkeys(candidates) if n and n in cat and n not in out]
+    out = [n for n in dict.fromkeys(pair) if n in cat and not blocked(n)]
+    rest = [n for n in dict.fromkeys(candidates) if n and n in cat and n not in out and not blocked(n)]
     by_cat: dict[str, list[str]] = {}
     for n in rest:
         by_cat.setdefault(cat[n]["category"], []).append(n)
@@ -143,7 +161,7 @@ def font_pool(pair: list[str], candidates: list[str]) -> dict[str, dict]:
                 buf.append(by_cat[k].pop(0))
     have = {cat[n]["category"] for n in out + buf}
     for k in [c for c in CORE_CATEGORIES if c not in have and c != "Monospace"][:2]:
-        top = sorted((n for n, v in cat.items() if v["category"] == k and n not in out + buf),
+        top = sorted((n for n, v in cat.items() if v["category"] == k and n not in out + buf and not blocked(n)),
                      key=lambda n: cat[n].get("popularity", 9999))[:1]
         buf += top
     return {n: font_info(n) for n in out + buf}
@@ -172,6 +190,10 @@ def resolve_font(name: str, pool: dict[str, dict], hint: str = "") -> tuple[str,
     cat = g.font_catalog()
     lower = {k.lower(): k for k in cat}
     n = (name or "").strip().strip("'\"")
+    if blocked(n):
+        want = guess_category(hint) or (cat.get(lower.get(n.lower(), ""), {}) or {}).get("category")
+        pick = next((f for f, i in pool.items() if want and i.get("category") == want and not blocked(f)), None)             or next((f for f in pool if not blocked(f)), "Inter")
+        return pick, f"'{n}' is blocked (unreadable when set heavy); {pick} stands in"
     if n.lower() in lower:
         return lower[n.lower()], None
     close = difflib.get_close_matches(n.lower(), list(lower), n=1, cutoff=0.86)

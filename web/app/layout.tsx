@@ -5,17 +5,37 @@ import { fontVars } from "./cosmogon-fonts";
 import { Grain } from "@/components/atmosphere";
 import { Monogram, Texture } from "@/components/cosmos";
 import { SiteNav } from "@/components/site-nav";
+import { AUTHOR, IS_PROD, JsonLd, ORG, PERSON, SITE_DESC, SITE_NAME, SITE_URL, abs } from "@/lib/seo";
+
+const SITE_LD = {
+  "@graph": [
+    { "@type": "WebSite", "@id": abs("/#website"), name: SITE_NAME, url: SITE_URL, description: SITE_DESC, inLanguage: "en", publisher: { "@id": ORG["@id"] }, author: { "@id": PERSON["@id"] } },
+    ORG,
+    PERSON,
+  ],
+};
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Cosmogon Labs",
-    template: "%s · Cosmogon Labs",
+    default: SITE_NAME,
+    template: `%s · ${SITE_NAME}`,
   },
-  description:
-    "Describe a website design idea in a few lines. Cosmogon Labs routes its feeling through real structed design reference engine and composes the full UI design for your entire product suite. Invite-Only Research Demo.",
+  description: SITE_DESC,
+  applicationName: SITE_NAME,
+  authors: [{ name: AUTHOR.name, url: AUTHOR.url }],
+  creator: AUTHOR.name,
+  publisher: SITE_NAME,
+  keywords: ["AI web design", "design engine", "taste engine", "UI design generator", "aesthetic families", "design references", "Keshav Sharma"],
+  // no site-wide canonical: each public page sets its own, private pages are noindex
+  alternates: { types: { "application/rss+xml": [{ url: "/discover/feed.xml", title: `${SITE_NAME} updates` }] } },
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/", title: SITE_NAME, description: SITE_DESC },
+  twitter: { card: "summary_large_image", title: SITE_NAME, description: SITE_DESC },
+  // only the production deployment is indexable (previews and local builds stay noindex)
   robots: {
-    index: false,
-    follow: false,
+    index: IS_PROD,
+    follow: IS_PROD,
+    googleBot: { index: IS_PROD, follow: IS_PROD, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
   },
   verification: {
     google: "paoiRtAIfn_L0HxOTaJuf6PzR5GhFviRhB1ntt85JTc",
@@ -56,12 +76,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </nav>
               <div className="flex w-full flex-wrap justify-between gap-4 border-t pt-6 text-[0.84rem]" style={{ borderColor: "rgba(251,245,239,.2)", color: "rgba(251,245,239,.8)" }}>
                 <span>© Cosmogon Labs. Textures and reference images belong to their authors and are credited as design references.</span>
-                <span> For any Feedbacks or Suggestions, feel free to contact: kesharma21@gmail.com </span>
+                <span>For feedback or suggestions, contact <a className="hover:text-gold" href={`mailto:${AUTHOR.email}`}>{AUTHOR.email}</a></span>
               </div>
             </div>
           </div>
         </footer>
         <Grain />
+        <JsonLd data={SITE_LD} />
       </body>
     </html>
   );

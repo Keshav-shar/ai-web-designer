@@ -71,7 +71,7 @@ def limits(model: str) -> dict:
         return LIMITS[model]
     if model.startswith(OR_PREFIX):
         return OPENROUTER_FREE if model.endswith(":free") else OPENROUTER_PAID
-    if model.startswith("modal/"):
+    if model.startswith(("modal/", "deepseek/")):         # own endpoints: no shared per-minute token window
         return MODAL_LIMITS
     if model.startswith(("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")):
         return MISTRAL_DEFAULT

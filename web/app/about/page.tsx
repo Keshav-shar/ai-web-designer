@@ -2,8 +2,9 @@ import Link from "next/link";
 import { Poster, Strip, TapePiece, Texture } from "@/components/cosmos";
 import { BARS, Card } from "@/components/ui";
 import { ABOUT } from "@/content/about";
+import { pageMeta } from "@/lib/seo";
 
-export const metadata = { title: "About" };
+export const metadata = pageMeta("/about", "About", "How Cosmogon Labs turns one sentence into a design recipe: split the prompt, match its feeling to one of 39 aesthetic families, and compose a page from real references.");
 
 export default function AboutPage() {
   const { hero, how, showcase, faq, cta } = ABOUT;

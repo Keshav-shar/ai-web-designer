@@ -35,6 +35,11 @@ const config: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
+      // personal areas and the engine API: never indexed, even if a link leaks (route handlers have no HTML meta)
+      ...["/sites/:path*", "/api/:path*", "/auth/:path*", "/login"].map((source) => ({
+        source,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      })),
     ];
   },
 };

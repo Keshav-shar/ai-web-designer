@@ -153,6 +153,12 @@ def normalize_doc(doc: dict, st: S.State, h: dict) -> tuple[dict, list]:
     if not sections:
         sections = [{"section_id": "hero", "role": "hero", "where": "first screen", "what": ["headline"]}]
         _log(log, "content_sections", None, "hero", "the page needs at least its main section")
+    for i, s in enumerate(sections):                  # a role that contradicts the section's own name and place
+        want = role_by_name(s["section_id"], i, len(sections))
+        if want and s["role"] != want:
+            _log(log, f"section {s['section_id']}.role", s["role"], want, "the role contradicts the section's name and "
+                                                                          "position on the page")
+            s["role"] = want
     if not any(s["role"] == "hero" for s in sections):
         first = next((s for s in sections if s["role"] != "nav"), sections[0])
         _log(log, f"section {first['section_id']}.role", first["role"], "hero", "the first content section is the hero")
@@ -193,8 +199,45 @@ def normalize_doc(doc: dict, st: S.State, h: dict) -> tuple[dict, list]:
               "permitted_overlaps": [{"a": S.cut(o.get("a", ""), 60), "b": S.cut(o.get("b", ""), 60),
                                       "why": S.cut(o.get("why", ""), 200)} for o in (rules.get("permitted_overlaps") or [])[:8]],
               "prohibited_overlaps": [S.cut(x, 200) for x in (rules.get("prohibited_overlaps") or [])[:8]]},
-          "layout_spec": layout, "strategic_cards": cards}
+          "layout_spec": layout, "strategic_cards": cards,
+          "image_slots": image_slots(doc.get("image_slots"), sections, log)}
     return nd, log
+
+
+ROLE_WORDS = (("nav", {"nav", "navbar", "navigation", "topnav", "header", "menu", "topbar", "masthead"}),
+              ("footer", {"footer", "colophon"}))
+
+
+def role_by_name(section_id: str, i: int, n: int) -> str | None:
+    """The role a section's own id names, when its place agrees (a nav near the top, a footer last). None = no claim.
+    Nemotron VL once labelled the top navigation bar 'footer' and an analytics grid 'quote' (R0, 2026-11-26)."""
+    words = set(re.split(r"[^a-z]+", section_id.lower()))
+    for role, keys in ROLE_WORDS:
+        if words & keys:
+            if role == "nav" and i > 1 or role == "footer" and i < n - 2:
+                return None
+            return role
+    return None
+
+
+def image_slots(raw, sections: list[dict], log: list) -> list[dict]:
+    """A1's picture places -> [{slot_id, section_id, subject, style, aspect}] tied to real sections (max MAX_SLOTS)."""
+    ids = {s["section_id"] for s in sections}
+    by_slug = {slug(s["section_id"], 24): s["section_id"] for s in sections}
+    out, seen = [], set()
+    for x in (raw or [])[:sc.MAX_SLOTS * 2]:
+        if not isinstance(x, dict) or not (x.get("subject") or "").strip():
+            continue
+        sid = x.get("section_id") if x.get("section_id") in ids else by_slug.get(slug(x.get("section_id") or "", 24))
+        if not sid:
+            _log(log, f"image_slot {x.get('slot_id')}", x.get("section_id"), None, "no such section")
+            continue
+        out.append({"slot_id": _unique("img-" + slug(x.get("slot_id") or sid, 24).removeprefix("img-"), seen),
+                    "section_id": sid, "subject": S.cut(x["subject"], 240), "style": S.cut(x.get("style", ""), 240),
+                    "aspect": x.get("aspect") if x.get("aspect") in sc.ASPECTS else "4:3"})
+        if len(out) >= sc.MAX_SLOTS:
+            break
+    return out
 
 
 def legacy_type(nd: dict) -> dict:
@@ -293,12 +336,35 @@ def after_a2(st: S.State, out: dict) -> list:
                 z = group_z[L["element_id"]][1]
             lays.append({"element_id": L["element_id"], "z": z,
                          "anchor": L.get("anchor") if L.get("anchor") in sids else hero,
-                         "placement": S.cut(L.get("placement", ""), 260), "notes": S.cut(L.get("notes", ""), 160)})
+                         "placement": S.cut(L.get("placement", ""), 260), "notes": S.cut(L.get("notes", ""), 160),
+                         "box": clean_box(L.get("box"), z), "rotate": clean_rotate(L.get("rotate"))})
     for L in fb["layers"]:
         if L["element_id"] not in seen:
             lays.append(L)
     st.put("code", "plan", {"canvas": canvas, "sections": secs, "layers": lays})
     return log
+
+
+def clean_box(b, z) -> dict | None:
+    """A2's start / end corners in % of the anchor section -> ordered and clamped (a backdrop may bleed 10% past the
+    section; nothing else leaves it by more than 15%). None when unusable: placement prose carries it then."""
+    try:
+        x0, y0, x1, y1 = (float(b[k]) for k in ("x0", "y0", "x1", "y1"))
+    except (TypeError, ValueError, KeyError):
+        return None
+    lo, hi = (-10.0, 110.0) if z == 0 else (-15.0, 115.0)
+    x0, x1 = sorted((spatial.clamp(x0, lo, hi), spatial.clamp(x1, lo, hi)))
+    y0, y1 = sorted((spatial.clamp(y0, lo, hi), spatial.clamp(y1, lo, hi)))
+    if x1 - x0 < 1 or y1 - y0 < 1:
+        return None
+    return {"x0": round(x0, 1), "y0": round(y0, 1), "x1": round(x1, 1), "y1": round(y1, 1)}
+
+
+def clean_rotate(r) -> float:
+    try:
+        return round(spatial.clamp(float(r), -45.0, 45.0), 1)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 # --------------------------------------------------------------------------- A3: the copy

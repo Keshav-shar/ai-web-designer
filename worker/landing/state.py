@@ -181,9 +181,11 @@ def slice_for(st: State, agent: str) -> dict:
         lab_names = {}
         for k, v in f["lab_tokens"].items():
             lab_names.setdefault(v.upper(), k)
-        return {"user_query": m["full_query"], "vibe_query": m["vibe_query"], "brand": m.get("brand"),
-                "audience": m.get("audience"), "family": m["family"], "niche": m.get("niche"),
-                "niche_cues": m.get("niche_cues"), "avoid": m.get("avoid", [])[:6], "vibe": m["vibe"],
+        return {"user_query": m["full_query"], "brand": m.get("brand"), "audience": m.get("audience"),
+                "avoid": m.get("avoid", [])[:6],
+                # how the library filed the references: style direction only, never the site's subject or its words
+                "style_hints": {"family": m["family"], "niche": m.get("niche"), "niche_cues": m.get("niche_cues"),
+                                "vibe": m["vibe"], "routing_query": m["vibe_query"]},
                 "measured": {"alignment": f["alignment"],
                              "type_roles": {r: {k: v for k, v in d.items() if k in ("size_token", "text_transform",
                                                                                     "letter_spacing", "weight")}
@@ -208,7 +210,7 @@ def slice_for(st: State, agent: str) -> dict:
     if agent == "a3":
         m, plan = st["meta"], st["plan"]
         lay = {s["section_id"]: s["layout"] for s in plan["sections"]}
-        return {"brand": m.get("brand"), "audience": m.get("audience"), "niche": m.get("niche"),
+        return {"user_query": m["full_query"], "brand": m.get("brand"), "audience": m.get("audience"),
                 "sections": [{"section_id": s["section_id"], "role": s["role"], "what": s["what"],
                               "layout": lay.get(s["section_id"], "")} for s in d["content_sections"]],
                 "cards": [{"card_id": c["card_id"], "heading": c["heading"]} for c in d["strategic_cards"]],
@@ -222,7 +224,8 @@ def slice_for(st: State, agent: str) -> dict:
                 L = placed.get(e["id"], {})
                 els.append({"element_id": e["id"], "z": L.get("z", lay[e["id"]][1]), "what": e["what"],
                             "geometry": e.get("geometry", ""), "where": e["where"], "placement": L.get("placement", ""),
-                            "anchor": L.get("anchor", "")})
+                            "anchor": L.get("anchor", ""), "box_pct_of_anchor": L.get("box"),
+                            "rotate_deg": L.get("rotate") or 0})
         return {"decor_elements": els,
                 "palette_vars": [f"var({c['var']}) = {c['name']} {c['hex']}" for c in d["colors"]],
                 "limits": "one asset per element; svg up to ~2500 characters each, viewBox-based; colours only "
@@ -420,7 +423,7 @@ def assemble_doc_spec(st: State) -> dict:
             a = assets_by.get(e["id"])
             decor.append({"element_id": e["id"], "layer": f"z{L.get('z', lay[e['id']][1])}", "what": e["what"],
                           "geometry": e.get("geometry", ""), "where": e["where"], "anchor": L.get("anchor", ""),
-                          "placement": L.get("placement", ""),
+                          "placement": L.get("placement", ""), "box": L.get("box"), "rotate": L.get("rotate") or 0,
                           "asset": ({"kind": a["kind"], a["kind"]: a[a["kind"]], "opacity": a["opacity"]}
                                     if a else None)})
     bg = backdrop(st)
@@ -430,6 +433,18 @@ def assemble_doc_spec(st: State) -> dict:
     scol = {s["section_id"]: s for s in cp["section_colors"]}
     cards = {c["card_id"]: c for c in d["strategic_cards"]}
     hero = next((s["section_id"] for s in d["content_sections"] if s["role"] == "hero"), None)
+    # every other on-page image (it passed the relevance gate) reaches A5; A1's picture slots take them first, in
+    # order, the rest are drawn (the improver draws them on the rendered page) - R0: the merch page lost 2 of its 3
+    # relevant product photos here and reused one image in every card
+    spare = [a for a in st["assets"] if a["role"] == "central" and (not centre or a["path"] != centre["path"])]
+    slot_items: dict[str, list] = {}
+    for sl in d.get("image_slots") or []:
+        im = spare.pop(0) if spare else None
+        it = ({"item_id": sl["slot_id"], "kind": "image", "src": im["path"], "alt": cut(sl["subject"], 120),
+               "aspect": aspect_of(im) or sl["aspect"], "shows": sl["subject"]} if im else
+              {"item_id": sl["slot_id"], "kind": "drawing", "description": f"{sl['subject']} - drawn as: {sl['style']}",
+               "alt": cut(sl["subject"], 120), "aspect": sl["aspect"], "draw": "pending"})
+        slot_items.setdefault(sl["section_id"], []).append(it)
     sections, flat = [], []
     for s in d["content_sections"]:
         sid = s["section_id"]
@@ -450,6 +465,9 @@ def assemble_doc_spec(st: State) -> dict:
                        {"item_id": "centerpiece", "kind": "drawing", "description": d["centerpiece"]["description"],
                         "alt": cut(d["centerpiece"]["description"], 120), "where": d["centerpiece"]["where"]})
             flat.append({"item_id": "centerpiece", "kind": "centerpiece", "section_id": sid, "level": "body"})
+        for it in slot_items.get(sid, []):
+            its.append(it)
+            flat.append({"item_id": it["item_id"], "kind": it["kind"], "section_id": sid, "level": "body"})
         sections.append({"section_id": sid, "role": s["role"], "what": s["what"], "where": s["where"],
                          "layout": p.get("layout", ""), "size": p.get("size", ""), "responsive": p.get("responsive", ""),
                          "colors": {k: var_of.get(c.get(k), "") for k in ("surface", "text", "heading", "accent")},
@@ -458,9 +476,16 @@ def assemble_doc_spec(st: State) -> dict:
     copy_ += [v for x in items if x["kind"] == "card" for cd in [cards.get(x["card_id"], {})]
               for v in (cd.get("heading"), cd.get("body")) if v]
     assets = ([{"path": centre["path"], "role": "centerpiece", "alt": cut(d["centerpiece"]["description"], 120),
-                "description": d["centerpiece"]["description"]}] if centre else [])
+                "description": d["centerpiece"]["description"], **dims(centre)}] if centre else [])
     if bg:
-        assets.append({**bg, "description": d["background_layer"]["base_surface"]})
+        src = next((a for a in st["assets"] if a["path"] == (bg.get("from") or bg["path"])), {})
+        assets.append({**bg, "description": d["background_layer"]["base_surface"], **dims(src)})
+    used = {a["path"] for a in assets}
+    for a in st["assets"]:                             # the other relevant images: placed by slot, or free to place
+        if a["role"] == "central" and a["path"] not in used:
+            used.add(a["path"])
+            assets.append({"path": a["path"], "role": "image", "alt": cut(a.get("type") or "", 60),
+                           "type": a.get("type"), **dims(a)})
     css_vars = {c["var"]: c["hex"] for c in colors}
     css_vars.update({f"--{r.replace('_', '-')}": h for r, h in pal.items()})
     return {
@@ -479,8 +504,58 @@ def assemble_doc_spec(st: State) -> dict:
         "background": {"image": bg["path"] if bg else None, "treatment": d["background_layer"]["treatment"] if bg else "none",
                        "abstract": bool(bg and bg["abstract"]), "base_surface": d["background_layer"]["base_surface"]},
         "sections": sections, "decor": decor, "assets": assets,
+        "section_vars_css": section_vars_css(sections),
         "layout": {"hero_section": hero},
         "items": flat, "copy": copy_, "item_ids": [x["item_id"] for x in flat],
         "section_ids": [s["section_id"] for s in sections],
         "motif_ids": [x["element_id"] for x in decor if x["asset"] and x["asset"]["kind"] == "svg"],
     }
+
+
+def dims(a: dict) -> dict:
+    """width / height / aspect of an image asset, when known (A5 frames it in its own proportions)."""
+    w, h = a.get("width"), a.get("height")
+    if not (w and h):
+        return {}
+    return {"width": w, "height": h, "aspect": aspect_of(a)}
+
+
+def aspect_of(a: dict) -> str | None:
+    w, h = a.get("width"), a.get("height")
+    if not (w and h):
+        return None
+    from math import gcd
+    r = w / h
+    common = {"1:1": 1.0, "4:3": 4 / 3, "3:4": 3 / 4, "3:2": 1.5, "2:3": 2 / 3, "16:9": 16 / 9, "9:16": 9 / 16,
+              "21:9": 21 / 9, "5:4": 1.25, "4:5": 0.8}
+    best = min(common, key=lambda k: abs(common[k] - r))
+    if abs(common[best] - r) / r < 0.04:
+        return best
+    g_ = gcd(w, h)
+    return f"{w // g_}:{h // g_}" if w // g_ < 50 else f"{r:.2f}:1"
+
+
+TEXT_ROLE_VARS = {"heading": ("--text-top-heading",), "text": ("--text-subheading", "--text-body"),
+                  "accent": ()}
+
+
+def section_vars_css(sections: list[dict]) -> str:
+    """The palette -> colour distribution contract (the user's call, R0): inside each section the global text roles
+    resolve to that section's readable colours (A3's section colours, contrast-checked by code against the section's
+    surface). A page that writes color: var(--text-top-heading) on a dark hero gets the hero's light heading colour,
+    not the page-wide dark one (R0: the merch h1 rendered #1A1C1E on #141414). Declared before the page's own CSS, so
+    a page that sets these variables itself wins."""
+    out = []
+    for s in sections:
+        c = s.get("colors") or {}
+        decl = []
+        for key, roles in TEXT_ROLE_VARS.items():
+            v = c.get(key)
+            if v:
+                decl += [f"{r}:var({v})" for r in roles]
+        if c.get("surface"):
+            decl.append(f"--section-surface:var({c['surface']})")
+        if decl:
+            sid = s["section_id"].replace('"', "")
+            out.append(f'[data-section="{sid}"]{{{";".join(decl)}}}')
+    return "\n".join(out)

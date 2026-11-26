@@ -32,8 +32,8 @@ from pathlib import Path
 import jsonschema
 
 from . import budget, cache, compile_spec, defaults, flow, keys, qa as QA, schemas as sc, state as S, validate_page
-from .providers import (MODAL_PREFIX, Gemini, Groq, Mistral, Modal, OpenRouter, ProviderError, image_part, image_part_or,
-                        modal_base)
+from .providers import (DS_PREFIX, MODAL_PREFIX, DeepSeek, Gemini, Groq, Mistral, Modal, OpenRouter, ProviderError,
+                        deepseek_base, image_part, image_part_or, modal_base)
 
 PROMPTS = Path(__file__).resolve().parents[2] / "contracts" / "prompts" / "agents"
 OUT = Path(os.getenv("LANDING_OUT", r"D:\serpman-studio\out\_landing"))
@@ -59,6 +59,7 @@ PREFS = {"openrouter:vision": ["inclusionai/ling-3.2-flash:free"],
          # Nemotron VL behind it. Gemma 4 left OpenRouter (its free endpoints are rate-limited upstream for every
          # account, 2026-11-22): it runs on the user's own Gemini keys instead ("gemini:gemma")
          "openrouter:compose": ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3.5-super-vl:free"],
+         # Mistral: off every chain since 2026-11-26 (HTTP 402, the free tier needs a subscription); kept for tests
          "mistral:vision": ["mistral-medium-latest", "ministral-14b-latest"],
          "mistral:compose": ["mistral-medium-latest", "codestral-latest", "ministral-14b-latest"],
          "mistral:text": ["mistral-medium-latest", "ministral-8b-latest", "ministral-14b-latest"],
@@ -71,43 +72,85 @@ PREFS = {"openrouter:vision": ["inclusionai/ling-3.2-flash:free"],
          "gemini:gemma": ["gemma-4-31b-it", "gemma-4-26b-a4b-it"],
          # the user's own GPU endpoint (deploy/modal_vlm.py); used only when MODAL_BASE + MODAL_API_KEY are set
          "modal": [os.getenv("MODAL_MODEL", "Qwen/Qwen3-VL-30B-A3B-Instruct-FP8")],
+         # DeepSeek (test arm only: the local FreeDeepseekAPI proxy; providers.deepseek_base gates it)
+         "deepseek:text": ["deepseek-chat"],
+         "deepseek:vision": ["deepseek-vision"],
          "groq:big": ["openai/gpt-oss-120b"],
-         "groq:vision": ["qwen/qwen3.8-27b"]}
+         "groq:vision": ["qwen/qwen3.8-27b"],
+         # free OpenRouter models that were never on the text agents' chains (cycle 1, 2026-11-26: every A2-A4 fallback
+         # had only Ling (upstream-limited for everyone), Groq (request larger than its 8K/min window) and Mistral
+         # (402: the free tier now needs a subscription) to try - no key can fix any of those)
+         "openrouter:text-alt": ["nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3.5-lightning:free"],
+         "openrouter:compose-alt": ["nvidia/nemotron-3.5-lightning:free"],
+         # a further vision model with structured outputs for A1 (free; never tried before 2026-11-26)
+         "openrouter:vision-extra": ["particle-ai/particle-1:free"]}
+# A1 order (the user's R0 notes, 2026-11-26): Gemini 3.6 Flash wrote the best design documents of the last 5 builds
+# (10 sections, every colour traced); Nemotron VL's were ~30% thinner and mislabelled section roles. Hydrogen / 3.8
+# never answered in those builds; keys.health_* skips a model that keeps failing, so they cost little where they stand.
+# A6 = the improver (the user's P1): a vision model that sees A5's rendered page and returns the improved page.
 # Priority (the user's calls, 2026-11-22): A1 / A5 on the user's picks first (Gemini, then Ling for A1 / Nemotron
 # Ultra for A5). A1: then Gemini 3.6 Flash (faster than Nemotron VL there), Nemotron VL; A5: then Nemotron VL, 3.6 Flash
 # (it ran out of output at 20K tokens on the real A5 request, Ultra finished in 177 s). Then Gemma 4 on the user's
 # Gemini keys, the user's Modal GPU (only when configured), Mistral last. A2-A4: Ling, then Groq, Mistral last.
-CHAINS = {"a1": ["gemini", "openrouter:vision", "gemini:flash", "openrouter:vision-alt", "gemini:gemma", "modal",
-                 "mistral:vision"],
-          "a2": [ "openrouter:text", "groq:big", "mistral:text"],
-          "a3": ["openrouter:text", "groq:big", "mistral:text"],
-          "a4": ["openrouter:text", "groq:vision", "groq:big", "mistral:text"],
-          "a5": ["gemini", "openrouter:compose", "gemini:flash", "gemini:gemma", "modal", "mistral:compose"]}
+CHAINS = {"a1": ["gemini:flash", "gemini", "openrouter:vision-alt", "openrouter:vision", "openrouter:vision-extra",
+                 "gemini:gemma", "modal"],
+          # A6 without Nemotron VL (the user's verdict on cycle 1, 2026-11-26: its rewrites drew crude shapes and made
+          # text less readable; the one improved page the user liked was Gemini 3.6 Flash's). No improver -> A5's page
+          # ships and the Studio says the final polish was skipped.
+          "a6": ["gemini:flash", "gemini", "openrouter:vision", "gemini:gemma", "modal"],
+          "a2": ["openrouter:text", "groq:big", "gemini:flash", "openrouter:text-alt", "gemini:gemma", "gemini"],
+          "a3": ["openrouter:text", "groq:big", "gemini:flash", "openrouter:text-alt", "gemini:gemma", "gemini"],
+          "a4": ["openrouter:text", "groq:vision", "groq:big", "gemini:flash", "openrouter:text-alt", "gemini:gemma",
+                 "gemini"],
+          "a5": ["gemini", "openrouter:compose", "openrouter:vision", "gemini:flash", "openrouter:compose-alt",
+                 "gemini:gemma", "modal"]}
+# No deterministic fallbacks (the user's call, 2026-11-26): when every model of a chain is out, the agent waits and
+# asks the whole chain again (cooldowns ignored; daily limits and rejected keys still count) after each of these
+# pauses; if no model answers even then, the job fails with an honest message and nothing canned is published.
+# LANDING_NO_DEFAULTS=0 restores the old code defaults / compile_spec page (tests, the lab, agents-off runs always
+# use them: enabled=False is the deterministic mode by definition).
+RETRY_WAITS = (45.0, 90.0, 180.0)
+
+
+def no_defaults() -> bool:
+    return os.getenv("LANDING_NO_DEFAULTS", "1") != "0"
+
+
+class AgentUnavailable(RuntimeError):
+    """No model could do an agent's work even after the retry rounds: the job fails rather than ship canned content."""
+    def __init__(self, agent: str, tried: list, detail: str = ""):
+        step = {"a1": "design brief", "a2": "layout plan", "a3": "copy", "a4": "decoration", "a5": "page"}.get(agent, agent)
+        kinds = sorted({why_left(t) for t in tried if t.get("model")})
+        super().__init__(f"No AI model could write the {step} right now ({', '.join(kinds[:4]) or 'all busy'}), even "
+                         f"after waiting {int(sum(RETRY_WAITS))} s. Nothing was published; please try again in a few "
+                         f"minutes." + (f" [{detail[:200]}]" if detail else ""))
+        self.agent, self.tried = agent, tried
 # A4 is text-only (A1 describes the images); Qwen keeps its own minute window apart from A2/A3's gpt-oss.
 # If every model of a chain is out, the agent falls back to code (the default document / compile_spec).
 MISTRAL_PREFIXES = ("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")
 A1_SIDE = {"high": 1540, "medium": 1024, "low": 1024}   # Mistral: <=1540 px, ~(W*H)/784 tokens per image
 OR_SIDE = {"high": 1536, "medium": 1280, "low": 1024}   # OpenRouter vision models, JPEG q90, detail "high"; 1024-1536 px keeps fine text crisp without oversized payloads
-MAX_OUT = {"a1": 9000, "a2": 3000, "a3": 3000, "a4": 4000, "a5": 20000}
-TEMP = {"a1": 0.5, "a2": 0.4, "a3": 0.6, "a4": 0.7, "a5": 0.7}
+MAX_OUT = {"a1": 14400, "a2": 3000, "a3": 3000, "a4": 4000, "a5": 20000, "a6": 26000}
+TEMP = {"a1": 0.5, "a2": 0.4, "a3": 0.6, "a4": 0.7, "a5": 0.7, "a6": 0.5}
 THINK = {"a1": "medium", "a5": "medium"}            # Gemini thinking level per agent (others: low)
 A1_RES = {"LAYOUT_REF": "high", "TYPOGRAPHY_REF": "high", "ELEMENTS_REF": "medium", "BACKGROUND_REF": "medium",
           "PALETTE_REF": "low"}
 WAIT_MAX = 20.0                         # longer waits for a minute window -> try the next model instead
 WAIT_MAX_MISTRAL = 65.0                 # Mistral's free tier is 2 req/min: waiting out the minute is normal there
 # Gemini gets short limits of its own: it answers fast or not at all, and the next model in line takes over
-GEMINI_TIMEOUT = {"a1": 60.0, "a2": 25.0, "a3": 25.0, "a4": 25.0, "a5": 75.0}
+GEMINI_TIMEOUT = {"a1": 60.0, "a2": 25.0, "a3": 25.0, "a4": 25.0, "a5": 75.0, "a6": 90.0}
 # OpenRouter's free models are slow but good (Ling ~150-220 s on A1 and ~100 s on A3, Nemotron Ultra ~140-200 s on A5)
-OPENROUTER_TIMEOUT = {"a1": 240.0, "a2": 120.0, "a3": 120.0, "a4": 120.0, "a5": 240.0}
+OPENROUTER_TIMEOUT = {"a1": 240.0, "a2": 120.0, "a3": 120.0, "a4": 120.0, "a5": 240.0, "a6": 360.0}
 GEMINI_SKIP_S = 600.0                   # a Gemini model that was busy / timed out is skipped this long, on every key
 # the quick give-up above is for Hydrogen / 3.8 Flash (overloaded: a fast failure beats a slow one); 3.6 Flash and
 # Gemma on the Gemini keys are fallbacks that are slow but answer (3.6 Flash: 66 s on the real A1 request)
-GEMINI_PATIENT = {"a1": 150.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0}
+GEMINI_PATIENT = {"a1": 150.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0, "a6": 360.0}
 UPSTREAM_SKIP_S = 300.0                 # an OpenRouter free model rate-limited upstream: skipped this long, on every key
-MODAL_TIMEOUT = {"a1": 600.0, "a2": 300.0, "a3": 300.0, "a4": 300.0, "a5": 600.0}   # per read: covers a cold boot
-TIMEOUT = {"a1": 100.0, "a2": 30.0, "a3": 30.0, "a4": 30.0, "a5": 100.0}
+MODAL_TIMEOUT = {"a1": 600.0, "a2": 300.0, "a3": 300.0, "a4": 300.0, "a5": 600.0, "a6": 600.0}   # per read: covers a cold boot
+TIMEOUT = {"a1": 100.0, "a2": 30.0, "a3": 30.0, "a4": 30.0, "a5": 100.0, "a6": 300.0}
 STICKY_S = 600.0                       # after a switch to the alternate, stay on it this long before retrying the primary
-ORDER = ["a1", "a2", "a3", "a4", "a5"]
+ORDER = ["a1", "a2", "a3", "a4", "a5", "a6"]
+SHOT_TILE = {"desktop": (1100, 5), "phone": (844, 2)}    # screenshot tiles for the improver: height px, how many
 
 
 def prompt(name: str) -> str:
@@ -135,13 +178,17 @@ class Ctx:
         self.buckets, self.ledger = budget.Buckets(), budget.Ledger()
         self.gemini, self.groq, self.mistral = Gemini(), Groq(self.buckets), Mistral(self.buckets)
         self.openrouter, self.modal = OpenRouter(self.buckets), Modal(self.buckets)
-        self.rings = {p: keys.Ring(p if enabled else "") for p in ("openrouter", "mistral", "groq", "gemini", "modal")}
+        self.deepseek = DeepSeek(self.buckets)
+        self.rings = {p: keys.Ring(p if enabled else "") for p in ("openrouter", "mistral", "groq", "gemini", "modal",
+                                                                   "deepseek")}
         self.resolved: dict[str, list[str]] = {}
 
     @staticmethod
     def pname(model: str) -> str:
         if model.startswith(MODAL_PREFIX):
             return "modal"
+        if model.startswith(DS_PREFIX):
+            return "deepseek"
         if model.startswith(budget.OR_PREFIX):
             return "openrouter"
         if model.startswith(("gemini", "gemma")):
@@ -150,6 +197,8 @@ class Ctx:
 
     def resolve(self, alias: str) -> list[str]:
         """Alias -> its preferred models that this provider lists (checked with the first key that works)."""
+        if alias not in self.resolved and alias.split(":", 1)[0] == "deepseek":   # the local test proxy: trust the config
+            self.resolved[alias] = [DS_PREFIX + m for m in PREFS[alias]] if deepseek_base() and len(self.rings["deepseek"]) else []
         if alias not in self.resolved and alias.split(":", 1)[0] == "modal":   # listing would boot the GPU: trust the config
             self.resolved[alias] = [MODAL_PREFIX + m for m in PREFS[alias]] if modal_base() and len(self.rings["modal"]) else []
         if alias not in self.resolved:
@@ -185,7 +234,7 @@ class Ctx:
 
     def provider(self, name: str):
         return {"gemini": self.gemini, "groq": self.groq, "mistral": self.mistral, "openrouter": self.openrouter,
-                "modal": self.modal}[name]
+                "modal": self.modal, "deepseek": self.deepseek}[name]
 
     def _openrouter_key(self, ring, i: int) -> None:
         """Check an OpenRouter key once (a bad key raises 'auth') and adopt the account's free daily pool and how much
@@ -199,7 +248,8 @@ class Ctx:
         pinned = os.getenv(f"AGENT{agent[1]}_MODEL", "").strip()
         if pinned:
             return [m.strip() for m in pinned.split(",") if m.strip()]
-        base = list(dict.fromkeys(m for a in CHAINS[agent] for m in self.resolve(a)))
+        arm = ["deepseek:vision" if agent in ("a1", "a6") else "deepseek:text"] if deepseek_base() else []
+        base = list(dict.fromkeys(m for a in arm + CHAINS.get(agent, []) for m in self.resolve(a)))   # test arm first
         pick = _PREFERRED.get(tuple(base))               # sticky: the model that last answered for this chain
         if pick and pick[0] in base and (pick[0] == base[0] or time.monotonic() - pick[1] < STICKY_S):
             base.remove(pick[0])
@@ -225,7 +275,21 @@ MINUTE_WAIT_MAX = 65.0
 LOCAL_RATE = "this key's minute window is full"   # the router's own pre-check (budget.Buckets), not a provider 429                  # when every key/model is only in its minute window: wait once, up to this
 
 
-def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, dict, list]:
+def why_left(t: dict) -> str:
+    """A tried-model record -> a few plain words for the Studio ("timed out", "is overloaded", ...)."""
+    w = (t.get("error") or t.get("skip") or "").lower()
+    for key, words in (("timeout", "timed out"), ("overloaded", "is overloaded"), ("503", "is overloaded"),
+                       ("upstream", "is rate-limited"), ("truncat", "ran out of output"),
+                       ("times in a row", "keeps failing today"), ("per-minute", "is at its per-minute limit"),
+                       ("minute window", "is at its per-minute limit"), ("daily", "is out for today"),
+                       ("tier", "isn't on this plan"), ("402", "needs a paid plan"), ("subscription", "needs a paid plan"),
+                       ("too_large", "can't take a request this size"), ("no api key", "has no key")):
+        if key in w:
+            return words
+    return "is busy"
+
+
+def call(ctx: Ctx, agent: str, build, max_out: int, skip=None, fresh: bool = False) -> tuple[dict | str, str, dict, list]:
     """build(model) -> ("gemini", system, parts, schema) | ("groq" | "mistral", messages, schema, est_tokens).
     For each model in the agent's chain (the model that last answered for this chain goes first), each usable
     key in order: a daily limit marks that key out for the model (ledger), a per-minute limit cools the key and moves
@@ -233,7 +297,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
     windows, wait once for the first window to reopen and go round again. Every switch prints one line on the
     terminal (keys.notify). -> (parsed output or text, model, reply meta incl. key label, tried[])."""
     tried = []
-    chain = ctx.chain(agent)
+    chain = [m for m in ctx.chain(agent) if not skip or m not in skip] or ctx.chain(agent)
     stick = tuple(dict.fromkeys(m for a in CHAINS.get(agent, []) for m in ctx.resolve(a)))
 
     def after(model):
@@ -255,14 +319,21 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                               f"all {len(ring)} {ring.provider} key(s) are out for today or rejected"})
                 minute_only = False
                 continue
-            ctx.progress({"kind": "try", "agent": agent, "model": model})
+            left, rec = keys.health_skip(model)
+            if left and not fresh:
+                tried.append({"model": model, "skip": f"failed {rec.get('fails')} times in a row "
+                                                      f"({rec.get('why', '')[:60]}); skipped for {left / 60:.0f} more min"})
+                minute_only = False
+                continue
+            ctx.progress({"kind": "try", "agent": agent, "model": model, "rank": chain.index(model),
+                          "after": why_left(tried[-1]) if tried else None})
             req = build(model)
             next_model = False
             for n, i in enumerate(order):
                 key, kid, label = ring.keys[i], ring.ids[i], ring.label(i)
                 later = order[n + 1:]
                 nxt = ring.label(later[0]) if later else None
-                cool = ring.cooling_for(i, model)        # keys come sorted by cooldown: if this one cools, all do
+                cool = 0.0 if fresh else ring.cooling_for(i, model)   # sorted by cooldown: if this one cools, all do
                 if cool > WAIT_MAX:
                     tried.append({"model": model, "key": label, "skip": f"per-minute limit, cooling {cool:.0f}s"})
                     break
@@ -301,13 +372,15 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                             reply = prov.chat(model, messages, key=key, kid=kid, schema=schema, name=agent,
                                                   max_out=out_cap, temperature=TEMP[agent], strict=strict,
                                                   timeout=(OPENROUTER_TIMEOUT if kind == "openrouter" else
-                                                           MODAL_TIMEOUT if kind == "modal" else TIMEOUT)[agent])
+                                                           MODAL_TIMEOUT if kind == "modal" else
+                                                           OPENROUTER_TIMEOUT if kind == "deepseek" else TIMEOUT)[agent])
                         u = reply.usage
                         ctx.ledger.record(model, u.get("in", 0) + u.get("out", 0) + u.get("thinking", 0), kid)
                         ctx.buckets.note(model, max(0, u.get("in", 0) - u.get("cached", 0)) + u.get("out", 0)
                                          + u.get("thinking", 0), kid)
                         data = reply.json() if (req[0] == "gemini" and req[3] is not None) or \
                             (req[0] != "gemini" and req[2] is not None) else reply.text
+                        keys.health_ok(model)
                         if model != (_PREFERRED.get(stick) or ("",))[0]:
                             _PREFERRED[stick] = (model, time.monotonic())
                         return data, model, {"ms": reply.ms, "usage": u, "headers": reply.headers, "key": label,
@@ -335,6 +408,9 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                         if e.kind == "upstream":           # the free model's host is full for everyone: no key helps
                             for j in range(len(ring)):
                                 ring.cool_down(j, model, UPSTREAM_SKIP_S)
+                            if keys.health_fail(model, "rate-limited upstream"):
+                                keys.notify(f"{model} failed {keys.HEALTH_STRIKES} times in a row: skipped for "
+                                            f"{keys.HEALTH_SKIP_S / 3600:.0f} h")
                             tried.append({"model": model, "key": label, "error": "rate-limited upstream"})
                             keys.notify(f"{agent.upper()}: {model} is rate-limited upstream (shared free capacity, every "
                                         f"key) -> {after(model)}")
@@ -378,6 +454,9 @@ def call(ctx: Ctx, agent: str, build, max_out: int) -> tuple[dict | str, str, di
                         if req[0] == "gemini" and e.kind in ("overloaded", "timeout", "server"):
                             for j in range(len(ring)):                # Google-side trouble: every key, for a while
                                 ring.cool_down(j, model, GEMINI_SKIP_S)
+                            if keys.health_fail(model, f"{e.kind}: {str(e)[:80]}"):
+                                keys.notify(f"{model} failed {keys.HEALTH_STRIKES} times in a row: skipped for "
+                                            f"{keys.HEALTH_SKIP_S / 3600:.0f} h")
                             tried.append({"model": model, "key": label, "error": str(e)[:240],
                                           "s": round(time.time() - t_key, 1)})
                             keys.notify(f"{agent.upper()}: {model} {e.kind} ({str(e)[:90]}) -> {after(model)}; "
@@ -460,11 +539,23 @@ def lenient(st: S.State, agent: str, out):
     invents content."""
     if not isinstance(out, dict):
         return out
-    if agent == "a2":
+    if agent == "a1":
+        if not isinstance(out.get("image_slots"), list):       # a page without picture places is a valid answer
+            out["image_slots"] = []
+        for x in out["image_slots"]:
+            if isinstance(x, dict):
+                for f in ("slot_id", "section_id", "subject", "style"):
+                    x.setdefault(f, "")
+                if x.get("aspect") not in sc.ASPECTS:
+                    x["aspect"] = "4:3"
+    elif agent == "a2":
         lay = S.layer_of(st["doc"]) if st.get("doc") else {}
         for L in (out.get("layout_plan") or {}).get("layers") or []:
             if isinstance(L, dict):
                 L.setdefault("notes", "")
+                L.setdefault("rotate", 0)
+                if not isinstance(L.get("box"), dict):      # no box: placement prose carries it (flow.clean_box -> None)
+                    L["box"] = {"x0": 0, "y0": 0, "x1": 0, "y1": 0}
                 z = L.get("z")
                 if z not in sc.DECOR_Z:                     # e.g. 10 (the text layer): the element's own A1 layer
                     near = z if isinstance(z, (int, float)) else 5
@@ -485,6 +576,81 @@ def lenient(st: S.State, agent: str, out):
                     a.setdefault(f, "")
                 a.setdefault("opacity", 1)
     return out
+
+
+SALVAGE = ("a2",)          # agents whose output is kept in part when it fails validation (the user's call, R0)
+# A1's depth gate (the user's call, 2026-11-26: "going back to A1 if generation is less than a certain size"). In the
+# R0 builds the documents that carried the page were 15-16K characters with 41-47 words per section (Gemini 3.6
+# Flash); the thin ones that starved A5 were 10.7-11K with 25-32 (Ministral 14B, Nemotron VL). A document under any
+# of these gets one more A1 call on the next vision model, and the deeper of the two is kept.
+A1_MIN = {"chars": 12500, "words_per_section": 34, "sections": 5}
+
+
+def a1_measure(doc) -> dict:
+    """How much an A1 document says: its size, sections, words per section's components, elements with geometry."""
+    if not isinstance(doc, dict):
+        return {"chars": 0, "sections": 0, "words_per_section": 0, "elements": 0, "score": 0.0}
+    secs = doc.get("content_sections") or []
+    words = sum(len(" ".join(x for x in (s.get("what") or []) if isinstance(x, str)).split()) for s in secs
+                if isinstance(s, dict))
+    els = (((doc.get("background_layer") or {}).get("elements") or []) + (doc.get("midground_decor") or []) +
+           (doc.get("foreground_overlays") or []))
+    m = {"chars": len(json.dumps(doc, ensure_ascii=False)), "sections": len(secs),
+         "words_per_section": round(words / max(1, len(secs)), 1),
+         "elements": sum(1 for e in els if isinstance(e, dict) and len(str(e.get("geometry", ""))) >= 20)}
+    m["score"] = round(m["chars"] / 12500 + m["words_per_section"] / 34 + min(m["sections"], 10) / 5
+                       + 0.1 * min(m["elements"], 8), 2)        # fixed scale: thresholds may change, ranking doesn't
+    return m
+
+
+def a1_thin(m: dict) -> list[str]:
+    return [f"{k} {m[k]} < {v}" for k, v in A1_MIN.items() if m.get(k, 0) < v]
+
+
+def salvage(st: S.State, agent: str, outs: list) -> dict | None:
+    """A2's plan that failed its schema -> the entries that are usable, made valid (later outputs first). Code fills
+    the sections and layers it drops from defaults (flow.after_a2), so one bad entry no longer costs the whole plan
+    (a Studio job lost 4 good sections over sections[4] = '', 2026-11-23). None when nothing is usable."""
+    if agent != "a2":
+        return None
+    sids, eids, names = flow.a2_enums(st)
+    d = st["doc"]
+    lay = S.layer_of(d)
+    hero = next((s["section_id"] for s in d["content_sections"] if s["role"] == "hero"), sids[0])
+    base = d["role_names"]["bg_primary"]
+    for out in reversed(outs):
+        lp = out.get("layout_plan") if isinstance(out, dict) else None
+        if not isinstance(lp, dict):
+            continue
+        secs, seen = [], set()
+        for x in lp.get("sections") or []:
+            if isinstance(x, dict) and x.get("section_id") in sids and x["section_id"] not in seen:
+                seen.add(x["section_id"])
+                secs.append({"section_id": x["section_id"], "layout": str(x.get("layout") or ""),
+                             "size": str(x.get("size") or ""), "responsive": str(x.get("responsive") or ""),
+                             "surface": x.get("surface") if x.get("surface") in names else base})
+        if not secs:
+            continue
+        layers = []
+        for L in lp.get("layers") or []:
+            if isinstance(L, dict) and L.get("element_id") in eids:
+                z = L.get("z") if L.get("z") in sc.DECOR_Z else lay.get(L["element_id"], ("", 5))[1]
+                box = L.get("box") if isinstance(L.get("box"), dict) else {}
+                try:
+                    box = {k: float(box.get(k, 0)) for k in ("x0", "y0", "x1", "y1")}
+                except (TypeError, ValueError):
+                    box = {"x0": 0.0, "y0": 0.0, "x1": 0.0, "y1": 0.0}
+                rot = L.get("rotate") if isinstance(L.get("rotate"), (int, float)) else 0
+                layers.append({"element_id": L["element_id"], "z": z,
+                               "anchor": L.get("anchor") if L.get("anchor") in sids else hero,
+                               "placement": str(L.get("placement") or ""), "notes": str(L.get("notes") or ""),
+                               "box": box, "rotate": rot})
+        cv = lp.get("canvas") if isinstance(lp.get("canvas"), dict) else {}
+        canvas = {"content_width_px": cv.get("content_width_px") if isinstance(cv.get("content_width_px"), int) else 1200,
+                  "gutter_px": cv.get("gutter_px") if isinstance(cv.get("gutter_px"), int) else 24,
+                  "canvas_use": str(cv.get("canvas_use") or "")}
+        return {"layout_plan": {"canvas": canvas, "sections": secs, "layers": layers}}
+    return None
 
 
 def run_agent(ctx: Ctx, st: S.State, agent: str, schema: dict, build, default, force: bool, trace: list,
@@ -511,34 +677,110 @@ def _run_agent(ctx: Ctx, st: S.State, agent: str, schema: dict, build, default, 
     if not ctx.enabled:
         trace.append({**t, "source": "default", "why": "agents off"})
         return default()
-    errors, tried, model, meta = [], [], None, {}
+    errors, tried, model, meta, outs = [], [], None, {}, []
+
+    def check(o) -> list[str]:
+        try:
+            jsonschema.validate(o, schema)
+            return semantic(agent, o)
+        except jsonschema.ValidationError as e:          # a schema miss gets the repair call too, not the default
+            return [f"schema: {e.message[:200]} (at {'/'.join(str(p) for p in e.absolute_path) or 'top'})"]
     try:
         out, model, meta, tried = call(ctx, agent, build(None), MAX_OUT[agent])
         out = lenient(st, agent, out)
-        try:
-            jsonschema.validate(out, schema)
-            errors = semantic(agent, out)
-        except jsonschema.ValidationError as e:          # a schema miss gets the repair call too, not the default
-            errors = [f"schema: {e.message[:200]} (at {'/'.join(str(p) for p in e.absolute_path) or 'top'})"]
+        outs.append(out)
+        errors = check(out)
         if errors:                                       # one repair call: the same contract plus what failed
-            out2, model, meta2, tried2 = call(ctx, agent, build(errors), MAX_OUT[agent])
+            # A2 (the user's call, R0): a model whose plan broke its schema hands the repair to the next model
+            skip = {model} if agent in SALVAGE and any(e.startswith("schema:") for e in errors) else None
+            out2, model2, meta2, tried2 = call(ctx, agent, build(errors), MAX_OUT[agent], skip=skip)
             tried += tried2
             out2 = lenient(st, agent, out2)
-            jsonschema.validate(out2, schema)
-            if not semantic(agent, out2):
-                out, meta = out2, {**meta2, "repaired": True}
+            outs.append(out2)
+            e2 = check(out2)
+            if not e2:
+                out, model, meta = out2, model2, {**meta2, "repaired": True}
                 errors = []
-    except (NoModel, jsonschema.ValidationError, ProviderError) as e:
+            else:
+                errors += e2
+    except (NoModel, ProviderError) as e:
         errors.append(f"{type(e).__name__}: {str(e)[:300]}")
         tried = tried or getattr(e, "tried", [])
+    if errors and outs and agent in SALVAGE:
+        sv = salvage(st, agent, outs)
+        if sv is not None and not check(sv):
+            n_s = len(sv["layout_plan"]["sections"])
+            keys.notify(f"{agent.upper()}: the plan failed its checks; kept the {n_s} usable section(s) and "
+                        f"{len(sv['layout_plan']['layers'])} layer(s), code fills the rest")
+            trace.append({**t, "source": "salvaged", "why": errors[:3], "tried": tried, "model": model,
+                          "key": meta.get("key"), "usage": meta.get("usage"), "ms": meta.get("ms")})
+            return sv
+    if errors and ctx.enabled and no_defaults():
+        for n, wait in enumerate(RETRY_WAITS, 1):
+            keys.notify(f"{agent.upper()}: no model could answer ({'; '.join(errors)[:140]}); waiting {wait:.0f}s, "
+                        f"then asking the whole chain again ({n}/{len(RETRY_WAITS)}) - no canned default")
+            ctx.progress({"kind": "wait", "agent": agent, "s": wait, "round": n})
+            time.sleep(wait)
+            try:
+                out, model, meta, tried2 = call(ctx, agent, build(None), MAX_OUT[agent], fresh=True)
+                tried += tried2
+                out = lenient(st, agent, out)
+                e3 = check(out)
+                if e3 and agent in SALVAGE:
+                    sv = salvage(st, agent, [out])
+                    if sv is not None and not check(sv):
+                        out, e3 = sv, []
+                if not e3:
+                    cache.put(agent, k, {"output": out, "model": model, "usage": meta.get("usage"),
+                                         "at": time.strftime("%Y-%m-%d %H:%M:%S")})
+                    trace.append({**t, "source": "model", "model": model, "key": meta.get("key"),
+                                  "usage": meta.get("usage"), "ms": meta.get("ms"), "tried": tried,
+                                  "retry_round": n})
+                    return out
+                errors = e3
+            except (NoModel, ProviderError) as e:
+                errors = [f"{type(e).__name__}: {str(e)[:300]}"]
+                tried += getattr(e, "tried", [])
+        trace.append({**t, "source": "unavailable", "why": errors[:3], "tried": tried})
+        raise AgentUnavailable(agent, tried, "; ".join(errors)[:200])
     if errors:
         trace.append({**t, "source": "default", "why": errors[:3], "tried": tried, "model": model})
         return default()
+    depth = None
+    if agent == "a1" and ctx.enabled:
+        out, model, meta, tried, depth = deepen_a1(ctx, st, schema, build, out, model, meta, tried)
     cache.put(agent, k, {"output": out, "model": model, "usage": meta.get("usage"), "at": time.strftime("%Y-%m-%d %H:%M:%S")})
     trace.append({**t, "source": "repaired" if meta.get("repaired") else "model", "model": model,
                   "key": meta.get("key"), "usage": meta.get("usage"), "est_in": meta.get("est_in"),
-                  "ms": meta.get("ms"), "tried": tried})
+                  "ms": meta.get("ms"), "tried": tried, **({"depth": depth} if depth else {})})
     return out
+
+
+def deepen_a1(ctx: Ctx, st: S.State, schema: dict, build, out, model, meta, tried):
+    """A1's document under A1_MIN -> one more call on the next vision model; the deeper document is kept.
+    -> (out, model, meta, tried, depth record)."""
+    m1 = a1_measure(out)
+    why = a1_thin(m1)
+    if not why:
+        return out, model, meta, tried, {"first": m1}
+    keys.notify(f"A1: {model}'s design document is thin ({'; '.join(why)}); asking the next vision model once")
+    ctx.progress({"kind": "retry", "agent": "a1", "model": model, "why": "thin"})
+    rec = {"first": {**m1, "model": model}, "thin": why}
+    try:
+        out2, model2, meta2, tried2 = call(ctx, "a1", build(None), MAX_OUT["a1"], skip={model})
+        out2 = lenient(st, "a1", out2)
+        jsonschema.validate(out2, schema)
+        bad = semantic("a1", out2)
+        m2 = a1_measure(out2)
+        rec["second"] = {**m2, "model": model2, "valid": not bad}
+        tried = tried + tried2
+        if not bad and m2["score"] > m1["score"]:
+            rec["kept"] = "second"
+            return out2, model2, {**meta2, "ms": (meta.get("ms") or 0) + (meta2.get("ms") or 0)}, tried, rec
+    except (NoModel, ProviderError, jsonschema.ValidationError) as e:
+        rec["second"] = {"error": f"{type(e).__name__}: {str(e)[:160]}"}
+    rec["kept"] = "first"
+    return out, model, meta, tried, rec
 
 
 def _groq_msgs(st: S.State, agent: str, slc: dict, image: str | None, errors,
@@ -618,7 +860,7 @@ def classify(chk: dict, qa_res: dict | None, broken: str | None = None, strict: 
 
 # --------------------------------------------------------------------------- the run
 def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir: Path | None = None,
-        qa: bool = True, log=print, a5_repair: bool = True, progress=None) -> dict:
+        qa: bool = True, log=print, a5_repair: bool = True, progress=None, improve: bool = True) -> dict:
     """progress(event) (optional) hears every step: {kind: start | try | done, agent, model} for A1-A5,
     {kind: check} while A5's page is measured, {kind: start, agent: repair | fallback}, {kind: finish, source}."""
     from . import providers as P
@@ -626,8 +868,9 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
     ctx = Ctx(enabled, log, progress)
     if enabled:
         keys.notify(f"models: {ctx.describe()}")
-        first = {a: (ctx.chain(a) or ["code default"])[0].removeprefix(budget.OR_PREFIX) for a in ("a1", "a5")}
-        log(f"A1 (sees the references) on {first['a1']} · A5 (composes) on {first['a5']}")
+        first = {a: (ctx.chain(a) or ["code default"])[0].removeprefix(budget.OR_PREFIX) for a in ("a1", "a5", "a6")}
+        log(f"A1 (sees the references) on {first['a1']} · A5 (composes) on {first['a5']} · A6 (improves what renders) "
+            f"on {first['a6']}")
     st, trace, overrides = S.State(h), [], []
     forced = lambda a: force_from is not None and ORDER.index(a) >= ORDER.index(force_from)  # noqa: E731
 
@@ -647,7 +890,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                     parts += [{"text": sc.image_header(lbl, pos, im["cluster"], im["text"])},
                               {"image": im["local"], "res": A1_RES[lbl]}]
                 return ("gemini", prompt("a1"), parts, s1)
-            if ctx.pname(model) in ("openrouter", "modal"):   # text first, then each image right after its role header
+            if ctx.pname(model) in ("openrouter", "modal", "deepseek"):   # text first, then each image after its header
                 content = [{"type": "text", "text": text}]
                 est = budget.est_text(prompt("a1") + text)
                 for pos, lbl, im in sent:
@@ -703,7 +946,7 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
     import assets as A
     od = out_dir or (OUT / spatial_slug(h["meta"]["full_query"]))
     od.mkdir(parents=True, exist_ok=True)
-    for old in od.glob("a5-*.html"):
+    for old in list(od.glob("a5-*.html")) + list(od.glob("a6.html")):
         old.unlink()
     s_spec = S.compact(spec)
     k5 = cache.key("a5", prompt("a5"), s_spec)
@@ -720,46 +963,72 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         return b
     cands: list[dict] = []
 
-    def measure(page_html: str, sp: dict):
+    def measure(page_html: str, sp: dict, shots: Path | None = None):
         write_site(od, page_html, sp, h, A)
-        return QA.run(od / "index.html", spec=sp) if qa else None
+        return QA.run(od / "index.html", spec=sp, shots_dir=shots) if qa else None
 
     def evaluate(raw: str, source: str, model: str | None) -> dict:
-        """Sanitize + check + measure page; code adds a missing backdrop. Decor the browser finds over text or an
-        image is first moved behind the content and measured again; only what still covers something is removed."""
-        def look(chk):          # measured whatever the checks said: the page ships unless it can't render
-            body = chk["html"].split("<body", 1)[-1]
-            if len(re.sub(r"<style.*?</style>|<[^>]+>|\s+", "", body, flags=re.S)) < MIN_PAGE_TEXT:
-                return None, "the page has no content to render"
-            try:
-                return measure(chk["html"], spec), None
-            except Exception as e:  # noqa: BLE001
-                return None, f"the browser could not render the page ({type(e).__name__}: {str(e)[:120]})"
-
-        chk = validate_page.check(raw, spec, inject_backdrop=True, fix_colors_=True)
-        q, broken = look(chk)
-        c = classify(chk, q, broken)
-        if c["fix_motifs"]:
-            flagged = set(c["fix_motifs"])
-            chk = validate_page.check(raw, spec, demote_motifs=flagged, inject_backdrop=True, fix_colors_=True)
-            q, broken = look(chk)
-            c = classify(chk, q, broken)
-            if c["fix_motifs"]:
-                drop = set(c["fix_motifs"])
-                chk = validate_page.check(raw, spec, demote_motifs=flagged - drop, drop_motifs=drop,
-                                          inject_backdrop=True, fix_colors_=True)
-                q, broken = look(chk)
-                c = classify(chk, q, broken)
-        if any("horizontal overflow" in a for a in c["advisory"]) and "</style>" in chk["html"]:
-            chk["html"] = chk["html"].replace("</style>", OVERFLOW_FIX + "</style>", 1)   # code fixes it, no repair
-            chk["fixes"] = list(chk["fixes"]) + ["clipped decoration past the page edge (horizontal overflow)"]
-            c["advisory"] = [a for a in c["advisory"] if "horizontal overflow" not in a]
+        """Safety sanitize (scripts, external URLs, handlers) + render + measure. Nothing else touches the page (the
+        user's rule, R0 2026-11-26: "check if it renders, that's it"): no colour snapping, no decor moved or removed,
+        no z-index clamp, no injected backdrop or items. Every check is reported; only a page that can't render is
+        discarded."""
         n = len(cands) + 1
-        (od / f"a5-{n}.html").write_text(chk["html"], encoding="utf-8")
+        chk = validate_page.check(raw, spec)
+        body = chk["html"].split("<body", 1)[-1]
+        q, broken = None, None
+        if len(re.sub(r"<style.*?</style>|<[^>]+>|\s+", "", body, flags=re.S)) < MIN_PAGE_TEXT:
+            broken = "the page has no content to render"
+        else:
+            try:
+                q = measure(chk["html"], spec, od / "_shots" / str(n))
+            except Exception as e:  # noqa: BLE001
+                broken = f"the browser could not render the page ({type(e).__name__}: {str(e)[:120]})"
+        c = classify(chk, q, broken)
+        c["advisory"] += [f"decor {m} covers text or an image" for m in sorted(c["fix_motifs"])]
+        c["fix_motifs"] = set()
+        name = "a6.html" if source == "improved" else f"a5-{n}.html"
+        (od / name).write_text(chk["html"], encoding="utf-8")
         cand = {"n": n, "source": source, "model": model, "raw": raw, "chk": chk, "qa": q, **c, "fixes": chk["fixes"],
-                "file": f"a5-{n}.html"}
+                "file": name}
         cands.append(cand)
         return cand
+
+    def build6(base: dict):
+        """The improver's request: the brief, what the browser measured, the page's screenshots (tiles, top to
+        bottom), the composer's markup."""
+        shots = od / "_shots" / str(base["n"])
+        tiles = shot_tiles(shots)
+        pics = [{"item_id": it["item_id"], "shows": it.get("description") or it.get("alt", ""), "aspect": it.get("aspect")}
+                for sec in spec["sections"] for it in sec["items"] if it.get("kind") == "drawing"]
+        imgs = [{"src": a["path"], "aspect": a.get("aspect"), "is": a.get("alt") or a.get("role")}
+                for a in spec["assets"] if a.get("role") in ("image", "centerpiece")]
+        brief = {"request": h["meta"]["full_query"], "brand": spec.get("title"),
+                 "query_context": spec.get("query_context"), "aesthetic_direction": spec.get("aesthetic_direction"),
+                 "palette": [f"var({c['var']}) {c['hex']} {c['name']}" for c in spec["colors"]],
+                 "roles": spec.get("roles"),
+                 "fonts": {lvl: v.get("stack") for lvl, v in spec["typography"].items() if isinstance(v, dict)},
+                 "pictures_to_draw": pics, "images_available": imgs,
+                 "measured": problems(base["qa"])[:30] + base["blocking"][:3]}
+        text = ("INPUT:\n" + S.compact(brief) + "\n\nThe screenshots follow, each after its header. Then THE PAGE.")
+        page = "THE PAGE (the composer's markup):\n" + validate_page.strip_fences(base["raw"])
+
+        def b(model):
+            kind = ctx.pname(model)
+            if kind == "gemini":
+                parts = [{"text": text}]
+                for label, path in tiles:
+                    parts += [{"text": label}, {"image": str(path), "res": "high"}]
+                parts.append({"text": page})
+                return ("gemini", prompt("a6"), parts, None)
+            content = [{"type": "text", "text": text}]
+            est = budget.est_text(prompt("a6") + text + page)
+            for label, path in tiles:
+                content += [{"type": "text", "text": label},
+                            image_part(path, A1_SIDE["high"]) if kind == "mistral" else image_part_or(path, 1536)]
+                est += budget.est_text(label) + (budget.MISTRAL_IMAGE if kind == "mistral" else budget.OR_IMAGE)["high"]
+            content.append({"type": "text", "text": page})
+            return (kind, [{"role": "system", "content": prompt("a6")}, {"role": "user", "content": content}], None, est)
+        return b
     rec = None if forced("a5") else cache.get("a5", k5)
     if rec:
         c1 = evaluate(rec["output"], "cache", rec.get("model"))
@@ -780,29 +1049,83 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         except (NoModel, ProviderError) as e:
             trace.append({"agent": "a5", "source": "fallback", "why": [str(e)[:300]],
                           "tried": tried or getattr(e, "tried", [])})
+    base = next((c for c in cands if not c["blocking"]), None)
     last = cands[-1] if cands else None
-    if a5_repair and last and last["source"] == "model" and (last["blocking"] or last["advisory"]) and ctx.enabled \
-            and ctx.ring_left(last["model"]):              # once per fresh page; a cached page already had its turn
-        notes = last["blocking"] + last["advisory"]
-        keys.notify(f"A5: {len(last['blocking'])} blocking / {len(last['advisory'])} advisory finding(s) on "
-                    f"{last['model']}'s page; sending them back once")
+    if not base and a5_repair and last and last["source"] == "model" and ctx.enabled and ctx.ring_left(last["model"]):
+        # the page can't render: one repair round with what broke (a page that renders is never sent back)
+        keys.notify(f"A5: {last['model']}'s page can't render ({'; '.join(last['blocking'])[:120]}); one repair")
         ctx.progress({"kind": "start", "agent": "repair", "model": last["model"]})
+        outer = ctx.progress
+        ctx.progress = lambda ev: outer({**ev, "agent": "repair"} if ev.get("agent") == "a5" else ev)  # P9: its own step
         try:
-            raw2, model2, meta2, _ = call(ctx, "a5", build5(notes[:10]), MAX_OUT["a5"])
+            raw2, model2, meta2, _ = call(ctx, "a5", build5(last["blocking"][:6]), MAX_OUT["a5"])
             c2 = evaluate(raw2, "repaired", model2)
             trace.append({"agent": "a5", "source": "repaired", "model": model2, "key": meta2.get("key"),
-                          "usage": meta2.get("usage"), "ms": meta2.get("ms"), "why": notes[:6],
+                          "usage": meta2.get("usage"), "ms": meta2.get("ms"), "why": last["blocking"][:6],
                           "blocking": c2["blocking"][:4], "advisory": c2["advisory"][:6], "fixes": c2["fixes"]})
+            base = c2 if not c2["blocking"] else None
         except (NoModel, ProviderError) as e:
             trace.append({"agent": "a5", "source": "repair failed", "why": [str(e)[:200]]})
-    ok = [c for c in cands if not c["blocking"]]
-    best = min(ok, key=lambda c: (len(c["advisory"]), -c["n"])) if ok else None
+        finally:
+            ctx.progress = outer
+    if not base and ctx.enabled and no_defaults():
+        for n, wait in enumerate(RETRY_WAITS, 1):         # no page that renders yet: ask the chain again, never canned
+            keys.notify(f"A5: no page that renders yet; waiting {wait:.0f}s, then asking again ({n}/{len(RETRY_WAITS)})")
+            ctx.progress({"kind": "wait", "agent": "a5", "s": wait, "round": n})
+            time.sleep(wait)
+            try:
+                raw_r, model_r, meta_r, tried_r = call(ctx, "a5", build5(None), MAX_OUT["a5"], fresh=True)
+                c_r = evaluate(raw_r, "model", model_r)
+                trace.append({"agent": "a5", "source": "model", "model": model_r, "key": meta_r.get("key"),
+                              "usage": meta_r.get("usage"), "ms": meta_r.get("ms"), "tried": tried_r,
+                              "retry_round": n, "blocking": c_r["blocking"][:4], "advisory": c_r["advisory"][:6]})
+                if not c_r["blocking"]:
+                    base = c_r
+                    break
+            except (NoModel, ProviderError) as e:
+                trace.append({"agent": "a5", "source": "unavailable", "why": [str(e)[:300]], "retry_round": n})
+        if not base:
+            tried_all = [x for t in trace if t.get("agent") == "a5" for x in (t.get("tried") or [])]
+            raise AgentUnavailable("a5", tried_all, "; ".join(cands[-1]["blocking"])[:200] if cands else "")
+    improved = None
+    if base and ctx.enabled and improve:
+        # A6, the improver (the user's P1 + P4 + P6): a vision model sees A5's page rendered and returns it improved
+        ctx.progress({"kind": "start", "agent": "a6"})
+        tried6 = []
+        k6 = cache.key("a6", prompt("a6"), s_spec, base["raw"])
+        rec6 = None if forced("a6") else cache.get("a6", k6)
+        try:
+            if rec6:
+                raw6, model6, meta6 = rec6["output"], rec6.get("model"), {"ms": 0, "usage": rec6.get("usage")}
+            else:
+                raw6, model6, meta6, tried6 = call(ctx, "a6", build6(base), MAX_OUT["a6"])
+            c6 = evaluate(raw6, "improved", model6)
+            trace.append({"agent": "a6", "source": "cache" if rec6 else "model", "model": model6, "key": meta6.get("key"),
+                          "usage": meta6.get("usage"), "est_in": meta6.get("est_in"), "ms": meta6.get("ms"),
+                          "tried": tried6, "blocking": c6["blocking"][:4], "advisory": c6["advisory"][:6],
+                          "improves": base["file"]})
+            kept, kept0 = copy_kept(c6["chk"]["html"], spec), copy_kept(base["chk"]["html"], spec)
+            if not c6["blocking"] and kept >= kept0 - 0.25:
+                improved = c6
+                if not rec6:
+                    cache.put("a6", k6, {"output": raw6, "model": model6, "usage": meta6.get("usage")})
+            elif not c6["blocking"]:            # it renders, but most of the page's words are gone: not this page
+                keys.notify(f"A6: the improved page kept {kept:.0%} of the copy (A5's: {kept0:.0%}); A5's ships")
+                trace[-1]["rejected"] = f"kept {kept:.0%} of the copy, A5's page {kept0:.0%}"
+            else:
+                keys.notify(f"A6: the improved page can't render ({'; '.join(c6['blocking'])[:120]}); A5's ships")
+            ctx.progress({"kind": "done", "agent": "a6", "source": "model", "model": model6, "ms": meta6.get("ms")})
+        except (NoModel, ProviderError) as e:
+            trace.append({"agent": "a6", "source": "failed", "why": [str(e)[:300]],
+                          "tried": tried6 or getattr(e, "tried", [])})
+            keys.notify(f"A6: no improver answered ({str(e)[:120]}); A5's page ships")
+            ctx.progress({"kind": "done", "agent": "a6", "source": "failed"})
+    best = improved or base
     if best:
         page, source, qa_res = best["chk"], best["source"], best["qa"]
         write_site(od, page["html"], spec, h, A)
-        if best["source"] in ("model", "repaired"):
-            cache.put("a5", k5, {"output": best["raw"], "model": best["model"]})
-        overrides += [{"token": "a5", "from": None, "to": None, "why": f} for f in best["fixes"]]
+        if base and base["source"] in ("model", "repaired"):
+            cache.put("a5", k5, {"output": base["raw"], "model": base["model"]})
     else:                                                # the deterministic compile_spec page, same design document
         why = "agents off" if not ctx.enabled else (cands[-1]["blocking"][:4] if cands else "no model page")
         ctx.progress({"kind": "start", "agent": "fallback"})
@@ -847,6 +1170,46 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                                     encoding="utf-8")
     ctx.progress({"kind": "finish", "source": source})
     return result
+
+
+def copy_kept(html: str, spec: dict) -> float:
+    """Share of the spec's copy strings that appear on the page (the same folding as validate_page's check)."""
+    want = [x for x in spec.get("copy", []) if x]
+    if not want:
+        return 1.0
+    body = html.split("<body", 1)[-1]
+    text = validate_page._norm(re.sub(r"<style.*?</style>|<[^>]+>", " ", body, flags=re.S) + " " +
+                               " ".join(re.findall(r'(?:placeholder|value)="([^"]*)"', body)))
+    return sum(1 for x in want if validate_page._norm(x) in text) / len(want)
+
+
+def shot_tiles(shots: Path) -> list[tuple[str, Path]]:
+    """The measured page's screenshots cut into screen-sized tiles (a provider shrinks an image's long side to ~1536
+    px, which would make a whole page unreadable) -> [(header, path)], desktop top to bottom, then the phone."""
+    from PIL import Image
+    out = []
+    for name, kind, label in (("1440_full.jpg", "desktop", "DESKTOP 1440 px"), ("390_full.jpg", "phone", "PHONE 390 px")):
+        f = shots / name
+        if not f.exists():
+            continue
+        th, most = SHOT_TILE[kind]
+        with Image.open(f) as im:
+            im = im.convert("RGB")
+            # tiles are cut on the shot's own scale: the desktop shot is 960 px wide for a 1440 px page
+            scale = 1440 / im.width if kind == "desktop" else 390 / im.width
+            step = int(th / scale) if kind == "desktop" else th
+            n = min(most, max(1, -(-im.height // step)))
+            for i in range(n):
+                y0 = i * step
+                if y0 >= im.height:
+                    break
+                tile = im.crop((0, y0, im.width, min(im.height, y0 + step)))
+                p = shots / f"{kind}_{i + 1}.jpg"
+                tile.save(p, "JPEG", quality=84)
+                more = " (the page continues below)" if i == n - 1 and y0 + step < im.height else ""
+                out.append((f"[{label} · part {i + 1} of {n} · page y {int(y0 * scale)}-"
+                            f"{int(min(im.height, y0 + step) * scale)} px{more}]", p))
+    return out
 
 
 def a1_depth(doc: dict | None) -> dict:

@@ -121,6 +121,8 @@ DECOR_Z = [0, 5, 20, 50]                # where decoration may go: never the tex
 SOURCES = IMAGE_LABELS + ["inferred"]   # which reference image a colour / element was seen in ("inferred" = not seen)
 DECOR_KINDS = ["svg", "css"]
 EXTRA_HEXES = 4                       # colours A1 may add beyond the measured ones (logged)
+ASPECTS = ["1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "21:9"]
+MAX_SLOTS = 8                         # picture places A1 may ask for (each gets a real image or a drawing)
 
 
 def a1() -> dict:
@@ -153,6 +155,9 @@ def a1() -> dict:
                             "density": enum(DENSITY), "notes": S}),
         "strategic_cards": arr(obj({"card_id": enum(CARD_IDS), "tag": S, "heading": S, "body": S,
                                     "accent_color_key": enum(PALETTE_ROLES)})),
+        # every place on the page that shows a picture besides the hero centerpiece: what it shows comes from the
+        # request (subject), how it looks from the references (style); code gives it a real image or a drawing
+        "image_slots": arr(obj({"slot_id": S, "section_id": S, "subject": S, "style": S, "aspect": enum(ASPECTS)})),
     })
 
 
@@ -163,7 +168,9 @@ def a2(section_ids: list[str], element_ids: list[str], colors: list[str]) -> dic
         "sections": arr(obj({"section_id": ref("section"), "layout": S, "size": S, "surface": ref("color"),
                              "responsive": S})),
         "layers": arr(obj({"element_id": ref("element"), "z": enum(DECOR_Z), "anchor": ref("section"),
-                           "placement": S, "notes": S})),
+                           "placement": S, "notes": S,
+                           # where it sits: start (x0, y0) and end (x1, y1) corners in % of its anchor section's box
+                           "box": obj({"x0": N, "y0": N, "x1": N, "y1": N}), "rotate": N})),
     })}), "$defs": {"section": enum(section_ids), "element": enum(element_ids or [""]), "color": enum(colors)}}
 
 

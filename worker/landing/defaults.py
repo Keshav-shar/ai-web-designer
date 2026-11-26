@@ -300,19 +300,22 @@ def design_doc(h: dict) -> dict:
     cues = ", ".join(c for c in bs["texture_and_pattern_cues"] if c != "none") or "soft light"
     has_c = any(x["role"] == "central" and not x["text"] for x in h["assets"])
     els = a["design_elements"][:2]
-    cards = a["strategic_cards"]
+    # No canned cards: the category kit's sample features belong to another business (R0 cycle 1: a pickle shop whose
+    # A1 failed showed a restaurant's "Natural pours: ... house cocktails"). The copywriter (A3) writes this section
+    # from the request; the compile_spec fallback page (agents off) still uses the kit through its own spec.
+    cards = []
     sections = [{"section_id": "nav", "role": "nav", "where": "top bar", "what": ["wordmark", "links", "action"]},
                 {"section_id": "hero", "role": "hero", "where": "first screen",
                  "what": ["eyebrow", "headline", "supporting line", "action"] + (["the central graphic"] if has_c else [])},
                 {"section_id": "intro", "role": "intro", "where": "below the hero, centred",
                  "what": ["statement heading", "short paragraph"]}]
-    if cards:
-        sections.append({"section_id": "cards", "role": "cards", "where": "lower band",
-                         "what": [f"{len(cards)} strategic cards"]})
+    sections.append({"section_id": "features", "role": "feature", "where": "lower band, three columns",
+                     "what": ["three short features of the request's own subject, each a heading and one sentence",
+                              "one action"]})
     return {
         "design_system_name": f"{m['vibe']['name']} landing",
         "aesthetic_direction": f"{m['vibe']['name']}: {m['vibe']['cues']}. {m['vibe']['effect']}".strip(),
-        "query_context": a["query_context"],
+        "query_context": m["full_query"],            # the request in its own words (no catalog label as content)
         "color_palette_distribution": cpd,
         "role_map": dict(pal),
         "typography": typo,
@@ -326,7 +329,8 @@ def design_doc(h: dict) -> dict:
                           "where": "behind the hero, upper right",
                           "geometry": "one radial gradient, about 60vw across, fading to transparent",
                           "source": "inferred"}]},
-        "centerpiece": {"use": has_c, "description": f"{m['vibe']['name']} artwork", "where": "beside the hero text"},
+        "centerpiece": {"use": has_c, "description": f"the request's subject: {m['full_query'][:160]}",
+                        "where": "beside the hero text"},
         "midground_decor": [{"id": f"decor-{i + 1}",
                              "what": f"{e['motif_type'].replace('_', ' ')}: {e['geometry']}; {e['visual_cues']}",
                              "where": "behind the hero image" if i == 0 and has_c else "in the outer margin beside the hero",

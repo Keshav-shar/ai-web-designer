@@ -1,8 +1,10 @@
 """validate_page.py - sanitize a compiled landing page, re-wrap it, and check it invents nothing.
 
 Any page (A5's model output or compile_spec's) goes through here:
-  sanitize   keep <style> + <body>; drop <head>, scripts, frames, links, metas, forms, event handlers, external
-             URLs (href: '#...' / mailto only; src / url(): the asset manifest only; CSS @import dropped)
+  sanitize   keep <style> + <body>; drop <head>, scripts, frames, links, metas, event handlers, external URLs
+             (href: '#...' / mailto only; src / url(): the asset manifest only; CSS @import dropped). Form controls
+             stay as inert UI (P2, 2026-11-26): no action / method / target, buttons are type=button, no file inputs,
+             and the CSP forbids form submission (form-action 'none') - their words count as the page's copy.
   wrap       our own <head>: charset, viewport, CSP, title, the spec's Google Fonts links, plus GUARD css that
              *enforces* decor rules (pointer-events:none on z0/z5/z20/z50, decor hidden below 1024 px, grain)
   conform    blocking errors: a colour literal outside the spec palette, a font outside the spec, z-index outside
@@ -21,9 +23,18 @@ import unicodedata
 from html.parser import HTMLParser
 
 BANNED = {"script", "iframe", "object", "embed", "link", "meta", "base", "frame", "frameset", "applet", "noscript",
-          "template", "portal", "form", "input", "button", "select", "textarea", "audio", "video", "source", "track",
+          "template", "portal", "audio", "video", "source", "track",
           "canvas", "head", "title", "foreignobject", "use", "image", "animate", "set", "animatemotion"}
-VOID = {"img", "br", "hr", "wbr", "path", "circle", "ellipse", "rect", "line", "polyline", "polygon", "stop"}
+# Form controls are kept as inert UI: nothing submits (CSP form-action 'none', no action / method / target) and no
+# script exists to read them. Their visible words (button text, placeholders, option labels) count as copy.
+FORM_TAGS = {"form", "input", "button", "select", "option", "optgroup", "textarea", "label", "fieldset", "legend",
+             "datalist", "output", "progress", "meter"}
+FORM_DROP_ATTRS = {"action", "method", "target", "enctype", "formaction", "formmethod", "formtarget", "formenctype",
+                   "autocomplete", "name", "form", "list"}
+INPUT_TYPES = {"text", "email", "search", "tel", "url", "number", "range", "checkbox", "radio", "date", "time",
+               "datetime-local", "month", "week", "color", "password", "button", "reset", "hidden"}
+UNSAFE_BEHAVIOR = re.compile(r"expression\(|javascript:|(?<![\w-])behavior\s*:", re.I)   # not scroll-behavior
+VOID = {"img", "br", "hr", "wbr", "input", "path", "circle", "ellipse", "rect", "line", "polyline", "polygon", "stop"}
 COLOR_LIT = re.compile(r"#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b|\brgba?\([^)]*\)|\bhsla?\([^)]*\)|"
                        r"\b(?:oklch|oklab|lab|lch|hwb)\([^)]*\)", re.I)
 NAMED = {"white": "#FFFFFF", "black": "#000000", "red": "#FF0000", "blue": "#0000FF", "green": "#008000",
@@ -123,6 +134,14 @@ class _San(HTMLParser):
             if k.startswith("on") or k in ("srcset", "formaction", "xlink:href", "ping", "background", "poster", "action"):
                 self.dropped.append(f"{t}[{k}]")
                 continue
+            if t in FORM_TAGS and k in FORM_DROP_ATTRS:
+                continue
+            if t == "input" and k == "type":
+                v = v.lower() if v.lower() in INPUT_TYPES else ("button" if v.lower() in ("submit", "image") else "text")
+            if t == "input" and k in ("placeholder", "value") and v.strip():
+                self.text.append(" " + v + " ")       # visible words of a control are the page's copy too
+            if t == "button" and k == "type":
+                v = "button"
             if k == "href" and not (v.startswith("#") or v.startswith("mailto:")):
                 self.dropped.append(f"href={v[:40]}")
                 v = "#"
@@ -130,7 +149,7 @@ class _San(HTMLParser):
                 self.dropped.append(f"src={v[:40]}")
                 continue
             if k == "style":
-                if re.search(r"expression\(|javascript:|@import|behavior\s*:", v, re.I):
+                if UNSAFE_BEHAVIOR.search(v) or re.search(r"@import", v, re.I):
                     self.dropped.append("style[unsafe]")
                     continue
                 v = URL.sub(lambda mm: mm.group(0) if mm.group(1) in self.assets or mm.group(1).startswith("#")
@@ -149,6 +168,8 @@ class _San(HTMLParser):
             if k == "data-section":
                 self.sections.add(v)
             keep.append((k, v))
+        if t == "button" and "type" not in dict(keep):
+            keep.append(("type", "button"))
         layer = dict(keep).get("data-layer")
         if t == "img" and "z0" in self.layer_stack + [layer] and dict(keep).get("src"):
             self.z0_srcs.add(dict(keep)["src"])
@@ -169,7 +190,7 @@ class _San(HTMLParser):
             self.layer_stack.append(layer)
             self.open_out.append(len(self.out) - 1)
         else:
-            self.out[-1] = self.out[-1][:-1] + "/>" if t in VOID - {"img", "br", "hr", "wbr"} else self.out[-1]
+            self.out[-1] = self.out[-1][:-1] + "/>" if t in VOID - {"img", "br", "hr", "wbr", "input"} else self.out[-1]
 
     def handle_startendtag(self, tag, attrs):
         before = self.skip
@@ -220,9 +241,9 @@ def sanitize_css(css: str, assets: set[str]) -> tuple[str, list[str]]:
     if re.search(r"@import", css, re.I):
         dropped.append("@import")
         css = re.sub(r"@import[^;]+;", "", css, flags=re.I)
-    if re.search(r"expression\(|javascript:|behavior\s*:", css, re.I):
+    if UNSAFE_BEHAVIOR.search(css):
         dropped.append("css[unsafe]")
-        css = re.sub(r"expression\([^)]*\)|javascript:[^;]*|behavior\s*:[^;]*", "", css, flags=re.I)
+        css = re.sub(r"expression\([^)]*\)|javascript:[^;}]*|(?<![\w-])behavior\s*:[^;}]*", "", css, flags=re.I)
 
     def u(mm):
         if mm.group(1) in assets or mm.group(1).startswith("data:image/svg+xml") or mm.group(1).startswith("#"):
@@ -236,7 +257,8 @@ def wrap(css: str, body: str, spec: dict) -> str:
     fonts = "\n".join(f'<link rel="stylesheet" href="{H.escape(u)}">' for u in spec.get("fonts_css", []))
     title = H.escape(spec.get("title") or "Landing page")
     csp = ("default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline' https://fonts.googleapis.com; "
-           "font-src https://fonts.gstatic.com")
+           "font-src https://fonts.gstatic.com; form-action 'none'")
+    scoped = spec.get("section_vars_css") or ""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -249,6 +271,7 @@ def wrap(css: str, body: str, spec: dict) -> str:
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 {fonts}
 <style>
+{scoped}
 {css}
 {GUARD}
 </style>

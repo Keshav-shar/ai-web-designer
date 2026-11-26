@@ -3,7 +3,8 @@ keep up to date (moving average on disk), so the estimate follows the models act
 
     route    split + lab routing + references + images uploaded       a1 .. a4   the agents
     a5       the composer writes the page                             check      the page measured in a browser
-    repair   A5's one fix round (only when it starts)                  fallback   the backup page (only when it starts)
+    a6       the improver: looks at the rendered page, returns it improved (and measured)
+    repair   A5's fix round, only when its page can't render           fallback   the backup page (only when it starts)
     publish  preview screenshot + upload
 
 remaining = what's left of the current step (never less than a sliver: a step isn't over until it ends) + the typical
@@ -18,9 +19,9 @@ import threading
 import time
 from pathlib import Path
 
-BASE = ("route", "a1", "a2", "a3", "a4", "a5", "check", "publish")   # every job; repair / fallback when they start
+BASE = ("route", "a1", "a2", "a3", "a4", "a5", "check", "a6", "publish")   # repair / fallback when they start
 DEFAULT_S = {"route": 55.0, "a1": 75.0, "a2": 8.0, "a3": 10.0, "a4": 8.0, "a5": 150.0, "check": 25.0,
-             "repair": 140.0, "fallback": 30.0, "publish": 15.0}
+             "a6": 180.0, "repair": 140.0, "fallback": 30.0, "publish": 15.0}
 ALPHA = 0.3
 MIN_LEARN_S = 2.0                     # a cached step (0 s) says nothing about the next job's time
 FILE = Path(os.getenv("LANDING_TIMING", str(Path(os.getenv("LANDING_LEDGER", r"D:\serpman-studio\out\_agents\quota.json"))
@@ -47,8 +48,8 @@ class Eta:
 
     def order(self) -> list[str]:
         o = list(BASE)
-        for s in self.extra:
-            o.insert(o.index("publish"), s)
+        for s in self.extra:                  # a repair runs before the improver, the fallback replaces it
+            o.insert(o.index("a6"), s)
         return o
 
     def enter(self, step: str) -> None:
@@ -58,6 +59,8 @@ class Eta:
         self.spent[self.step] = self.spent.get(self.step, 0.0) + now - self.step_t
         if step in ("repair", "fallback") and step not in self.extra:
             self.extra.append(step)
+        if step == "fallback" and "a6" in self.order():       # no improver after a fallback page
+            self.est["a6"] = 0.0
         self.step, self.step_t = step, now
 
     def remaining(self) -> int:
@@ -99,10 +102,31 @@ NAMES = {"gemini-4-hydrogen": "Gemini 4 Hydrogen", "gemini-3.8-flash": "Gemini 3
          "inclusionai/ling-3.2-flash:free": "Ling 3.2 Flash", "nvidia/nemotron-3.5-super-vl:free": "Nemotron VL",
          "nvidia/nemotron-3-ultra-550b-a55b:free": "Nemotron Ultra", "openai/gpt-oss-120b": "GPT-OSS 120B",
          "qwen/qwen3.8-27b": "Qwen 3.8", "ministral-14b-latest": "Ministral 14B", "ministral-8b-latest": "Ministral 8B",
-         "codestral-latest": "Codestral", "mistral-medium-latest": "Mistral Medium"}
+         "codestral-latest": "Codestral", "mistral-medium-latest": "Mistral Medium",
+         "deepseek/deepseek-chat": "DeepSeek (test)", "deepseek/deepseek-vision": "DeepSeek vision (test)"}
+# The models each step was tuned on (the user's verdicts on R0 / cycle 1, 2026-11-26). Any other model that answers is
+# a backup: the Studio says so, so a plainer or rougher page is not a surprise.
+PRIMARY = {"a1": {"gemini-3.6-flash", "gemini-4-hydrogen", "gemini-3.8-flash"},
+           "a2": {"openai/gpt-oss-120b", "inclusionai/ling-3.2-flash:free"},
+           "a3": {"openai/gpt-oss-120b", "inclusionai/ling-3.2-flash:free"},
+           "a4": {"qwen/qwen3.8-27b", "openai/gpt-oss-120b", "inclusionai/ling-3.2-flash:free"},
+           "a5": {"nvidia/nemotron-3-ultra-550b-a55b:free", "gemini-4-hydrogen", "gemini-3.8-flash"},
+           "a6": {"gemini-3.6-flash", "gemini-4-hydrogen", "gemini-3.8-flash"}}
+STEP_SHORT = {"a1": "the design brief", "a2": "the layout plan", "a3": "the copy", "a4": "the decoration",
+              "a5": "the page", "a6": "the final polish"}
+
+
+def is_backup(agent: str | None, model: str | None) -> bool:
+    if (model or "").startswith("deepseek/"):
+        return NAMES.get(model, "DeepSeek (test)")
+    m = (model or "").removeprefix("openrouter/")
+    return bool(agent in PRIMARY and m and m not in PRIMARY[agent])
+
+
 STEP_TEXT = {"a1": "Reading the reference images", "a2": "Planning the layout", "a3": "Writing the copy",
              "a4": "Drawing the decoration", "a5": "Composing the page", "check": "Checking the page in a browser",
-             "repair": "Fixing what the browser found", "fallback": "Building the backup page"}
+             "a6": "Improving the page by eye", "repair": "Fixing a page that didn't render",
+             "fallback": "Building the backup page"}
 
 
 def model_name(model: str | None) -> str:
@@ -121,12 +145,44 @@ def describe(ev: dict, prev_model: dict[str, str]) -> str | None:
         name, was = model_name(ev.get("model")), prev_model.get(agent)
         prev_model[agent] = name
         base = STEP_TEXT.get(agent, agent)
-        return f"{base} · {was} is busy, switched to {name}" if was and was != name else f"{base} · {name}"
+        line = f"{base} · {was} {ev.get('after') or 'is busy'}, switched to {name}" if was and was != name \
+            else f"{base} · {name}"
+        if is_backup(agent, ev.get("model")):
+            line += f" (a backup model: {STEP_SHORT.get(agent, 'this part')} may come out below the usual standard)"
+        return line
     if k == "done" and ev.get("source") in ("model", "repaired") and ev.get("ms"):
         return f"{STEP_TEXT.get(agent, agent)} · done by {model_name(ev.get('model'))} in {ev['ms'] / 1000:.0f} s"
+    if k == "done" and ev.get("source") == "default":
+        return (f"{STEP_TEXT.get(agent, agent)} · no model was free, so a simpler built-in version is used: "
+                f"this page will be plainer than usual")
+    if k == "done" and agent == "a6" and ev.get("source") in ("failed", "rejected"):
+        return ("Improving the page · the improver was unavailable, so you see the composer's page without the "
+                "final polish")
     if k == "retry":
         why = {"truncated": "ran out of room, retrying with more", "timeout": "is slow, asking once more"}
         return f"{STEP_TEXT.get(agent, agent)} · {model_name(ev.get('model'))} {why.get(ev.get('why'), 'retrying')}"
+    if k == "wait":
+        return (f"{STEP_TEXT.get(agent, agent)} · every model is busy right now; waiting {ev.get('s', 0):.0f} s and "
+                f"asking again ({ev.get('round', 1)} of 3), never a canned shortcut")
     if k == "check":
         return STEP_TEXT["check"]
     return None
+
+
+def quality_notes(trace: list[dict]) -> list[str]:
+    """One line per step that ran below its usual standard (a backup model, the built-in default, no polish)."""
+    out, seen = [], set()
+    for t in trace or []:
+        ag, src = t.get("agent"), t.get("source")
+        if ag in seen:
+            continue
+        if src == "default":
+            out.append(f"{STEP_SHORT.get(ag, ag)}: built-in default (no model was free)")
+        elif ag == "a6" and src == "failed":
+            out.append("the final polish: skipped (the improver was unavailable)")
+        elif src in ("model", "repaired", "salvaged") and is_backup(ag, t.get("model")):
+            out.append(f"{STEP_SHORT.get(ag, ag)}: backup model {model_name(t.get('model'))}")
+        else:
+            continue
+        seen.add(ag)
+    return out

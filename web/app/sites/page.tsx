@@ -3,8 +3,9 @@ import { Texture } from "@/components/cosmos";
 import { BARS, Tag } from "@/components/ui";
 import { signedMockups } from "@/lib/site";
 import { supabaseServer } from "@/lib/supabase/server";
+import { NOINDEX } from "@/lib/seo";
 
-export const metadata = { title: "Sites" };
+export const metadata = { title: "Sites", ...NOINDEX };
 export const dynamic = "force-dynamic";
 
 type Row = { id: string; title: string | null; created_at: string; mockup_path: string | null; job: { prompt: string; family: string | null } | null };

@@ -15,7 +15,11 @@ exists on the page (no logo -> no wordmark check, no background image -> no back
   backdrop         when A1 chose to use the background image, it covers the viewport, is visible, and opaque
                    surfaces don't hide it everywhere
   wordmark         the logo renders in the wordmark face, weight and size the spec asks for
-Returns {width: {problems[], overflow, items, motifs, metrics}} and optional PNG screenshots.
+  readability      every HTML text item: contrast of its colour against the pixels behind it (median, text hidden)
+                   and whether it shows any ink at all (a full-page shot with and without text: no pixel changes =
+                   covered by something opaque or drawn in its background's colour). SVG <text> is drawing, not copy.
+                   Measured, reported and handed to the improver; it never blocks a page.
+Returns {width: {problems[], overflow, items, motifs, metrics, readability}} and optional screenshots.
 """
 from __future__ import annotations
 
@@ -264,7 +268,102 @@ def analyze(data: dict, spec: dict | None = None, width: int = 1440) -> dict:
             "metrics": metrics}
 
 
-def run(index_html: Path, widths=(1440, 390), shots: bool = False, spec: dict | None = None) -> dict:
+READ_JS = r"""() => { const out = []; const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const seen = new Set();
+  while (w.nextNode()) { const t = w.currentNode; if (!t.textContent.trim()) continue;
+    const el = t.parentElement; if (!el || seen.has(el) || el.closest('svg')) continue; seen.add(el);
+    let p = el, hid = false, op = 1;
+    while (p && p.nodeType === 1) { const s = getComputedStyle(p);
+      if (s.display === 'none' || s.visibility === 'hidden') { hid = true; break; } op *= parseFloat(s.opacity); p = p.parentElement; }
+    if (hid || op < 0.05) continue;
+    const r = document.createRange(); r.selectNodeContents(t); const b = r.getBoundingClientRect();
+    if (b.width < 2 || b.height < 2) continue;
+    const cs = getComputedStyle(el);
+    out.push({item: (el.closest('[data-item]') || {dataset: {}}).dataset.item || '', tag: el.tagName.toLowerCase(),
+      text: t.textContent.trim().replace(/\s+/g, ' ').slice(0, 60), color: cs.color, x: b.left + scrollX, y: b.top + scrollY,
+      w: b.width, h: b.height, fs: parseFloat(cs.fontSize), fw: parseInt(cs.fontWeight) || 400}); }
+  return out; }"""
+HIDE_TEXT = ("*{color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important;"
+             "text-decoration-color:transparent!important;caret-color:transparent!important}")
+
+
+def _lum(c):
+    def ch(v):
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    return 0.2126 * ch(c[0]) + 0.7152 * ch(c[1]) + 0.0722 * ch(c[2])
+
+
+def _ratio(a, b):
+    la, lb = sorted([_lum(a), _lum(b)], reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def readability(pg) -> dict:
+    """Rendered text vs what is really behind it (see the module doc). -> {texts, unreadable: [...]}; restores the page."""
+    import io
+    import re
+    from PIL import Image, ImageChops
+    items = pg.evaluate(READ_JS)
+    fg = Image.open(io.BytesIO(pg.screenshot(full_page=True))).convert("RGB")
+    tag = pg.add_style_tag(content=HIDE_TEXT)
+    pg.wait_for_timeout(150)
+    bg = Image.open(io.BytesIO(pg.screenshot(full_page=True))).convert("RGB")
+    tag.evaluate("el => el.remove()")
+    bad, seen = [], set()
+    for it in items:
+        v = [float(x) for x in re.findall(r"[\d.]+", it["color"])]
+        c, a = tuple(int(x) for x in v[:3]), (v[3] if len(v) > 3 else 1.0)
+        x0, y0 = max(0, int(it["x"])), max(0, int(it["y"]))
+        x1, y1 = min(bg.width, int(it["x"] + it["w"])), min(bg.height, int(it["y"] + it["h"]))
+        if x1 <= x0 or y1 <= y0:
+            continue
+        crop = bg.crop((x0, y0, x1, y1))
+        px = list(crop.resize((12, 6)).getdata())
+        med = tuple(int(statistics.median(q[i] for q in px)) for i in range(3))
+        ink = None
+        if fg.size == bg.size:
+            hist = ImageChops.difference(fg.crop((x0, y0, x1, y1)), crop).convert("L").histogram()
+            ink = sum(hist[25:]) / max(1, sum(hist))
+        if a < 1:
+            c = tuple(round(a * c[i] + (1 - a) * med[i]) for i in range(3))
+        cr = _ratio(c, med)
+        need = 3.0 if it["fs"] >= 24 or (it["fs"] >= 18.66 and it["fw"] >= 700) else 4.5
+        visible = ink is None or ink >= 0.01
+        if cr < need or not visible:
+            key = (it["item"] or it["tag"], it["text"])
+            if key in seen:
+                continue
+            seen.add(key)
+            bad.append({"item": it["item"] or it["tag"], "text": it["text"], "fg": "#%02X%02X%02X" % c,
+                        "bg": "#%02X%02X%02X" % med, "ratio": round(cr, 2), "need": need,
+                        "ink": None if ink is None else round(ink, 3), "visible": visible, "y": int(it["y"])})
+    bad.sort(key=lambda r: (r["visible"], r["ratio"]))
+    return {"texts": len(items), "unreadable": bad}
+
+
+def readability_problems(r: dict, top: int = 8) -> list[str]:
+    out = []
+    for b in (r or {}).get("unreadable", [])[:top]:
+        why = ("shows no ink (covered, or drawn in the colour behind it)" if not b["visible"]
+               else f"{b['fg']} on {b['bg']} is {b['ratio']}:1, needs {b['need']}:1")
+        out.append(f"unreadable text: {b['item']} \"{b['text'][:40]}\" {why}")
+    return out
+
+
+def _jpeg(png: bytes, path: Path, width: int | None = None, max_h: int | None = None) -> None:
+    import io
+    from PIL import Image
+    im = Image.open(io.BytesIO(png)).convert("RGB")
+    if width and im.width > width:
+        im = im.resize((width, round(im.height * width / im.width)), Image.LANCZOS)
+    if max_h and im.height > max_h:
+        im = im.crop((0, 0, im.width, max_h))
+    im.save(path, "JPEG", quality=82, optimize=True)
+
+
+def run(index_html: Path, widths=(1440, 390), shots: bool = False, spec: dict | None = None,
+        shots_dir: Path | None = None, read: bool = True) -> dict:
     from labio import SERPMAN_SRC
     if str(SERPMAN_SRC) not in sys.path:
         sys.path.insert(0, str(SERPMAN_SRC))
@@ -283,8 +382,18 @@ def run(index_html: Path, widths=(1440, 390), shots: bool = False, spec: dict | 
                 pg.goto(index_html.resolve().as_uri(), wait_until="networkidle", timeout=60_000)
                 pg.wait_for_timeout(400)
                 res = analyze(pg.evaluate(JS, path), spec, w)
+                if read:
+                    res["readability"] = readability(pg)
+                    res["problems"] = list(dict.fromkeys(res["problems"] + readability_problems(res["readability"])))
                 if shots:
                     res["png"] = pg.screenshot(full_page=True)
+                if shots_dir:                                # what the improver looks at
+                    shots_dir.mkdir(parents=True, exist_ok=True)
+                    if w >= 1024:
+                        _jpeg(pg.screenshot(), shots_dir / f"{w}_fold.jpg")
+                        _jpeg(pg.screenshot(full_page=True), shots_dir / f"{w}_full.jpg", width=960, max_h=7000)
+                    else:
+                        _jpeg(pg.screenshot(full_page=True), shots_dir / f"{w}_full.jpg", max_h=5200)
                 out[w] = res
                 pg.close()
         finally:

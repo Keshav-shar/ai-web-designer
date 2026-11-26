@@ -2,14 +2,12 @@ import Link from "next/link";
 import { EVIDENCE as E, EVIDENCE_META as M } from "@/content/evidence.generated";
 import { Texture } from "@/components/cosmos";
 import { Display, Eyebrow } from "@/components/ui";
+import { pageMeta } from "@/lib/seo";
 import {
   BarList, ChartCard, DotStrip, Dumbbell, GroupedBars, Legend, SERIES, Stat, StackedBars, Swatch, Table, fmt, fmtPct,
 } from "@/components/evidence/charts";
 
-export const metadata = {
-  title: "Evidence",
-  description: "Measured values, comparisons and corrections from the Cosmogon Labs taste engine's own pipeline.",
-};
+export const metadata = pageMeta("/evidence", "Evidence", "Measured values, comparisons and corrections from the Cosmogon Labs taste engine's own pipeline: routing accuracy, contrast checks and colour tuning.");
 
 const pct = (v: number) => fmtPct(v);
 const pct1 = (v: number) => fmtPct(v, 1);

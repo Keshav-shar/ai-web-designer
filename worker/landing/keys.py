@@ -25,7 +25,7 @@ import time
 from pathlib import Path
 
 ENV_FILE = Path(os.getenv("LANDING_ENV_FILE", r"D:\serpman-studio\worker\.env"))
-NAME = re.compile(r"^(GEMINI|GROQ|MISTRAL|OPENROUTER|MODAL)_API_KEY(S|_\d+)?$")   # MODAL: the vLLM token of MODAL_BASE
+NAME = re.compile(r"^(GEMINI|GROQ|MISTRAL|OPENROUTER|MODAL|DEEPSEEK)_API_KEY(S|_\d+)?$")   # MODAL: the vLLM token of MODAL_BASE
 # process-wide (and kept across the lab's hot reloads): a rejected key stays skipped and a cooling key keeps
 # cooling for the life of the serve / worker process, not just one pipeline run. Keyed by kid, never by value.
 _announced: set[str] = globals().get("_announced", set())
@@ -46,6 +46,72 @@ def _unavail_disk() -> dict:
         return {k: v for k, v in d.items() if v.get("until", 0) > time.time()}
     except Exception:  # noqa: BLE001
         return {}
+
+
+# Model health across builds (P5, the user's call, R0 2026-11-26): a model that failed on the provider's side
+# (overloaded 503, a timeout, a 5xx, a free model rate-limited upstream) in HEALTH_STRIKES builds in a row is skipped
+# for HEALTH_SKIP_S on every key, on disk, so the next job doesn't spend its first minutes re-learning it (Gemini
+# Hydrogen / 3.8: 20 failures and no answer in 5 builds; Ling: 1 answer in 18 tries). One answer clears the record.
+HEALTH_STRIKES, HEALTH_SKIP_S = 2, 2 * 3600.0
+# A model that answered in the last day is only having a bad moment (Gemini 3.6 Flash: 503s at 10:40, then benched for
+# 2 h while it was the one model whose improved page the user liked): it cools for HEALTH_BRIEF_S instead.
+HEALTH_BRIEF_S, HEALTH_RECENT_S = 600.0, 24 * 3600.0
+
+
+def _health_file() -> Path:
+    return Path(os.getenv("LANDING_UNAVAIL", str(UNAVAIL_FILE))).parent / "model_health.json"
+
+
+def _health() -> dict:
+    try:
+        return json.loads(_health_file().read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _health_save(d: dict) -> None:
+    try:
+        f = _health_file()
+        f.parent.mkdir(parents=True, exist_ok=True)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps(d, indent=1), encoding="utf-8")
+        tmp.replace(f)
+    except Exception:  # noqa: BLE001  (a read-only disk must never fail a job)
+        pass
+
+
+def health_skip(model: str) -> tuple[float, dict]:
+    """-> (seconds left on the model's skip, its record); 0 when it may be tried."""
+    r = _health().get(model) or {}
+    return max(0.0, float(r.get("until", 0)) - time.time()), r
+
+
+def health_fail(model: str, why: str) -> bool:
+    """Record a provider-side failure. -> True when this one starts a skip."""
+    d = _health()
+    r = d.get(model) or {"fails": 0, "until": 0}
+    if r.get("until", 0) and r["until"] <= time.time():   # an expired skip: a fresh start, one strike already
+        r = {"fails": HEALTH_STRIKES - 1, "until": 0, "last_ok": r.get("last_ok")}
+    r["fails"] = int(r.get("fails", 0)) + 1
+    r["why"], r["at"] = why[:160], time.strftime("%Y-%m-%d %H:%M:%S")
+    start = r["fails"] >= HEALTH_STRIKES and not r.get("until")
+    if r["fails"] >= HEALTH_STRIKES:
+        recent = time.time() - float(r.get("last_ok") or 0) < HEALTH_RECENT_S
+        r["until"] = time.time() + (HEALTH_BRIEF_S if recent else HEALTH_SKIP_S)
+    d[model] = r
+    _health_save(d)
+    return start
+
+
+def health_reset() -> None:
+    """Forget every record (tests; a manual reset after a provider recovers)."""
+    _health_save({})
+
+
+def health_ok(model: str) -> None:
+    d = _health()
+    d[model] = {"fails": 0, "until": 0, "last_ok": time.time()}   # a clean record that remembers it answers
+    _health_save(d)
 
 
 def notify(msg: str) -> None:

@@ -233,6 +233,14 @@ def run_landing(eng: Engine, o: dict, brief: dict, files: dict, split: dict, the
           "vibe_query": split["vibe_query"], "taste": brief["taste"]})
     h = LH.build(o, split, brief, files, theme=theme, resolve=eng.resolve, text_lines=eng.text_lines)
     od = Path(os.environ["SERPMAN_TMP"]) / f"landing-{job_id or 'local'}-{int(time.time())}"
+    # DeepSeek test arm: only jobs the batch feeder marked in its server-local arms file (never a user's job)
+    try:
+        arms = json.loads(Path(os.getenv("DEEPSEEK_ARMS", "/srv/cosmogon/tmp/batch/arms.json")).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        arms = {}
+    os.environ["DEEPSEEK_JOB"] = "1" if job_id and arms.get(job_id) == "deepseek" else "0"
+    if os.environ["DEEPSEEK_JOB"] == "1":
+        emit("generating", "Test arm: DeepSeek (test) leads each agent's chain", {"ui": True, "kind": "arm"})
     emit("generating", "the agent pipeline is designing the landing page", {"mode": "agents"})
     seen_model: dict[str, str] = {}
 
@@ -249,6 +257,10 @@ def run_landing(eng: Engine, o: dict, brief: dict, files: dict, split: dict, the
     for t in r["trace"]:
         emit("generating", f"{t['agent']}: {t['source']}" + (f" ({t['model']})" if t.get("model") else ""),
              {k: t.get(k) for k in ("agent", "source", "model", "usage", "ms")})
+    notes = ETA.quality_notes(r["trace"])
+    if notes:                                       # the Studio says plainly when a step ran below its standard
+        emit("generating", "Quality note: some steps ran on backups today, so this page may be below the usual "
+                           "standard (" + "; ".join(notes) + ")", {"ui": True, "kind": "quality", "notes": notes})
     page = (od / "index.html").read_text(encoding="utf-8")
     files_out = {f"assets/{p.name}": p.read_bytes() for p in (od / "assets").glob("*.webp")}
     if publish_assets:
@@ -323,14 +335,14 @@ def cmd_run(a) -> int:
     print(f"worker {worker_id} polling (sections: {mode}; code from {stamp_str(loaded)}); Ctrl+C to stop", flush=True)
     if mode == "agents":
         from landing import keys as K
+        from landing import pipeline as LP
         from landing import providers as LPR
         modal = "on" if LPR.modal_base() and K.collect("modal") else "off"
         print(f"agents mode: {len(K.collect('gemini'))} Gemini, {len(K.collect('openrouter'))} OpenRouter, "
               f"{len(K.collect('groq'))} Groq, {len(K.collect('mistral'))} Mistral key(s); Modal GPU {modal}"
               + (f" (warm: {os.getenv('MODAL_WARM', 'job')})" if modal == "on" else "")
-              + ". A1: Gemini -> Ling -> Gemini 3.6 Flash -> Nemotron VL -> Gemma 4 -> Modal -> Mistral; A5: "
-              "Gemini -> Nemotron Ultra -> Nemotron VL -> 3.6 Flash -> Gemma 4 -> Modal -> Mistral; A2-A4: Ling -> "
-              "Groq -> Mistral", flush=True)
+              + ". Chains (provider groups, in order; models that keep failing are skipped for 2 h): "
+              + "; ".join(f"{a.upper()}: {' -> '.join(LP.CHAINS.get(a, []))}" for a in LP.ORDER), flush=True)
     def _on_term(signum, frame):                   # systemd / docker stop: the same clean exit as Ctrl+C
         raise KeyboardInterrupt
     import signal
@@ -348,6 +360,8 @@ def user_message(e: Exception) -> str:
     """What the studio shows when a job fails; the technical text goes to jobs.error and this console."""
     from supa import is_network
     t = str(e).lower()
+    if type(e).__name__ == "AgentUnavailable":      # no model could do a step even after waiting: say so plainly
+        return str(e).split(" [", 1)[0]
     if is_network(e) or "retries exhausted" in t:
         return "The engine lost its connection while saving. Please try again."
     if "permission denied" in t or "42501" in t or " 401 " in t or " 403 " in t:
@@ -521,7 +535,7 @@ def cmd_doctor(a) -> int:
     src = lab_path()
     line("ok" if (src / "route_engine.py").exists() else "FAIL", "serpman lab source", str(src))
     print("web")
-    site = os.getenv("STUDIO_URL", "https://ai-web-designer-gamma.vercel.app")
+    site = os.getenv("STUDIO_URL", "https://cosmogon-labs.vercel.app")
     try:
         r = httpx.get(site, timeout=20, follow_redirects=True)
         line("ok" if r.status_code < 400 else "FAIL", "studio", f"{site} -> HTTP {r.status_code}")

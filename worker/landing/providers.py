@@ -673,3 +673,43 @@ def image_part_or(path: str | Path, side: int, quality: int = 90) -> dict:
     """An OpenAI image content part as OpenRouter takes it: an object URL with detail 'high'."""
     return {"type": "image_url",
             "image_url": {"url": f"data:image/jpeg;base64,{jpeg_b64(path, side, quality)}", "detail": "high"}}
+
+
+# --------------------------------------------------------------------------- DeepSeek (test only)
+DS_PREFIX = "deepseek/"                  # pipeline ids: 'deepseek/<model>' (the prefix is stripped on the wire)
+
+
+def deepseek_base() -> str:
+    """The test-only DeepSeek proxy (FreeDeepseekAPI on the engine server, loopback only; the user's call 2026-11-26:
+    testing, not production). Empty -> off: it needs DEEPSEEK_TEST=1, a base URL and a job marked for the DeepSeek
+    arm (DEEPSEEK_JOB, set by the worker per job), so real users' jobs never reach it."""
+    if os.getenv("DEEPSEEK_TEST") != "1" or os.getenv("DEEPSEEK_JOB") != "1":
+        return ""
+    return os.getenv("DEEPSEEK_BASE", "").rstrip("/")
+
+
+class DeepSeek(OpenAICompat):
+    """FreeDeepseekAPI: an OpenAI-compatible proxy for DeepSeek's web chat on the user's own account (unofficial;
+    test arm only). No shared pool to count; one request at a time on the proxy side."""
+    name = "deepseek"
+    max_field = "max_tokens"
+    drop_params = ("response_format",)       # plain JSON mode: the schema rides in the prompt (checked locally)
+
+    @property
+    def base(self) -> str:
+        return deepseek_base()
+
+    def models(self, key: str) -> list[str]:
+        return []
+
+    def vision(self, model: str) -> bool:
+        return model.endswith("vision")
+
+    def structured(self, model: str) -> bool:
+        return False
+
+    def shape(self, body: dict) -> None:
+        body["model"] = body["model"].removeprefix(DS_PREFIX)
+
+    def backoff(self) -> tuple:
+        return (5.0, 15.0)
