@@ -76,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </nav>
               <div className="flex w-full flex-wrap justify-between gap-4 border-t pt-6 text-[0.84rem]" style={{ borderColor: "rgba(251,245,239,.2)", color: "rgba(251,245,239,.8)" }}>
                 <span>© 2026 Cosmogon Labs. Textures and reference images belong to their authors and are credited as design references.</span>
-                <span>For feedback or suggestions, contact <a className="hover:text-gold" href={`mailto:${AUTHOR.email}`}>{AUTHOR.email}</a></span>
+                <span>To get an early access invite, or to share feedback, feel free to contact me at <a className="hover:text-gold" href={`mailto:${AUTHOR.email}`}>{AUTHOR.email}</a></span>
               </div>
             </div>
           </div>

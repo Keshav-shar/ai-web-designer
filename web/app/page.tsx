@@ -39,13 +39,13 @@ export default async function StudioPage() {
         <div className="grid items-center gap-12 md:grid-cols-[1.35fr_1fr] md:gap-0">
           <div className="rise md:pr-14">
             <span className="badge">Visual Creation Studio</span>
-            <h1 className="mt-9" aria-label="What do you want to bring to life?">
+            <h1 className="mt-9" aria-label="What should we make?">
               <span className="inline-caps block text-[clamp(2.1rem,1.3rem+3.4vw,4.1rem)]">
-                What do <span className="hl">you</span> want to bring
+                What should <span className="hl">we</span>
               </span>
               <span className="display stacked mt-3 block text-[clamp(4.6rem,2.6rem+8vw,9.5rem)] italic leading-[.9]"
                 style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>
-                to life?
+                make?
               </span>
             </h1>
             <p className="lede mt-9">
@@ -88,7 +88,7 @@ export default async function StudioPage() {
               <li key={it.name}>
                 <Card bar={(["forest", "gold", "vermilion", "teal"] as const)[i % 4]} lift className="h-full">
                   <div className="flex h-full flex-col p-7 pb-8 md:p-8">
-                    <h3 className="display mt-4 text-[1.75rem] leading-[1.08]">{it.name}</h3>
+                    <h3 className="display mt-4 whitespace-nowrap text-[clamp(1.35rem,0.95rem+1vw,1.75rem)] leading-[1.08]">{it.name}</h3>
                     <p className="mt-4">{it.body}</p>
                   </div>
                 </Card>

@@ -11,37 +11,37 @@ export const PROSPECTS = {
   lede:
     "Cosmogon is an evolving research project, and its current system is a foundation for larger possibilities. " +
     "Every mockup on this page is made on free, low-token APIs: a few small model calls, curated visual knowledge " +
-    "and code that checks the result. Working inside that limit shapes how the system thinks.",
+    "and code that checks the result. These are the directions in progress now.",
   status: "Planned Update",
   items: [
     {
-      name: "Visual intelligence through embeddings",
+      name: "Motion with intent",
       body:
-        "Researching richer visual representations that help AI relate composition, typography, colour, structure " +
-        "and intent. The aim is stronger reference selection at a fraction of the cost of repeated generative " +
-        "interpretation, starting at the source: parsing each gathered page so only relevant visual knowledge is kept.",
+        "Our pages are reviewed by graphic and motion designers for structure and design. Those reviews grow a " +
+        "library of motion components and static interactions, each tagged by visual domain, frequency and placement, " +
+        "so the system weighs motion alongside type, colour and layout, and every movement serves the composition.",
     },
     {
-      name: "Adaptive generation systems",
+      name: "Relevance at the source",
       body:
-        "Exploring systems that adapt their approach to each project instead of forcing every request through one " +
-        "strategy. A modular core leaves room for different levels of complexity, faster iteration and motion: " +
-        "interaction components shaped by reviews from graphic and motion designers, placed with intent.",
+        "Search-based gathering surfaces references that don't fit the brief, and CLIP clustering filters most of " +
+        "them out today. The next step is AI page parsing in the style of Firecrawl, so the system reads each " +
+        "gathered page and keeps only the visual knowledge that is relevant, right at the source.",
     },
     {
-      name: "Deterministic AI orchestration",
+      name: "Style-aware agents",
       body:
-        "Combining generative flexibility with measurable constraints. Structured decisions, validation gates and " +
-        "programmatic correction make AI-generated experiences more predictable, coherent and dependable. Models " +
-        "propose; code measures, refines and only lets sound pages through, so creative freedom never costs " +
-        "technical integrity.",
+        "Each routed design will carry a set of skills alongside its mockup, so the agents you connect extend your " +
+        "visual language into their own work. A specialised inspector then reviews your product one component at a " +
+        "time (buttons, cards, type) and reports plainly how each one holds up.",
     },
     {
-      name: "Visual knowledge for connected AI systems",
+      name: "Culturally rooted design",
       body:
-        "Investigating how visual understanding can become reusable knowledge, so other AI systems and agents draw on " +
-        "design context instead of rebuilding it from scratch. Each design could carry skills your own agents use to " +
-        "keep your style, and an inspector that reviews your product component by component.",
+        "Niche and regional styles lose the most when AI designs from averages. We are teaching the system as many " +
+        "of them as it can hold, while keeping visual direction separate from personalisation: local print " +
+        "traditions, craft and signage, the colours of a particular street or season, each preserved as its own " +
+        "visual domain.",
     },
   ],
   goal: {

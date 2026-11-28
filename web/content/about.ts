@@ -1,5 +1,5 @@
-// Copy for the About page: the research identity, the three principles behind it, and the project FAQ.
-// The three principle cards are kept close in length (about 40 words each) so the row reads evenly.
+// Copy for the About page: the research identity, three step cards (Split / Taste / Serve), and the project FAQ.
+// The three step cards are kept close in length (about 40 words each) so the row reads evenly.
 export const ABOUT = {
   hero: {
     eyebrow: "independent research & development",
@@ -7,11 +7,11 @@ export const ABOUT = {
     sub: "Cosmogon Labs is an independent R&D initiative, working where artificial intelligence, computer vision and digital creation meet. It investigates the gap between producing visual output and genuinely understanding the context behind it.",
   },
   how: {
-    title: "Three principles behind the research",
+    title: "Three steps, each one inspectable",
     steps: [
-      { n: "01", name: "Understand first", body: "Creative intent is more than a text prompt. It carries visual, contextual and structural information. We investigate how computer vision and semantic representations can help AI systems interpret these signals before they make a single creative decision.", bar: "avocado" },
-      { n: "02", name: "Lean by design", body: "More parameters and more model calls do not automatically produce better outcomes. We explore lightweight visual knowledge systems and specialised processing that reduce computational overhead while improving contextual relevance, so capable creative systems stay cheap to run.", bar: "rust" },
-      { n: "03", name: "Creative control", body: "Generative systems offer flexibility, but reliable results require structure. We combine AI-driven decisions with deterministic constraints, allowing creative variation without sacrificing consistency, responsiveness or technical integrity. Code measures every page before it ships.", bar: "teal" },
+      { n: "01", name: "Split", body: "Creative intent carries two signals: what the project is for, and how it should feel. The system separates them into two queries; the first shapes sections and copy, the second the visual direction, so a product name never steers the design off course.", bar: "avocado" },
+      { n: "02", name: "Taste", body: "The visual direction is matched against 39 visual domains by CLIP similarity. The closest domain supplies five curated references, for background, typography, layout, elements and palette, chosen purely by context. No generative model is involved in this step.", bar: "rust" },
+      { n: "03", name: "Serve", body: "Structured AI orchestration turns those references into a visual specification, then a landing page. A vision model describes every colour, typeface and shape it sees; text-only models plan, write and compose; and code measures every page before it ships.", bar: "teal" },
     ],
   },
   showcase: {

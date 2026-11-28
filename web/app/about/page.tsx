@@ -4,7 +4,7 @@ import { BARS, Card } from "@/components/ui";
 import { ABOUT } from "@/content/about";
 import { pageMeta } from "@/lib/seo";
 
-export const metadata = pageMeta("/about", "About", "Cosmogon Labs is an independent R&D initiative by Keshav Sharma building a new foundation for visual AI: understanding before creating, lighter intelligence, and creative control.");
+export const metadata = pageMeta("/about", "About", "Cosmogon Labs is an independent R&D initiative building a new foundation for visual AI: split the brief, match it to one of 39 visual domains, and serve a page composed from real references.");
 
 export default function AboutPage() {
   const { hero, how, showcase, faq, cta } = ABOUT;
@@ -19,7 +19,7 @@ export default function AboutPage() {
             <p className="lede mt-9">{hero.sub}</p>
             <div className="mt-10 flex flex-wrap gap-4">
               <Link className="btn btn-primary" href="/">Open the studio</Link>
-              <a className="btn btn-ghost" href="#how">Our principles</a>
+              <a className="btn btn-ghost" href="#how">How it works</a>
             </div>
           </div>
           <div className="rise-2 hide-sm md:border-l-2 md:border-ink md:pl-14">
@@ -32,7 +32,7 @@ export default function AboutPage() {
       <section id="how" className="section band-sand border-y-2 border-ink">
         <div className="container-x">
           <div className="mb-12 max-w-[40rem]">
-            <p className="eyebrow">the principles</p>
+            <p className="eyebrow">the method</p>
             <h2 className="title">{how.title}</h2>
           </div>
           <ol className="grid gap-8 md:grid-cols-3">
@@ -40,7 +40,7 @@ export default function AboutPage() {
               <li key={s.n}>
                 <Card bar={BARS[i % BARS.length]} lift className="h-full">
                   <div className="flex h-full flex-col p-7 pb-8">
-                    <span className="inline-caps text-[1rem] tracking-[.2em] text-rust">Principle {s.n}</span>
+                    <span className="inline-caps text-[1rem] tracking-[.2em] text-rust">Step {s.n}</span>
                     <h3 className="display stacked-sm mt-3 text-[2.4rem]">{s.name}</h3>
                     <p className="mt-4">{s.body}</p>
                   </div>
@@ -118,11 +118,12 @@ export default function AboutPage() {
             <Link className="underline hover:text-cta" href="/evidence">See the measured evidence →</Link>
           </p>
         </section>
+        {/* Senku image — no mask, solid hair. The art's hair tips crop flat at the top edge; bottom pushed
+            a touch lower so more of the figure sits behind the footer border if the crop looks harsh. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/about/senku-peek.webp" alt="" aria-hidden="true" width={773} height={765} loading="lazy"
           className="pointer-events-none absolute right-0 z-20 h-auto w-[clamp(150px,22vw,330px)] translate-x-[22%] select-none"
-          style={{ bottom: "-110px", WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 16%)",
-            maskImage: "linear-gradient(to bottom, transparent 0, #000 16%)" }} />
+          style={{ bottom: "-120px" }} />
       </div>
     </>
   );
