@@ -4,7 +4,7 @@ export const ABOUT = {
   hero: {
     eyebrow: "independent research & development",
     title: "Building a new foundation for visual AI.",
-    sub: "Cosmogon Labs is an independent R&D initiative founded by Keshav Sharma, working where artificial intelligence, computer vision and digital creation meet. It investigates the gap between producing visual output and genuinely understanding the context behind it.",
+    sub: "Cosmogon Labs is an independent R&D initiative, working where artificial intelligence, computer vision and digital creation meet. It investigates the gap between producing visual output and genuinely understanding the context behind it.",
   },
   how: {
     title: "Three principles behind the research",
@@ -35,5 +35,5 @@ export const ABOUT = {
       ["What is the long-term ambition?", "A more accessible and adaptable foundation for AI-driven visual creation, with applications reaching beyond websites into broader digital interfaces and creative systems."],
     ],
   },
-  cta: { title: "Bring an idea", sub: "Invite-only research demo while the system runs on one machine." },
+  cta: { title: "Bring an idea", sub: "Invite-only research demo, contact at kesharma21@gmail.com to get early trial opportunity." },
 } as const;

@@ -7,7 +7,7 @@ export const IS_PROD = process.env.VERCEL_ENV === "production";
 
 export const SITE_NAME = "Cosmogon Labs";
 export const SITE_DESC =
-  "Cosmogon Labs is an independent R&D initiative by Keshav Sharma, exploring how computer vision, semantic retrieval and deterministic systems can help AI understand and create for the visual world. Its experimental studio turns a brief into a responsive web experience. Invite-only research demo.";
+  "Cosmogon Labs is an independent R&D initiative, exploring how computer vision, semantic retrieval and deterministic systems can help AI understand and create for the visual world. Its experimental studio turns a brief into a responsive web experience. Invite-only research demo.";
 
 export const AUTHOR = {
   name: "Keshav Sharma",
