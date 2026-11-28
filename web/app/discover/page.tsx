@@ -5,14 +5,14 @@ import { fmtDate } from "@/lib/dates";
 import { AUTHOR, JsonLd, ORG, abs, pageMeta } from "@/lib/seo";
 
 // Not linked from the UI on purpose: found through the sitemap, RSS and llms.txt.
-export const metadata = pageMeta("/discover", "Updates", "Dated updates on Cosmogon Labs, the taste engine for the web by Keshav Sharma: research notes, evidence and progress.");
+export const metadata = pageMeta("/discover", "Updates", "Dated updates on Cosmogon Labs, independent research into visual intelligence and AI-driven creation by Keshav Sharma: research notes, evidence and progress.");
 
 export default function DiscoverPage() {
   return (
     <section className="container-x max-w-[52rem] py-14 md:py-20">
       <Eyebrow>updates</Eyebrow>
       <Display as="h1" size={1} className="stacked-sm">Notes from Cosmogon Labs</Display>
-      <p className="lede mt-6">Research notes, evidence and progress on the taste engine, by {AUTHOR.name}.</p>
+      <p className="lede mt-6">Research notes, evidence and progress on visual intelligence and AI-driven creation, by {AUTHOR.name}.</p>
       <ol className="mt-12 space-y-10">
         {POSTS.map((p) => (
           <li key={p.slug} className="border-t-2 border-ink pt-6">

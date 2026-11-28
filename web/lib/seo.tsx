@@ -7,7 +7,7 @@ export const IS_PROD = process.env.VERCEL_ENV === "production";
 
 export const SITE_NAME = "Cosmogon Labs";
 export const SITE_DESC =
-  "Describe a website idea in a sentence. Cosmogon Labs routes its feeling through a structured engine of real design references and composes a full UI design from it. Invite-only research demo.";
+  "Cosmogon Labs is an independent R&D initiative by Keshav Sharma, exploring how computer vision, semantic retrieval and deterministic systems can help AI understand and create for the visual world. Its experimental studio turns a brief into a responsive web experience. Invite-only research demo.";
 
 export const AUTHOR = {
   name: "Keshav Sharma",
@@ -16,7 +16,8 @@ export const AUTHOR = {
 };
 
 /** Indexable pages (the sitemap adds /discover posts on top). */
-export const PUBLIC_ROUTES = ["/", "/about", "/evidence", "/discover", "/ai"] as const;
+// /ai is left out on purpose: it is for AI crawlers only and is noindexed for search engines (found via /llms.txt).
+export const PUBLIC_ROUTES = ["/", "/about", "/evidence", "/discover"] as const;
 /** Personal areas and the engine API: disallowed in robots.txt and sent with X-Robots-Tag noindex. */
 export const PRIVATE_PREFIXES = ["/sites/", "/api/", "/auth/", "/about/assets/"];
 
@@ -29,13 +30,13 @@ export const abs = (path: string) => SITE_URL + (path.startsWith("/") ? path : "
 
 export const PERSON = {
   "@type": "Person",
-  "@id": abs("/ai#person"),
+  "@id": abs("/#person"),
   name: AUTHOR.name,
   email: `mailto:${AUTHOR.email}`,
   url: AUTHOR.url,
   sameAs: [AUTHOR.url],
-  jobTitle: "Designer and engineer, Cosmogon Labs",
-  knowsAbout: ["web design", "design systems", "computational aesthetics", "information retrieval", "CLIP embeddings", "agentic workflows"],
+  jobTitle: "Founder, Cosmogon Labs",
+  knowsAbout: ["visual intelligence", "computer vision", "semantic retrieval", "CLIP embeddings", "AI orchestration", "design systems", "web design"],
 };
 
 export const ORG = {

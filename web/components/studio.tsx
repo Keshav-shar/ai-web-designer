@@ -40,7 +40,7 @@ function EngineBadge({ initial }: { initial: Engine }) {
       </p>
       {on && engine?.section_mode === "agents" && (
         <p className="mt-2 max-w-[70ch] text-[0.84rem] text-muted">
-          AI pipeline on: your prompt and the engine&rsquo;s reference images are sent to Google Gemini and Gemma&rsquo;s
+          AI orchestration on: your prompt and the engine&rsquo;s reference images are sent to Google Gemini and Gemma&rsquo;s
           free tier, to free models on OpenRouter (Ling, NVIDIA Nemotron) and to Groq; free tiers may log inputs or use
           them for training. Mistral AI&rsquo;s free tier is the last fallback. Don&rsquo;t include private details.
         </p>
@@ -50,13 +50,13 @@ function EngineBadge({ initial }: { initial: Engine }) {
 }
 
 const STATUS: Record<string, string> = {
-  queued: "Waiting for the engine. It runs on one machine, so this can take a moment.",
-  routing: "Routing the vibe through 39 aesthetic families…",
-  recipe: "Reading the family's folders: palette, type, imagery…",
-  generating: "Designing the page…",
+  queued: "Waiting for the system. It runs on one machine, so this can take a moment.",
+  routing: "Matching your brief to one of 39 visual domains…",
+  recipe: "Gathering curated visual knowledge: palette, type, imagery…",
+  generating: "Designing the experience…",
   assembling: "Assembling the page…",
 };
-const FAILED_FALLBACK = "The engine couldn't build this one. Try rephrasing it: what it is + how it should feel.";
+const FAILED_FALLBACK = "The system couldn't create this one. Try rephrasing it: the idea, then how it should feel.";
 
 /** The pipeline's steps as the worker reports them (worker/eta.py); repair / backup page count as the check step. */
 const STEPS: [string, string][] = [["route", "Routing"], ["a1", "References"], ["a2", "Layout"], ["a3", "Copy"],
@@ -191,7 +191,7 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (clean.length < 3 || letters < 2) {
-      setError("Describe the site in a few words: what it is and how it should feel.");
+      setError("Describe your project in a few words: the idea, then how it should feel.");
       return;
     }
     setBusy(true);
@@ -230,7 +230,7 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
       <div className="relative">
         <TapePiece style={{ top: -14, left: "50%", marginLeft: -56, transform: "rotate(-3deg)" }} />
         <form onSubmit={submit} className="card relative px-5 pb-5 pt-7 md:px-8 md:pb-7 md:pt-9">
-          <label htmlFor="prompt" className="title-sm mb-3 block">Describe the website</label>
+          <label htmlFor="prompt" className="title-sm mb-3 block">Describe your project</label>
           <textarea
             id="prompt" rows={3} maxLength={MAX_PROMPT} required value={prompt} onChange={(e) => setPrompt(e.target.value)}
             disabled={running}
@@ -240,13 +240,13 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
             placeholder="a natural wine bar in Lisbon, hand-drawn and loud"
           />
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <p id="prompt-help" className="text-[0.9rem] text-muted">What it is, then how it should feel. Enter to send.</p>
+            <p id="prompt-help" className="text-[0.9rem] text-muted">Start with the idea, then define the experience. Enter to send.</p>
             <div className="flex items-center gap-4">
               <span id="prompt-count" className={cx("meta", prompt.length >= MAX_PROMPT && "text-cta")}>
                 {prompt.length}/{MAX_PROMPT}
               </span>
               <button className="btn btn-primary" disabled={busy || running || clean.length < 3}>
-                {busy ? "Queuing…" : running ? "Working…" : "Generate"}
+                {busy ? "Queuing…" : running ? "Working…" : "Create experience"}
               </button>
             </div>
           </div>
@@ -257,7 +257,7 @@ export function Studio({ signedIn, initialJob, latest, engine }: { signedIn: boo
 
       {error === "signin" ? (
         <p role="alert" className="notice">
-          <Link className="font-bold underline" href="/login">Sign in</Link> to generate. The studio is invite-only while the engine runs on one machine.
+          <Link className="font-bold underline" href="/login">Sign in</Link> to generate. The studio is an invite-only research demo while the system runs on one machine.
         </p>
       ) : error ? (
         <p role="alert" className="notice">{error}</p>

@@ -36,7 +36,9 @@ const config: NextConfig = {
         ],
       },
       // personal areas and the engine API: never indexed, even if a link leaks (route handlers have no HTML meta)
-      ...["/sites/:path*", "/api/:path*", "/auth/:path*", "/login"].map((source) => ({
+      // AI-only context (/ai, /llms.txt): crawlable for AI bots, kept out of search results. robots.txt must keep
+      // allowing these, or Google never sees this header and indexes the bare URL anyway.
+      ...["/sites/:path*", "/api/:path*", "/auth/:path*", "/login", "/ai", "/llms.txt"].map((source) => ({
         source,
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       })),

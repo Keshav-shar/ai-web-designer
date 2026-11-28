@@ -3,22 +3,23 @@ import { EVIDENCE } from "@/content/evidence.generated";
 /**
  * Copy and data for the studio's pipeline film (components/pipeline). Numbers come from the measured evidence
  * export; colours are sampled from the four reference images (Pillow quantize) and named by hand.
- * Copy rule: frame every stage as specialisation and contextual matching, never as loss.
+ * Copy rule: frame every stage as specialisation and contextual matching, never as loss; say visual domains and
+ * curated visual knowledge, not families and taste.
  */
 
 const corpus = EVIDENCE.funnel.corpus;
 
 export const FUNNEL = [
   { value: corpus[0].value, label: "Public design references gathered by search", short: "gathered by search" },
-  { value: corpus[1].value, label: "Specialised into 39 aesthetic families", short: "in 39 aesthetic families" },
-  { value: corpus[2].value, label: "Defining cream layer the engine routes through", short: "cream layer" },
+  { value: corpus[1].value, label: "Specialised into 39 visual domains", short: "in 39 visual domains" },
+  { value: corpus[2].value, label: "Curated visual knowledge the system retrieves from", short: "curated layer" },
 ] as const;
 
 export const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
 export type CaptionTag = "corpus" | "taste" | "agents" | "code" | "result";
 export const TAG_LABEL: Record<CaptionTag, string> = {
-  corpus: "Corpus", taste: "Taste", agents: "Agents", code: "Code", result: "Result",
+  corpus: "Corpus", taste: "Knowledge", agents: "Orchestration", code: "Code", result: "Result",
 };
 
 export type Beat = { at: number; tag: CaptionTag; text: string };
@@ -33,25 +34,25 @@ export const SCENES: SceneCopy[] = [
   ] },
   { id: "pool", act: 0, title: "Reference pool", ms: 5500, beats: [
     { at: 0, tag: "corpus", text: `${fmt(FUNNEL[0].value)} references land in one pool. Breadth comes first.` },
-    { at: 0.5, tag: "corpus", text: "A wide pool means taste comes from a corpus, not from one model's habits." },
+    { at: 0.5, tag: "corpus", text: "A wide pool means visual knowledge comes from a corpus, not from one model's habits." },
   ] },
   { id: "cluster", act: 0, title: "Clustering", ms: 6500, beats: [
-    { at: 0, tag: "taste", text: "Look-alikes cluster together, and every cluster joins one of 39 aesthetic families." },
+    { at: 0, tag: "taste", text: "Look-alikes cluster together, and every cluster joins one of 39 visual domains." },
     { at: 0.5, tag: "taste", text: "Each style gets its own shelf, so no single look drowns out the other 38." },
   ] },
-  { id: "clip", act: 0, title: "CLIP taste selection", ms: 7500, beats: [
-    { at: 0, tag: "taste", text: "CLIP scores every image against its family and keeps the most representative: high-profile, not average." },
+  { id: "clip", act: 0, title: "CLIP visual selection", ms: 7500, beats: [
+    { at: 0, tag: "taste", text: "CLIP scores every image against its domain and keeps the most representative: high-profile, not average." },
     { at: 0.55, tag: "taste", text: "Hero art is checked for baked-in text, so pages never inherit someone else's words." },
   ] },
   { id: "dock", act: 1, title: "Core engine", ms: 4500, beats: [
-    { at: 0, tag: "taste", text: "Zoom out: that taste layer is the Core Engine, built offline, once, with zero generative AI." },
+    { at: 0, tag: "taste", text: "Zoom out: that curated visual knowledge is the Core Engine, built offline, once, with zero generative AI." },
   ] },
   { id: "query", act: 1, title: "User query", ms: 5000, beats: [
     { at: 0, tag: "taste", text: "A visitor types one sentence." },
-    { at: 0.5, tag: "taste", text: "It is split into what the site is and how it should feel, and the feeling picks one of 39 families." },
+    { at: 0.5, tag: "taste", text: "It is split into what the site is and how it should feel, and the feeling picks one of 39 visual domains." },
   ] },
   { id: "refs", act: 1, title: "References out", ms: 5500, beats: [
-    { at: 0, tag: "taste", text: "The engine hands back five labelled references: typography, background, layout, elements, palette." },
+    { at: 0, tag: "taste", text: "The system hands back five labelled references: typography, background, layout, elements, palette." },
     { at: 0.5, tag: "taste", text: "Every later choice traces back to a real image, not a mood guessed from the prompt." },
   ] },
   { id: "attach", act: 1, title: "Brief to A1", ms: 4500, beats: [
@@ -63,7 +64,7 @@ export const SCENES: SceneCopy[] = [
     { at: 0.4, tag: "agents", text: "Every colour gets a name and a job: Marigold is the inner ribbon stripe and the CTA glow." },
     { at: 0.72, tag: "agents", text: "Components are described, never copied: no text or watermark leaves a reference." },
   ] },
-  { id: "nonvlm", act: 2, title: "Non-VLM pipeline", ms: 8500, beats: [
+  { id: "nonvlm", act: 2, title: "Text-only orchestration", ms: 8500, beats: [
     { at: 0, tag: "agents", text: "Text-only agents build on one shared document: A2 lays it out, A3 writes the copy, A4 draws the decor." },
     { at: 0.42, tag: "agents", text: "Each owns its part and hands it on; none rewrites another's decisions." },
     { at: 0.7, tag: "code", text: "Code, not a model, checks the facts: palette hexes, real fonts, contrast, ids, safe SVG." },
@@ -77,8 +78,8 @@ export const SCENES: SceneCopy[] = [
     { at: 0.5, tag: "code", text: "A browser measures it at 1440 and 390 px; only sound pages ship, and a deterministic page waits behind." },
   ] },
   { id: "cosmogon", act: 2, title: "Into Cosmogon", ms: 7500, beats: [
-    { at: 0, tag: "result", text: "Same method, one level up: this studio's own look was drawn from the engine's retro references." },
-    { at: 0.5, tag: "result", text: "Taste from real references, structure from code, freedom where it's earned. That's how slop stays out." },
+    { at: 0, tag: "result", text: "Same method, one level up: this studio's own look was drawn from the system's retro references." },
+    { at: 0.5, tag: "result", text: "Knowledge from real references, structure from code, freedom where it's earned: creative diversity survives." },
   ] },
 ];
 

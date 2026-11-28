@@ -8,7 +8,8 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { SITE_DESC, pageMeta } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
-export const metadata = { ...pageMeta("/", "Cosmogon Labs · a taste engine for the web", SITE_DESC), title: { absolute: "Cosmogon Labs · a taste engine for the web" } };
+const HOME_TITLE = "Cosmogon Labs · Rethinking how AI creates for the visual world";
+export const metadata = { ...pageMeta("/", HOME_TITLE, SITE_DESC), title: { absolute: HOME_TITLE } };
 
 async function load() {
   const none = { signedIn: false, job: null, latest: null, engine: null as Engine };
@@ -37,19 +38,20 @@ export default async function StudioPage() {
       <section className="container-x pb-14 pt-12 md:pb-20 md:pt-16">
         <div className="grid items-center gap-12 md:grid-cols-[1.35fr_1fr] md:gap-0">
           <div className="rise md:pr-14">
-            <span className="badge">Welcome to the Studio</span>
-            <h1 className="mt-9" aria-label="What should we make?">
+            <span className="badge">Visual Creation Studio</span>
+            <h1 className="mt-9" aria-label="What do you want to bring to life?">
               <span className="inline-caps block text-[clamp(2.1rem,1.3rem+3.4vw,4.1rem)]">
-                What should <span className="hl">we</span>
+                What do <span className="hl">you</span> want to bring
               </span>
               <span className="display stacked mt-3 block text-[clamp(4.6rem,2.6rem+8vw,9.5rem)] italic leading-[.9]"
                 style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>
-                make?
+                to life?
               </span>
             </h1>
             <p className="lede mt-9">
-              Name the business and the feeling. Cosmogon Labs routes the feeling to one of 39 aesthetic families,
-              reads its references, and composes the page.
+              Cosmogon Labs is an independent R&amp;D initiative, founded by Keshav Sharma, rethinking how AI understands
+              and creates for the visual world. Describe your idea, its purpose and the visual direction you envision;
+              the system reads curated visual knowledge and composes a responsive experience around it.
             </p>
           </div>
           <div className="rise-2 hide-sm md:border-l-2 md:border-ink md:pl-14">
@@ -62,17 +64,18 @@ export default async function StudioPage() {
       </section>
       {/* the pipeline film: corpus -> taste layer -> agents -> page, under the query box */}
       <section className="container-x relative z-10 pb-20 pt-16 md:pb-28 md:pt-24" aria-labelledby="pipeline-title">
-        <p className="eyebrow">Inside the engine</p>
-        <h2 id="pipeline-title" className="title">How one sentence becomes a page</h2>
+        <p className="eyebrow">Under the surface</p>
+        <h2 id="pipeline-title" className="title">Beyond generation. Towards visual understanding.</h2>
         <p className="lede mt-4">
-          Thirteen scenes: the taste layer built from real references, the agents that read it, and the code that
-          keeps them honest.
+          Generating an interface is only part of the problem; understanding why a composition works is harder.
+          Thirteen scenes from the current experimental system: curated visual knowledge built from real references,
+          the structured AI orchestration that reads it, and the code that keeps it honest.
         </p>
         <div className="mt-10">
           <PipelineShowcase />
         </div>
       </section>
-      {/* future prospects: four current goals, then the goal behind them */}
+      {/* research directions: four current directions, then the mission behind them */}
       <section className="section band-sand relative z-10 border-y-2 border-ink" aria-labelledby="prospects-title">
         <div className="container-x">
           <div className="mb-12 max-w-[44rem]">

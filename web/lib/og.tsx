@@ -11,7 +11,7 @@ export function ogCard(title: string, kicker: string) {
         <div style={{ display: "flex", fontSize: title.length > 70 ? 56 : 68, fontWeight: 700, lineHeight: 1.1, color: "#0F4A3E" }}>{title}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 28 }}>
           <span style={{ background: "#F2B632", padding: "8px 18px", border: "3px solid #13201B" }}>Cosmogon Labs</span>
-          <span>by Keshav Sharma</span>
+          <span>founded by Keshav Sharma</span>
         </div>
       </div>
     ),

@@ -1,74 +1,75 @@
 /**
- * Copy for the studio's "Future prospects" section (under the pipeline film on /). Plain, calm, specific: what is
- * being worked on next, then the goal behind it. Copy rule (as for the pipeline and the evidence page): frame
- * stages as specialisation and contextual matching, not as loss. The four goal cards are kept close in length
+ * Copy for the studio's "Research directions" section (under the pipeline film on /). Plain, calm, specific: where
+ * the research is heading, then the mission behind it. Copy rule (as for the film and the evidence page): present
+ * directions as investigations, never as solved capabilities. The four direction cards are kept close in length
  * (about 48 words each), and so are the two browsing lanes (about 31 words each), so each row reads evenly.
  */
 
 export const PROSPECTS = {
-  eyebrow: "Future prospects",
-  title: "What we're building next",
+  eyebrow: "Research directions",
+  title: "Expanding the boundaries of visual intelligence",
   lede:
-    "Every mockup on this page is made on free, low-token-limit APIs: a few small model calls, the engine's own " +
-    "taste layer, and code that checks the result. Working inside that limit has shaped how the engine thinks. " +
-    "This is just the concept, we aim to go much higher.",
+    "Cosmogon is an evolving research project, and its current system is a foundation for larger possibilities. " +
+    "Every mockup on this page is made on free, low-token APIs: a few small model calls, curated visual knowledge " +
+    "and code that checks the result. Working inside that limit shapes how the system thinks.",
   status: "Planned Update",
   items: [
     {
-      name: "Interactivity and Motion components",
+      name: "Visual intelligence through embeddings",
       body:
-        "We present our pages to graphic and motion designers to get reviews on design and structure mocks. " +
-        "What we learn builds our library of design and query relevant motion components and static element interactions, with controlled frequency, location and family design relevance so the engine can compare it alongside" +
-        "type, colour and layout, so pages move with intent.",
+        "Researching richer visual representations that help AI relate composition, typography, colour, structure " +
+        "and intent. The aim is stronger reference selection at a fraction of the cost of repeated generative " +
+        "interpretation, starting at the source: parsing each gathered page so only relevant visual knowledge is kept.",
     },
     {
-      name: "Relevant data from the first step",
+      name: "Adaptive generation systems",
       body:
-        "SERP search brings unexpected results for planned queries which don't fit the brief, and CLIP clustering cleans most " +
-        "of that out today. Upgrading this with AI page parsing in the style of Firecrawl, the engine will be able to read a page and keep only " +
-        "what is relevant, right at the source.",
+        "Exploring systems that adapt their approach to each project instead of forcing every request through one " +
+        "strategy. A modular core leaves room for different levels of complexity, faster iteration and motion: " +
+        "interaction components shaped by reviews from graphic and motion designers, placed with intent.",
     },
     {
-      name: "Your Agents learn your style",
+      name: "Deterministic AI orchestration",
       body:
-        "Each routed design provides a set of skills along with the mock, so the agents you connect with carry your UI style into their own " +
-        "work. A specialised inspector then reviews your product one component at a time, the buttons, the cards, " +
-        "the type, and tells you plainly how each one holds up.",
+        "Combining generative flexibility with measurable constraints. Structured decisions, validation gates and " +
+        "programmatic correction make AI-generated experiences more predictable, coherent and dependable. Models " +
+        "propose; code measures, refines and only lets sound pages through, so creative freedom never costs " +
+        "technical integrity.",
     },
     {
-      name: "Localized and culturally rooted design",
+      name: "Visual knowledge for connected AI systems",
       body:
-        "Niche and regional styles lose the most when AI designs from averages. We teach our engine as many " +
-        "styles from them as it can while keeping vibe separate from personalization: local print traditions, craft and signage, the colours of a particular street or season, " +
-        "each kept as its own family, not blended away.",
+        "Investigating how visual understanding can become reusable knowledge, so other AI systems and agents draw on " +
+        "design context instead of rebuilding it from scratch. Each design could carry skills your own agents use to " +
+        "keep your style, and an inspector that reviews your product component by component.",
     },
   ],
   goal: {
-    tag: "Our goal",
-    lead: "A colourful bouquet.",
+    tag: "Our mission",
+    lead: "Creativity should not be gated by resources.",
     body:
-      "Good design should be cheap, quick and measurably effective, not a luxury. When every small business, studio " +
-      "and side project can afford real taste, the internet as a whole gets better: more sites that look like " +
-      "themselves, flavorful and dynamic.",
+      "A compelling digital experience should not depend on expensive tools, large teams or specialised " +
+      "infrastructure. The next generation of creative systems should be inexpensive to operate, quick to respond, " +
+      "adaptive to context and expressive enough to move beyond repetitive AI-generated aesthetics.",
     split:
-      "The web is splitting in two: browsing for agents and browsing for humans. We're building for the second, so " +
-      "it stays vibrant even as AI use keeps growing.",
+      "Our ambition is not simply to automate website creation. It is to explore a better foundation for how " +
+      "machines understand and participate in visual creativity.",
     lanes: [
       {
         name: "Browsing for agents",
         body:
-          "Pages read by machines: structured, fast and plain, built for extraction and action. That side of the web " +
-          "should be efficient, and we expect AI to do most of the browsing there.",
+          "Pages read by machines: structured, fast and plain, built for extraction and action. Here visual knowledge " +
+          "should travel as reusable context, so AI systems stop reconstructing design from scratch.",
         ours: false,
       },
       {
         name: "Browsing for humans",
         body:
-          "The pages people choose to visit. Even with heavy AI use on both sides of the screen, this web should stay " +
-          "vibrant, crafted and varied, never averaged into one safe look.",
+          "The pages people choose to visit. As AI shapes more of the web, these should stay distinctive, culturally " +
+          "relevant and visually diverse, never averaged into one safe look.",
         ours: true,
       },
     ],
-    closing: "We test every idea on our own engine first, one page at a time, and let what it teaches us shape the next step.",
+    closing: "A more capable AI. A more expressive web. A more accessible creative future.",
   },
 } as const;

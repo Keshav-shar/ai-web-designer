@@ -4,7 +4,7 @@ import { BARS, Card } from "@/components/ui";
 import { ABOUT } from "@/content/about";
 import { pageMeta } from "@/lib/seo";
 
-export const metadata = pageMeta("/about", "About", "How Cosmogon Labs turns one sentence into a design recipe: split the prompt, match its feeling to one of 39 aesthetic families, and compose a page from real references.");
+export const metadata = pageMeta("/about", "About", "Cosmogon Labs is an independent R&D initiative by Keshav Sharma building a new foundation for visual AI: understanding before creating, lighter intelligence, and creative control.");
 
 export default function AboutPage() {
   const { hero, how, showcase, faq, cta } = ABOUT;
@@ -19,7 +19,7 @@ export default function AboutPage() {
             <p className="lede mt-9">{hero.sub}</p>
             <div className="mt-10 flex flex-wrap gap-4">
               <Link className="btn btn-primary" href="/">Open the studio</Link>
-              <a className="btn btn-ghost" href="#how">How it works</a>
+              <a className="btn btn-ghost" href="#how">Our principles</a>
             </div>
           </div>
           <div className="rise-2 hide-sm md:border-l-2 md:border-ink md:pl-14">
@@ -32,7 +32,7 @@ export default function AboutPage() {
       <section id="how" className="section band-sand border-y-2 border-ink">
         <div className="container-x">
           <div className="mb-12 max-w-[40rem]">
-            <p className="eyebrow">the method</p>
+            <p className="eyebrow">the principles</p>
             <h2 className="title">{how.title}</h2>
           </div>
           <ol className="grid gap-8 md:grid-cols-3">
@@ -40,7 +40,7 @@ export default function AboutPage() {
               <li key={s.n}>
                 <Card bar={BARS[i % BARS.length]} lift className="h-full">
                   <div className="flex h-full flex-col p-7 pb-8">
-                    <span className="inline-caps text-[1rem] tracking-[.2em] text-rust">Step {s.n}</span>
+                    <span className="inline-caps text-[1rem] tracking-[.2em] text-rust">Principle {s.n}</span>
                     <h3 className="display stacked-sm mt-3 text-[2.4rem]">{s.name}</h3>
                     <p className="mt-4">{s.body}</p>
                   </div>
@@ -56,7 +56,7 @@ export default function AboutPage() {
         <div className="container-x">
           <div className="mb-14 grid items-end gap-10 md:grid-cols-[1.6fr_1fr]">
             <div>
-              <p className="eyebrow">the corpus</p>
+              <p className="eyebrow">visual knowledge</p>
               <h2 className="display display-2">{showcase.title}</h2>
               <p className="lede mt-5">{showcase.sub}</p>
             </div>
@@ -68,7 +68,7 @@ export default function AboutPage() {
                 <TapePiece style={{ top: -12, left: "50%", marginLeft: -52, transform: `rotate(${-im.tilt}deg)` }} />
                 <figure className="card m-0 p-3 pb-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={im.src} alt={`${im.caption} from the reference corpus`} loading="lazy"
+                  <img src={im.src} alt={`${im.caption} from the curated visual knowledge`} loading="lazy"
                     className="aspect-[4/5] w-full border-2 border-ink object-cover" />
                   <figcaption className="meta mt-3 text-center">{im.caption}</figcaption>
                 </figure>

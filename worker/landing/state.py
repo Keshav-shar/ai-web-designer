@@ -170,6 +170,18 @@ def font_pool_slice(st: State) -> dict:
     return out
 
 
+def shape_rules(d: dict, compact: bool = False) -> dict:
+    """A1's shape language for the layout and decor agents: the theory, the shapes allowed and forbidden, ornament.
+    compact (A2, whose Groq request has ~150 tokens to spare): only what placement needs."""
+    dl = d.get("design_language") or {}
+    if compact:
+        sv = dl.get("shape_vocabulary") or {}
+        return {"shapes": {k: sv.get(k) for k in ("corners", "allowed_shapes", "forbidden_shapes")},
+                "ornament_rules": dl.get("ornament_rules", "")}
+    return {"theory": dl.get("theory", [])[:4], "shape_vocabulary": dl.get("shape_vocabulary", {}),
+            "ornament_rules": dl.get("ornament_rules", ""), "avoid": dl.get("avoid", [])}
+
+
 def layer_of(doc: dict) -> dict[str, tuple[str, int]]:
     return {e["id"]: (k, z) for k, z in (("background", 0), ("midground", 5), ("foreground", 20))
             for e in doc["elements"][k]}
@@ -206,6 +218,7 @@ def slice_for(st: State, agent: str) -> dict:
                                      "elements": bl["elements"]},
                 "midground_decor": d["elements"]["midground"], "foreground_overlays": d["elements"]["foreground"],
                 "layout_hints": d["layout_spec"], "strategic_cards": len(d["strategic_cards"]),
+                "design_language": shape_rules(d, compact=True),
                 "canvas": "desktop 1440 px wide, content about 1200 px, 12 columns; one column under 1024 px"}
     if agent == "a3":
         m, plan = st["meta"], st["plan"]
@@ -226,7 +239,7 @@ def slice_for(st: State, agent: str) -> dict:
                             "geometry": e.get("geometry", ""), "where": e["where"], "placement": L.get("placement", ""),
                             "anchor": L.get("anchor", ""), "box_pct_of_anchor": L.get("box"),
                             "rotate_deg": L.get("rotate") or 0})
-        return {"decor_elements": els,
+        return {"decor_elements": els, "design_language": shape_rules(d),
                 "palette_vars": [f"var({c['var']}) = {c['name']} {c['hex']}" for c in d["colors"]],
                 "limits": "one asset per element; svg up to ~2500 characters each, viewBox-based; colours only "
                           "from palette_vars (or their hexes); no text that repeats the page copy"}
@@ -499,6 +512,7 @@ def assemble_doc_spec(st: State) -> dict:
         "typography": typo, "levels": levels, "fonts": fams,
         "fonts_css": [g.google_css(f, f in italic) for f in fams],
         "type_scale": {k: v for k, v in st["facts"]["type_scale"].items() if k.startswith("--fs-")},
+        "design_language": d.get("design_language") or {},
         "canvas": {"max_width_px": 1440, **plan["canvas"]},
         "composition": {**d["composition_and_overlap_rules"], "canvas_use": plan["canvas"].get("canvas_use", "")},
         "background": {"image": bg["path"] if bg else None, "treatment": d["background_layer"]["treatment"] if bg else "none",

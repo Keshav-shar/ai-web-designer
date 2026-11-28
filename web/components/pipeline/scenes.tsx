@@ -99,7 +99,7 @@ export function EngineLayer({ scene, rm, tiles, cream }: P & { tiles: Tile[]; cr
         </div>
       ))}
       <div className={cx("pl-abs tag tag-line pl-more", vis(s === S.cluster), s === S.clip && "pl-hold")} style={at(1008, 616)}>
-        +27 more families
+        +27 more domains
       </div>
 
       <div className={cx("pl-abs pl-lens", s === S.clip && "pl-sweep")} style={at(CLUSTER.x - 22, 126)}>
@@ -107,7 +107,7 @@ export function EngineLayer({ scene, rm, tiles, cream }: P & { tiles: Tile[]; cr
       </div>
       <div className={cx("pl-abs pl-creamlabel", vis(s >= S.clip), s === S.clip && "pl-pop")}
         style={{ ...at(cream.x - 40, cream.y + cream.h + 16), width: cream.w + 80, ...d(4.6) }}>
-        Cream layer · each column is one family&rsquo;s strongest
+        Curated layer · each column is one domain&rsquo;s best
       </div>
       <div className={cx("pl-abs pl-stamp", vis(s >= S.clip), s === S.clip && "pl-stamp-in")} style={{ ...at(cream.x + cream.w + 30, cream.y + 18), ...d(5.3) }}>
         Text-free ✓<small>CLIP check −0.02</small>
@@ -115,7 +115,7 @@ export function EngineLayer({ scene, rm, tiles, cream }: P & { tiles: Tile[]; cr
 
       <div className={cx("pl-abs pl-dock-title", vis(s >= S.dock))}>
         <span>Core engine</span>
-        <small>{fmt(FUNNEL[2].value)} cream refs · zero generative AI</small>
+        <small>{fmt(FUNNEL[2].value)} curated refs · zero generative AI</small>
       </div>
     </div>
   );
@@ -313,7 +313,7 @@ function NonVlm({ scene }: { scene: number }) {
   return (
     <>
       <div className={cx("pl-abs pl-nv-title", vis(on), on && "pl-pop")} style={at(480, 104)}>
-        <b>Non-VLM pipeline</b>
+        <b>Text-only orchestration</b>
         <span>words in, words out · no image travels past A1</span>
       </div>
       <svg className={cx("pl-svg", vis(on))} viewBox="0 0 1200 675" aria-hidden="true">
@@ -518,14 +518,15 @@ function CosmogonTop({ play }: { play: boolean }) {
       </div>
       <div className="pl-ct-hero">
         <div>
-          <div {...r(1)}><span className="badge">Welcome to the Studio</span></div>
-          <div {...r(2)}><span className="inline-caps pl-ct-what">What should <span className="hl">we</span></span></div>
+          <div {...r(1)}><span className="badge">Visual Creation Studio</span></div>
+          <div {...r(2)}><span className="inline-caps pl-ct-what">What do <span className="hl">you</span> want to bring</span></div>
           <div {...r(3)}>
-            <span className="display stacked pl-ct-make" style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>make?</span>
+            <span className="display stacked pl-ct-make" style={{ fontVariationSettings: '"SOFT" 100, "WONK" 1' }}>to life?</span>
           </div>
           <p {...r(4)} className={cx("pl-ct-lede", play && "pl-rise")}>
-            Name the business and the feeling. Cosmogon Labs routes the feeling to one of 39 aesthetic families,
-            reads its references, and composes the page.
+            {/* the home lede, shortened to fit the fixed 675px stage */}
+            Cosmogon Labs is an independent R&amp;D initiative rethinking how AI understands and creates for the visual
+            world. Describe your idea and the visual direction you envision.
           </p>
         </div>
         <div {...r(5)} className={cx("pl-ct-poster", play && "pl-rise")}>

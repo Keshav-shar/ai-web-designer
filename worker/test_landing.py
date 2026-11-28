@@ -1055,9 +1055,24 @@ def t_pipeline_openrouter(h):
         _reset_router()
 
 
+def t_openrouter_plain_mode():
+    """Plain JSON mode on OpenRouter sends no response_format (11-28): free endpoints that support none (Nemotron
+    Ultra / Lightning) 404'd on json_object with require_parameters, so the plain retry never reached them."""
+    orp = providers.OpenRouter(budget.Buckets())
+    strict = {"model": "openrouter/x/y:free", "response_format": {"type": "json_schema", "json_schema": {}}}
+    plain = {"model": "openrouter/x/y:free", "response_format": {"type": "json_object"}}
+    orp.shape(strict)
+    orp.shape(plain)
+    check(strict["model"] == "x/y:free" and strict.get("provider") == {"require_parameters": True},
+          "OpenRouter strict mode: routed only to endpoints that honour the JSON schema")
+    check("response_format" not in plain and "provider" not in plain,
+          "OpenRouter plain mode: no response_format, no endpoint requirement (the schema rides in the prompt)")
+
+
 def t_openrouter_provider():
     """The real OpenRouter client over a mock transport: capabilities, the key's pool, request shape, error kinds,
     errors inside a 200 reply, dropped connections."""
+    t_openrouter_plain_mode()
     import base64
     import io
     import httpx
@@ -1460,6 +1475,21 @@ def t_r0_fixes(h):
     check(first == 0 and second > 3600 and keys.health_skip("m-x")[0] == 0,
           "P5: a model that failed twice in a row is skipped for 2 h; an answer clears it")
     keys.health_reset()
+    keys.health_fail("m-y", "503", slow=False)
+    keys.health_fail("m-y", "503", slow=False)
+    fast = keys.health_skip("m-y")[0]
+    check(0 < fast <= keys.HEALTH_BRIEF_S,
+          f"a fast refusal (503 / upstream) only cools a model for {keys.HEALTH_BRIEF_S / 60:.0f} min ({fast:.0f}s)")
+    keys.health_reset()
+    from landing import providers as P
+
+    class _R:
+        status_code = 502
+    dead = P.DeepSeek.special(P.DeepSeek.__new__(P.DeepSeek), _R(), "deepseek image upload failed: deepseek pow "
+                              "response has no data.biz_data.challenge. auth may be expired", "deepseek-vision")
+    busy = P.DeepSeek.special(P.DeepSeek.__new__(P.DeepSeek), _R(), "bad gateway", "deepseek-vision")
+    check(dead is not None and dead.kind == "auth" and busy is None,
+          "an expired DeepSeek login is an auth error (no same-model retries); a plain 502 is still retried")
 
 
 def t_a1_depth(h):
@@ -1479,6 +1509,179 @@ def t_a1_depth(h):
     finally:
         pipeline.A1_MIN.clear()
         pipeline.A1_MIN.update(saved)
+    t_a1_floor(h, thin, rich)
+
+
+def t_a1_floor(h, thin, rich):
+    """A1's floor (the user's call, 11-28): a thin document goes back to be expanded (with what it lacks and the
+    document itself), then, still thin, another vision model writes a fresh one; the deepest valid one is kept."""
+    saved_min, saved_call = dict(pipeline.A1_MIN), pipeline.call
+    pipeline.A1_MIN.update(REAL_A1_MIN)
+    st = S.State(h)
+    schema = sc.a1()
+    bit_more = copy.deepcopy(thin)
+    bit_more["aesthetic_direction"] = (bit_more.get("aesthetic_direction") or "") + " more"
+
+    class Ctx:
+        progress = staticmethod(lambda ev: None)
+
+    def run_floor(replies):
+        asked = []
+
+        def build(errors, prev=None, short=None):
+            asked.append({"mode": "expand" if prev is not None else "fresh", "short": short, "prev": prev})
+            return lambda model: None
+
+        def fake_call(ctx, agent, b, max_out, skip=None, fresh=False, arm=False):
+            asked[-1]["skip"] = set(skip or ())
+            model, doc = replies.pop(0)
+            return copy.deepcopy(doc), model, {"ms": 10}, [model]
+        pipeline.call = fake_call
+        return pipeline.deepen_a1(Ctx(), st, schema, build, copy.deepcopy(thin), "m/first", {"ms": 5}, ["m/first"]), asked
+    try:
+        (out, model, meta, tried, rec), asked = run_floor([("m/first", bit_more), ("m/second", rich)])
+        check([a["mode"] for a in asked] == ["expand", "fresh"] and asked[0]["prev"] is not None and asked[0]["short"],
+              f"A1 floor: expansion first (with the document and what it lacks), then a fresh one ({[a['mode'] for a in asked]})")
+        check("m/first" in asked[1]["skip"], "A1 floor: the fresh document comes from a model that hasn't tried")
+        check(model == "m/second" and rec["floor_met"] and len(rec["attempts"]) == 2 and meta["ms"] == 25,
+              f"A1 floor: the deepest valid document is kept and meets the floor ({model}, {rec.get('floor_met')}, {meta})")
+        (out, model, meta, tried, rec), asked = run_floor([("m/first", rich)])
+        check(len(asked) == 1 and rec["floor_met"] and model == "m/first",
+              "A1 floor: an expansion that reaches the floor ends it (no fresh call)")
+        (out, model, meta, tried, rec), asked = run_floor([("m/first", thin), ("m/x", thin)])
+        check(not rec["floor_met"] and rec["kept"]["model"] == "m/first" and len(asked) == 2,
+              "A1 floor: when nothing reaches it, the deepest document goes on and floor_met is false")
+    finally:
+        pipeline.call = saved_call
+        pipeline.A1_MIN.clear()
+        pipeline.A1_MIN.update(saved_min)
+    t_a6_fonts(h, st)
+
+
+def t_a6_fonts(h, st):
+    """A6 validates the type (the user's call, 11-28): the browser's font use becomes findings, alternate faces are
+    loaded and allowed on the improved page, and nothing else changes the page checks."""
+    qa_res = {1440: {"readability": {"loaded": ["Inter"], "fonts": {
+        "Monoton": {"runs": 9, "min_px": 13.0, "small": 6, "long_small": 2, "sample": "Book a table", "tags": ["a", "p"]},
+        "Inter": {"runs": 20, "min_px": 14.0, "small": 3, "long_small": 0, "sample": "x", "tags": ["p"]}}}},
+              390: {"readability": {"fonts": {}}}}
+    spec = {"fonts": ["Monoton", "Inter"], "fonts_css": ["a", "b"]}
+    f = pipeline.font_findings(qa_res, spec)
+    check(any("Monoton" in x and "display" in x and "under 16 px" in x for x in f),
+          f"A6 fonts: a display face at body size is a finding ({f[:2]})")
+    check(any("'Monoton' did not load" in x for x in f) and not any("'Inter' did not load" in x for x in f),
+          "A6 fonts: a face that never loaded is a finding")
+    check(not any("Inter" in x for x in f if "did not load" not in x), "A6 fonts: a readable face at 14 px is not flagged")
+    alts = pipeline.font_alternates(st, {"fonts": []})
+    check(alts and all(a["stack"].startswith('"') for a in alts) and len(alts) <= pipeline.A6_ALTERNATES,
+          f"A6 fonts: alternates come from A1's pool with their stacks ({[a['family'] for a in alts]})")
+    readable_first = [a["category"] in pipeline.READABLE for a in alts]
+    check(readable_first == sorted(readable_first, reverse=True), "A6 fonts: readable categories come first")
+    s6 = pipeline.with_fonts({"fonts": ["Monoton"], "fonts_css": ["x"]}, ["Inter", "monoton"])
+    check(s6["fonts"] == ["Monoton", "Inter"] and len(s6["fonts_css"]) == 2 and "Inter" in s6["fonts_css"][1],
+          "A6 fonts: an alternate is loaded once (Google Fonts link) and allowed by the page check")
+
+
+def t_design_language(h):
+    """A1's design language (the user's call, 11-28): A1 must give theory + shapes + component styles; it reaches
+    A2, A4, A5 and A6; code measures the page against it, and A6 may not stray further from it than A5."""
+    doc = flow.default_doc(h)
+    raw = copy.deepcopy(doc["design_language"])
+    raw["component_styles"] += [{"component": "card", "shape": "dup", "radius_px": 50, "border": "", "fill": "",
+                                 "shadow": "soft", "source": "inferred"},
+                                {"component": "pill", "shape": "bad", "radius_px": 5, "border": "", "fill": "",
+                                 "shadow": "none", "source": "inferred"},
+                                {"component": "tag", "shape": "pill", "radius_px": 5000, "border": "", "fill": "",
+                                 "shadow": "nope", "source": "x"}]
+    log = []
+    dl = flow.design_language(raw, log)
+    comps = {c["component"]: c for c in dl["component_styles"]}
+    check(list(comps) == ["button", "card", "image_frame", "tag"] and comps["card"]["radius_px"] == 4
+          and comps["tag"]["radius_px"] == sc.PILL_PX and comps["tag"]["shadow"] == "none",
+          f"design language: one style per known component, radius clamped, shadow enum kept ({list(comps)})")
+    check(flow.design_language(None, log)["component_styles"] == [] and log,
+          "design language: a missing block normalizes to empty and is logged")
+    bad = copy.deepcopy(doc)
+    bad["design_language"]["theory"], bad["design_language"]["component_styles"] = ["one"], []
+    errs = pipeline.semantic("a1", bad)
+    check(any("theory" in e for e in errs) and any("component_styles" in e for e in errs),
+          f"design language: A1 without theory / component styles gets the repair call ({errs[-2:]})")
+    check(not [e for e in pipeline.semantic("a1", doc) if "design_language" in e], "the default doc's language passes")
+    st = S.State(h)
+    flow.after_a1(st, doc, h)
+    check(st["doc"]["design_language"]["component_styles"] and
+          S.slice_for(st, "a2")["design_language"]["shapes"]["allowed_shapes"] and
+          "theory" not in S.slice_for(st, "a2")["design_language"],
+          "design language: A2's slice carries A1's shapes, compact (its Groq window is tight)")
+    # the page against the language
+    spec = {"design_language": {"component_styles": [
+                {"component": "button", "shape": "pill", "radius_px": 999, "shadow": "none"},
+                {"component": "card", "shape": "hard square panel", "radius_px": 0, "shadow": "none"},
+                {"component": "tag", "shape": "pill", "radius_px": 999, "shadow": "none"}]},
+            "items": [{"item_id": "cta-1", "kind": "cta"}, {"item_id": "card-1", "kind": "card"},
+                      {"item_id": "card-2", "kind": "card"}, {"item_id": "tag-1", "kind": "label"},
+                      {"item_id": "img-slot-1", "kind": "drawing"}],
+            "decor": [{"element_id": "sun", "asset": {"kind": "svg"}}, {"element_id": "rays", "asset": {"kind": "css"}}]}
+    good = {1440: {"style": {"items": [
+        {"id": "cta-1", "w": 160, "h": 48, "radius": 24, "shadow": False},
+        {"id": "card-1", "w": 300, "h": 200, "radius": 0, "shadow": False},
+        {"id": "card-2", "w": 300, "h": 200, "radius": 2, "shadow": False},
+        {"id": "tag-1", "w": 60, "h": 20, "radius": 0, "shadow": False, "painted": False}],
+        "motifs": ["sun", "rays", "img-slot-1"], "unowned": []}}}
+    ok = pipeline.style_check(good, spec)
+    check(ok["score"] == 0 and not ok["findings"],
+          f"style check: a page built in A1's language scores 0; an unpainted tag and an A1 picture slot are not "
+          f"faults ({ok})")
+    drift = {1440: {"style": {"items": [
+        {"id": "cta-1", "w": 160, "h": 48, "radius": 8, "shadow": False},
+        {"id": "card-1", "w": 300, "h": 200, "radius": 16, "shadow": True},
+        {"id": "card-2", "w": 300, "h": 200, "radius": 16, "shadow": True}], "motifs": ["sun", "blob-x"],
+        "unowned": [{"kind": "pseudo", "on": "div in hero::before"}, {"kind": "svg", "on": "div in cta", "w": 90, "h": 90}]}}}
+    bad_s = pipeline.style_check(drift, spec)
+    f = " | ".join(bad_s["findings"])
+    check(bad_s["deviations"] == 5 and bad_s["missing"] == ["rays"] and bad_s["extra"] == ["blob-x"]
+          and bad_s["unowned"] == 2 and bad_s["score"] == 9,
+          f"style check: corners, shadows, a missing A1 element, a foreign motif and unowned shapes count ({bad_s['score']})")
+    check("card card-1, card-2: built with 16px corners" in f and "pill / fully round" in f and "rays" in f
+          and "2 decorative shape(s) no A1 element owns" in f, "style check: findings name what strays, for A6")
+    check(pipeline.style_check({1440: {}}, spec)["score"] is None, "style check: an unmeasured page has no score")
+    check(ok["score"] + pipeline.STYLE_SLACK < bad_s["score"],
+          "A6: an improved page this far from A1's language would be discarded (A5's ships)")
+    # a model's @font-face is dropped by the sanitizer (it would shadow the spec's Google faces)
+    css, dropped = validate_page.sanitize_css('@font-face{font-family:"Syne";src:url(https://x/y.woff2)} h1{font-family:"Syne"}', set())
+    check("@font-face" not in css and "@font-face" in dropped and 'h1{font-family:"Syne"}' in css,
+          "sanitizer: a model's own @font-face is dropped, the family's use stays")
+    q16 = ('@import url("https://fonts.googleapis.com/css2?family=Mozilla+Text:wght@400;500;600;700&display=swap");\n'
+           ':root{--space-xl:48px} .c{padding:0 var(--space-xl)}')
+    css, dropped = validate_page.sanitize_css(q16, set())
+    check(css.strip().startswith(":root{--space-xl:48px}") and "display=swap" not in css and "@import" in dropped,
+          "sanitizer: an @import whose URL carries ';' goes whole, so :root and its variables survive (Q16)")
+
+
+def t_style_js():
+    """The browser measures A1's language as built: item corners / shadows, motifs, unowned decorative shapes."""
+    from playwright.sync_api import sync_playwright
+    from landing import qa as QA
+    page = ("<html><body><section data-section='hero' style='position:relative'>"
+            "<a data-item='cta-1' style='display:inline-block;padding:12px 24px;border-radius:999px;box-shadow:0 2px 4px #000'>Go</a>"
+            "<div data-motif='sun' style='position:absolute;left:0;top:0;width:80px;height:80px;background:red'></div>"
+            "<svg width='60' height='60'><circle cx='30' cy='30' r='20'/></svg>"
+            "<div style='position:absolute;right:0;top:0;width:100px;height:100px;background:linear-gradient(red,blue)'></div>"
+            "<div class='p' style='position:relative;width:200px;height:100px'>text</div>"
+            "</section><style>.p::before{content:'';position:absolute;inset:0;background:radial-gradient(red,transparent)}</style>"
+            "</body></html>")
+    f = TMP / "style_js.html"
+    f.write_text(page, encoding="utf-8")
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        pg = b.new_page(viewport={"width": 1440, "height": 900})
+        pg.goto(f.as_uri())
+        r = pg.evaluate(QA.STYLE_JS)
+        b.close()
+    kinds = sorted(u["kind"] for u in r["unowned"])
+    cta = next(i for i in r["items"] if i["id"] == "cta-1")
+    check(r["motifs"] == ["sun"] and kinds == ["box", "pseudo", "svg"] and cta["radius"] >= 24 and cta["shadow"],
+          f"browser: motifs, item corners / shadow and the three kinds of unowned shapes are measured ({kinds}, {cta})")
 
 
 def t_no_defaults(h):
@@ -1667,12 +1870,14 @@ def main():
         t_lenient(h)
         t_r0_fixes(h)
         t_a1_depth(h)
+        t_design_language(h)
         if qa:
             r = pipeline.run(h, enabled=False, qa=True, log=lambda *a: None)
             check(not any("overlaps text" in p or "overflow" in p for x in r["qa"].values() for p in x["problems"]),
                   f"agents-off page: nothing blocking in the browser ({n}, {r['page_source']})")
             t_doc_page_qa(h)
     if qa:
+        t_style_js()
         t_nested_overlap()
     t_svg()
     t_relevance_gate()

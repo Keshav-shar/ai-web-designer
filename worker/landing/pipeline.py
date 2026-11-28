@@ -31,6 +31,7 @@ from pathlib import Path
 
 import jsonschema
 
+from .handoff import font_info
 from . import budget, cache, compile_spec, defaults, flow, keys, qa as QA, schemas as sc, state as S, validate_page
 from .providers import (DS_PREFIX, MODAL_PREFIX, DeepSeek, Gemini, Groq, Mistral, Modal, OpenRouter, ProviderError,
                         deepseek_base, image_part, image_part_or, modal_base)
@@ -130,7 +131,15 @@ class AgentUnavailable(RuntimeError):
 MISTRAL_PREFIXES = ("mistral", "ministral", "magistral", "pixtral", "devstral", "codestral")
 A1_SIDE = {"high": 1540, "medium": 1024, "low": 1024}   # Mistral: <=1540 px, ~(W*H)/784 tokens per image
 OR_SIDE = {"high": 1536, "medium": 1280, "low": 1024}   # OpenRouter vision models, JPEG q90, detail "high"; 1024-1536 px keeps fine text crisp without oversized payloads
-MAX_OUT = {"a1": 14400, "a2": 3000, "a3": 3000, "a4": 4000, "a5": 20000, "a6": 26000}
+# A3 4800 (11-28): with A1's depth floor the copy covers more components; Gemini 3.6 Flash ran out at 3000 / 4800
+MAX_OUT = {"a1": 23040,"a2": 3000, "a3": 4800, "a4": 4000, "a5": 20000, "a6": 26000}
+# what a Groq minute window keeps free for the reply (its usual size, not the cap): a bigger cap for the other providers
+# must not shrink the room Groq's request has
+GROQ_RESERVE = {"a2": 1800, "a3": 1800, "a4": 2400}
+GROQ_MAX_OUT = {"a3": 3000}            # Groq counts the requested output against its minute window
+# free OpenRouter models reason before they answer (Nemotron Ultra / Lightning ran out at 3000 / 4800 on A2, 11-28);
+# the free pool counts requests, not tokens
+OPENROUTER_MIN_OUT = {"a2": 7200, "a3": 7200, "a4": 7200}
 TEMP = {"a1": 0.5, "a2": 0.4, "a3": 0.6, "a4": 0.7, "a5": 0.7, "a6": 0.5}
 THINK = {"a1": "medium", "a5": "medium"}            # Gemini thinking level per agent (others: low)
 A1_RES = {"LAYOUT_REF": "high", "TYPOGRAPHY_REF": "high", "ELEMENTS_REF": "medium", "BACKGROUND_REF": "medium",
@@ -144,7 +153,7 @@ OPENROUTER_TIMEOUT = {"a1": 240.0, "a2": 120.0, "a3": 120.0, "a4": 120.0, "a5": 
 GEMINI_SKIP_S = 600.0                   # a Gemini model that was busy / timed out is skipped this long, on every key
 # the quick give-up above is for Hydrogen / 3.8 Flash (overloaded: a fast failure beats a slow one); 3.6 Flash and
 # Gemma on the Gemini keys are fallbacks that are slow but answer (3.6 Flash: 66 s on the real A1 request)
-GEMINI_PATIENT = {"a1": 150.0, "a2": 60.0, "a3": 60.0, "a4": 60.0, "a5": 300.0, "a6": 360.0}
+GEMINI_PATIENT = {"a1": 150.0, "a2": 60.0, "a3": 90.0, "a4": 60.0, "a5": 300.0, "a6": 360.0}
 UPSTREAM_SKIP_S = 300.0                 # an OpenRouter free model rate-limited upstream: skipped this long, on every key
 MODAL_TIMEOUT = {"a1": 600.0, "a2": 300.0, "a3": 300.0, "a4": 300.0, "a5": 600.0, "a6": 600.0}   # per read: covers a cold boot
 TIMEOUT = {"a1": 100.0, "a2": 30.0, "a3": 30.0, "a4": 30.0, "a5": 100.0, "a6": 300.0}
@@ -244,12 +253,14 @@ class Ctx:
         if isinstance(info.get("free_used"), int):
             self.ledger.sync(budget.OR_FREE_POOL, info["free_used"], ring.ids[i])
 
-    def chain(self, agent: str) -> list[str]:
+    def chain(self, agent: str, arm: bool = False) -> list[str]:
         pinned = os.getenv(f"AGENT{agent[1]}_MODEL", "").strip()
         if pinned:
             return [m.strip() for m in pinned.split(",") if m.strip()]
-        arm = ["deepseek:vision" if agent in ("a1", "a6") else "deepseek:text"] if deepseek_base() else []
-        base = list(dict.fromkeys(m for a in arm + CHAINS.get(agent, []) for m in self.resolve(a)))   # test arm first
+        # DeepSeek test arm (the user's call, 2026-11-26): it leads A1 and the improver (A6) only. It never runs A5 -
+        # not its page, not its repair - nor A2-A4.
+        lead = ["deepseek:vision"] if deepseek_base() and agent in ("a1", "a6") else []
+        base = list(dict.fromkeys(m for a in lead + CHAINS.get(agent, []) for m in self.resolve(a)))
         pick = _PREFERRED.get(tuple(base))               # sticky: the model that last answered for this chain
         if pick and pick[0] in base and (pick[0] == base[0] or time.monotonic() - pick[1] < STICKY_S):
             base.remove(pick[0])
@@ -289,7 +300,8 @@ def why_left(t: dict) -> str:
     return "is busy"
 
 
-def call(ctx: Ctx, agent: str, build, max_out: int, skip=None, fresh: bool = False) -> tuple[dict | str, str, dict, list]:
+def call(ctx: Ctx, agent: str, build, max_out: int, skip=None, fresh: bool = False,
+         arm: bool = False) -> tuple[dict | str, str, dict, list]:
     """build(model) -> ("gemini", system, parts, schema) | ("groq" | "mistral", messages, schema, est_tokens).
     For each model in the agent's chain (the model that last answered for this chain goes first), each usable
     key in order: a daily limit marks that key out for the model (ledger), a per-minute limit cools the key and moves
@@ -297,7 +309,7 @@ def call(ctx: Ctx, agent: str, build, max_out: int, skip=None, fresh: bool = Fal
     windows, wait once for the first window to reopen and go round again. Every switch prints one line on the
     terminal (keys.notify). -> (parsed output or text, model, reply meta incl. key label, tried[])."""
     tried = []
-    chain = [m for m in ctx.chain(agent) if not skip or m not in skip] or ctx.chain(agent)
+    chain = [m for m in ctx.chain(agent, arm) if not skip or m not in skip] or ctx.chain(agent, arm)
     stick = tuple(dict.fromkeys(m for a in CHAINS.get(agent, []) for m in ctx.resolve(a)))
 
     def after(model):
@@ -340,7 +352,10 @@ def call(ctx: Ctx, agent: str, build, max_out: int, skip=None, fresh: bool = Fal
                 if cool:
                     keys.notify(f"{label} is cooling down on {model}: waiting {cool:.0f}s")
                     time.sleep(cool)
-                out_cap, t_key = max_out, time.time()
+                pk = ctx.pname(model)
+                out_cap, t_key = (min(max_out, GROQ_MAX_OUT.get(agent, max_out)) if pk == "groq" else
+                                  max(max_out, OPENROUTER_MIN_OUT.get(agent, 0)) if pk == "openrouter" else
+                                  max_out), time.time()
                 strict = (model, agent) not in _NONSTRICT
                 for attempt in range(3):
                     try:
@@ -408,9 +423,9 @@ def call(ctx: Ctx, agent: str, build, max_out: int, skip=None, fresh: bool = Fal
                         if e.kind == "upstream":           # the free model's host is full for everyone: no key helps
                             for j in range(len(ring)):
                                 ring.cool_down(j, model, UPSTREAM_SKIP_S)
-                            if keys.health_fail(model, "rate-limited upstream"):
+                            if sk := keys.health_fail(model, "rate-limited upstream", slow=False):
                                 keys.notify(f"{model} failed {keys.HEALTH_STRIKES} times in a row: skipped for "
-                                            f"{keys.HEALTH_SKIP_S / 3600:.0f} h")
+                                            f"{sk / 60:.0f} min")
                             tried.append({"model": model, "key": label, "error": "rate-limited upstream"})
                             keys.notify(f"{agent.upper()}: {model} is rate-limited upstream (shared free capacity, every "
                                         f"key) -> {after(model)}")
@@ -454,9 +469,9 @@ def call(ctx: Ctx, agent: str, build, max_out: int, skip=None, fresh: bool = Fal
                         if req[0] == "gemini" and e.kind in ("overloaded", "timeout", "server"):
                             for j in range(len(ring)):                # Google-side trouble: every key, for a while
                                 ring.cool_down(j, model, GEMINI_SKIP_S)
-                            if keys.health_fail(model, f"{e.kind}: {str(e)[:80]}"):
+                            if sk := keys.health_fail(model, f"{e.kind}: {str(e)[:80]}", slow=e.kind == "timeout"):
                                 keys.notify(f"{model} failed {keys.HEALTH_STRIKES} times in a row: skipped for "
-                                            f"{keys.HEALTH_SKIP_S / 3600:.0f} h")
+                                            f"{sk / 60:.0f} min")
                             tried.append({"model": model, "key": label, "error": str(e)[:240],
                                           "s": round(time.time() - t_key, 1)})
                             keys.notify(f"{agent.upper()}: {model} {e.kind} ({str(e)[:90]}) -> {after(model)}; "
@@ -508,6 +523,14 @@ def semantic(agent: str, out: dict) -> list[str]:
         for c in out.get("strategic_cards", []):
             if not c.get("heading", "").strip() or not c.get("body", "").strip():
                 errs.append(f"{c.get('card_id')}: heading and body are required")
+        dl = out.get("design_language") or {}           # the language every later agent builds with (11-28)
+        if len([x for x in dl.get("theory") or [] if str(x).strip()]) < 2:
+            errs.append("design_language.theory: give at least 2 principles explaining why the references work")
+        if len(dl.get("component_styles") or []) < 3:
+            errs.append("design_language.component_styles: style at least 3 components the page uses "
+                        "(button, card, image_frame, nav, tag...)")
+        if len((dl.get("shape_vocabulary") or {}).get("allowed_shapes") or []) < 2:
+            errs.append("design_language.shape_vocabulary.allowed_shapes: name at least 2 shapes this design uses")
     elif agent == "a2":
         if not out.get("layout_plan", {}).get("sections"):
             errs.append("layout_plan.sections is empty")
@@ -756,31 +779,53 @@ def _run_agent(ctx: Ctx, st: S.State, agent: str, schema: dict, build, default, 
     return out
 
 
+A1_DEEPEN = ("expand", "fresh")   # the user's call (11-28): A1 has a floor. A thin document first goes back with what it
+#                                   lacks (an expansion keeps every observation, the chain's current model first); if it
+#                                   is still under A1_MIN, a vision model that hasn't tried writes a fresh one. The
+#                                   deepest valid document goes on; `floor_met` records whether it reached A1_MIN.
+
+
 def deepen_a1(ctx: Ctx, st: S.State, schema: dict, build, out, model, meta, tried):
-    """A1's document under A1_MIN -> one more call on the next vision model; the deeper document is kept.
-    -> (out, model, meta, tried, depth record)."""
+    """A1's document under A1_MIN -> an expansion call, then (still thin) a fresh document from another vision model;
+    the deepest valid document is kept. -> (out, model, meta, tried, depth record)."""
     m1 = a1_measure(out)
     why = a1_thin(m1)
     if not why:
-        return out, model, meta, tried, {"first": m1}
-    keys.notify(f"A1: {model}'s design document is thin ({'; '.join(why)}); asking the next vision model once")
-    ctx.progress({"kind": "retry", "agent": "a1", "model": model, "why": "thin"})
-    rec = {"first": {**m1, "model": model}, "thin": why}
-    try:
-        out2, model2, meta2, tried2 = call(ctx, "a1", build(None), MAX_OUT["a1"], skip={model})
-        out2 = lenient(st, "a1", out2)
-        jsonschema.validate(out2, schema)
-        bad = semantic("a1", out2)
-        m2 = a1_measure(out2)
-        rec["second"] = {**m2, "model": model2, "valid": not bad}
-        tried = tried + tried2
-        if not bad and m2["score"] > m1["score"]:
-            rec["kept"] = "second"
-            return out2, model2, {**meta2, "ms": (meta.get("ms") or 0) + (meta2.get("ms") or 0)}, tried, rec
-    except (NoModel, ProviderError, jsonschema.ValidationError) as e:
-        rec["second"] = {"error": f"{type(e).__name__}: {str(e)[:160]}"}
-    rec["kept"] = "first"
-    return out, model, meta, tried, rec
+        return out, model, meta, tried, {"first": m1, "floor_met": True}
+    rec = {"first": {**m1, "model": model}, "thin": why, "attempts": []}
+    best = {"score": m1["score"], "out": out, "model": model, "meta": meta}
+    ms, seen = meta.get("ms") or 0, {model}
+    for mode in A1_DEEPEN:
+        short = a1_thin(a1_measure(best["out"]))
+        if not short:
+            break
+        keys.notify(f"A1: {best['model']}'s design document is under the floor ({'; '.join(short)}); "
+                    + ("sending it back to be expanded" if mode == "expand" else "asking another vision model for a fresh one"))
+        ctx.progress({"kind": "retry", "agent": "a1", "model": best["model"], "why": f"thin: {mode}"})
+        try:
+            b = build(None, prev=best["out"], short=short) if mode == "expand" else build(None)
+            o2, m2_model, meta2, t2 = call(ctx, "a1", b, MAX_OUT["a1"], skip=None if mode == "expand" else seen)
+            tried = tried + t2
+            seen.add(m2_model)
+            ms += meta2.get("ms") or 0
+            o2 = lenient(st, "a1", o2)
+            jsonschema.validate(o2, schema)
+            bad = semantic("a1", o2)
+            m2 = a1_measure(o2)
+            rec["attempts"].append({**m2, "mode": mode, "model": m2_model, "valid": not bad})
+            if not bad and m2["score"] > best["score"]:
+                best = {"score": m2["score"], "out": o2, "model": m2_model, "meta": meta2}
+        except (NoModel, ProviderError, jsonschema.ValidationError) as e:
+            rec["attempts"].append({"mode": mode, "error": f"{type(e).__name__}: {str(e)[:160]}"})
+    if rec["attempts"]:
+        rec["second"] = rec["attempts"][-1]            # the R-report's column (one retry used to be the whole story)
+    mb = a1_measure(best["out"])
+    rec["kept"] = {**mb, "model": best["model"]}
+    rec["floor_met"] = not a1_thin(mb)
+    if not rec["floor_met"]:
+        keys.notify(f"A1: still under the floor after {len(rec['attempts'])} more call(s) ({'; '.join(a1_thin(mb))}); "
+                    f"the deepest document ({best['model']}) goes on")
+    return best["out"], best["model"], {**best["meta"], "ms": ms}, tried, rec
 
 
 def _groq_msgs(st: S.State, agent: str, slc: dict, image: str | None, errors,
@@ -798,7 +843,7 @@ def _groq_msgs(st: S.State, agent: str, slc: dict, image: str | None, errors,
     return msgs, est
 
 
-TRIM_CAPS = (None, 260, 160, 100, 60)
+TRIM_CAPS = (None, 260, 160, 100, 60, 45)    # 45 (11-28): deeper A1 documents + the design language
 
 
 def chat_request(st: S.State, agent: str, schema: dict, errors, model: str) -> tuple:
@@ -810,7 +855,7 @@ def chat_request(st: S.State, agent: str, schema: dict, errors, model: str) -> t
         system = "\n\n".join(m["content"] for m in msgs if m["role"] == "system")
         return ("gemini", system, [{"text": msgs[-1]["content"]}], schema)
     slc = S.slice_for(st, agent)
-    limit = budget.limits(model)["tpm"] * budget.MARGIN - int(MAX_OUT[agent] * 0.6)
+    limit = budget.limits(model)["tpm"] * budget.MARGIN - GROQ_RESERVE.get(agent, int(MAX_OUT[agent] * 0.6))
     for cap in TRIM_CAPS:
         s = slc if cap is None else S.trim(slc, cap)
         msgs, sch, est = _with_schema(_groq_msgs(st, agent, s, None, errors), schema)
@@ -879,11 +924,18 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
     sent = S.present_images(h["images"])           # [(position, label, image)]: the numbering image_roles uses
     imgs = [(lbl, im) for _, lbl, im in sent]
 
-    def build_a1(errors):
+    def build_a1(errors, prev=None, short=None):
         def b(model):
             text = "INPUT:\n" + S.compact(S.slice_for(st, "a1"))
             if errors:
                 text += "\n\nYour previous answer failed these checks; fix them:\n- " + "\n- ".join(errors)
+            if prev is not None:                      # the depth gate's expansion (deepen_a1)
+                text += ("\n\nYOUR PREVIOUS DOCUMENT is below. It is too thin for the agents after you, who never see "
+                         f"the images ({'; '.join(short or [])}). Return the COMPLETE document again in the same schema: "
+                         "keep every observation and decision in it, and add what is missing. Write more in each "
+                         "section's `what` (every component, the copy each carries by role, its colours, type level and "
+                         "arrangement), fuller element `geometry`, and the type traits you saw. Look at the images again "
+                         "for what you left out.\nPREVIOUS DOCUMENT:\n" + S.compact(prev))
             if model.startswith("gemini") or model.startswith("gemma"):
                 parts = [{"text": text}]
                 for pos, lbl, im in sent:             # each image announced by role: '[IMAGE 3 · palette: palette-image ...]'
@@ -967,24 +1019,26 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
         write_site(od, page_html, sp, h, A)
         return QA.run(od / "index.html", spec=sp, shots_dir=shots) if qa else None
 
-    def evaluate(raw: str, source: str, model: str | None) -> dict:
+    def evaluate(raw: str, source: str, model: str | None, sp: dict | None = None) -> dict:
         """Safety sanitize (scripts, external URLs, handlers) + render + measure. Nothing else touches the page (the
         user's rule, R0 2026-11-26: "check if it renders, that's it"): no colour snapping, no decor moved or removed,
         no z-index clamp, no injected backdrop or items. Every check is reported; only a page that can't render is
         discarded."""
         n = len(cands) + 1
-        chk = validate_page.check(raw, spec)
+        sp = sp or spec
+        chk = validate_page.check(raw, sp)
         body = chk["html"].split("<body", 1)[-1]
         q, broken = None, None
         if len(re.sub(r"<style.*?</style>|<[^>]+>|\s+", "", body, flags=re.S)) < MIN_PAGE_TEXT:
             broken = "the page has no content to render"
         else:
             try:
-                q = measure(chk["html"], spec, od / "_shots" / str(n))
+                q = measure(chk["html"], sp, od / "_shots" / str(n))
             except Exception as e:  # noqa: BLE001
                 broken = f"the browser could not render the page ({type(e).__name__}: {str(e)[:120]})"
         c = classify(chk, q, broken)
         c["advisory"] += [f"decor {m} covers text or an image" for m in sorted(c["fix_motifs"])]
+        c["style"] = style_check(q, sp)
         c["fix_motifs"] = set()
         name = "a6.html" if source == "improved" else f"a5-{n}.html"
         (od / name).write_text(chk["html"], encoding="utf-8")
@@ -992,6 +1046,9 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                 "file": name}
         cands.append(cand)
         return cand
+
+    alternates = font_alternates(st, spec)
+    spec6 = with_fonts(spec, [a["family"] for a in alternates])
 
     def build6(base: dict):
         """The improver's request: the brief, what the browser measured, the page's screenshots (tiles, top to
@@ -1006,7 +1063,13 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                  "query_context": spec.get("query_context"), "aesthetic_direction": spec.get("aesthetic_direction"),
                  "palette": [f"var({c['var']}) {c['hex']} {c['name']}" for c in spec["colors"]],
                  "roles": spec.get("roles"),
-                 "fonts": {lvl: v.get("stack") for lvl, v in spec["typography"].items() if isinstance(v, dict)},
+                 "fonts": {lvl: {"stack": v.get("stack"), "category": font_info(v.get("family", ""))["category"],
+                                 "weight": v.get("weight"), "size": v.get("size_css")}
+                           for lvl, v in spec["typography"].items() if isinstance(v, dict)},
+                 "font_alternates": alternates,
+                 "font_findings": font_findings(base["qa"], spec),
+                 "design_language": spec.get("design_language") or {},
+                 "style_findings": style_check(base["qa"], spec)["findings"],
                  "pictures_to_draw": pics, "images_available": imgs,
                  "measured": problems(base["qa"])[:30] + base["blocking"][:3]}
         text = ("INPUT:\n" + S.compact(brief) + "\n\nThe screenshots follow, each after its header. Then THE PAGE.")
@@ -1045,7 +1108,8 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
             c1 = evaluate(raw, "model", model)
             trace.append({"agent": "a5", "source": "model", "model": model, "key": meta.get("key"),
                           "usage": meta.get("usage"), "est_in": meta.get("est_in"), "ms": meta.get("ms"), "tried": tried,
-                          "blocking": c1["blocking"][:4], "advisory": c1["advisory"][:6], "fixes": c1["fixes"]})
+                          "blocking": c1["blocking"][:4], "advisory": c1["advisory"][:6], "fixes": c1["fixes"],
+                          "style": {k: c1["style"].get(k) for k in ("score", "deviations", "missing", "extra", "unowned")}})
         except (NoModel, ProviderError) as e:
             trace.append({"agent": "a5", "source": "fallback", "why": [str(e)[:300]],
                           "tried": tried or getattr(e, "tried", [])})
@@ -1098,14 +1162,39 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
             if rec6:
                 raw6, model6, meta6 = rec6["output"], rec6.get("model"), {"ms": 0, "usage": rec6.get("usage")}
             else:
-                raw6, model6, meta6, tried6 = call(ctx, "a6", build6(base), MAX_OUT["a6"])
-            c6 = evaluate(raw6, "improved", model6)
+                try:
+                    raw6, model6, meta6, tried6 = call(ctx, "a6", build6(base), MAX_OUT["a6"])
+                except (NoModel, ProviderError) as e0:
+                    # A/B run 2026-11-26: 5 of 6 improvers found every model busy at once (Gemini 503s) and gave
+                    # up at once. One wait, then the whole chain again, cooldowns ignored; then A5's page ships.
+                    if not no_defaults():
+                        raise
+                    wait = RETRY_WAITS[0]
+                    tried6 = list(getattr(e0, "tried", []) or [])
+                    keys.notify(f"A6: no improver could answer ({str(e0)[:120]}); waiting {wait:.0f}s, then asking "
+                                f"the whole chain again (1/1)")
+                    ctx.progress({"kind": "wait", "agent": "a6", "s": wait, "round": 1})
+                    time.sleep(wait)
+                    raw6, model6, meta6, t2 = call(ctx, "a6", build6(base), MAX_OUT["a6"], fresh=True)
+                    tried6 += t2
+            c6 = evaluate(raw6, "improved", model6, spec6)
             trace.append({"agent": "a6", "source": "cache" if rec6 else "model", "model": model6, "key": meta6.get("key"),
                           "usage": meta6.get("usage"), "est_in": meta6.get("est_in"), "ms": meta6.get("ms"),
                           "tried": tried6, "blocking": c6["blocking"][:4], "advisory": c6["advisory"][:6],
-                          "improves": base["file"]})
+                          "improves": base["file"],
+                          "fonts": {"findings": font_findings(base["qa"], spec), "before": font_roles(base["qa"]),
+                                    "after": font_roles(c6["qa"])},
+                          "style": {"before": {k: base["style"].get(k) for k in ("score", "deviations", "unowned")},
+                                    "after": {k: c6["style"].get(k) for k in ("score", "deviations", "unowned")},
+                                    "findings": base["style"].get("findings", [])[:8]}})
             kept, kept0 = copy_kept(c6["chk"]["html"], spec), copy_kept(base["chk"]["html"], spec)
-            if not c6["blocking"] and kept >= kept0 - 0.25:
+            s5, s6 = base["style"].get("score"), c6["style"].get("score")
+            strays = s5 is not None and s6 is not None and s6 > s5 + STYLE_SLACK
+            if not c6["blocking"] and kept >= kept0 - 0.25 and strays:
+                keys.notify(f"A6: the improved page strays from A1's design language (style score {s6}, A5's {s5}); "
+                            f"A5's ships")
+                trace[-1]["rejected"] = f"strays from A1's design language: style score {s6}, A5's page {s5}"
+            elif not c6["blocking"] and kept >= kept0 - 0.25:
                 improved = c6
                 if not rec6:
                     cache.put("a6", k6, {"output": raw6, "model": model6, "usage": meta6.get("usage")})
@@ -1170,6 +1259,104 @@ def run(h: dict, *, enabled: bool = True, force_from: str | None = None, out_dir
                                     encoding="utf-8")
     ctx.progress({"kind": "finish", "source": source})
     return result
+
+
+COMPONENT_OF = {"cta": "button", "card": "card", "label": "tag", "image": "image_frame", "drawing": "image_frame",
+                "centerpiece": "image_frame"}
+STYLE_SLACK = 2            # A6's page may stray this much more from A1's design language than A5's before A5's ships
+
+
+def style_check(qa_res: dict | None, spec: dict) -> dict:
+    """The built page against A1's design language at 1440 px (the user's call, 11-28): components whose corners or
+    shadow contradict A1's component styles, A1 decor elements missing from the page, motifs A1 never named, and
+    decorative shapes no A1 element owns. -> {findings, deviations, missing, extra, unowned, score}; score None when
+    the page wasn't measured."""
+    r = ((qa_res or {}).get(1440) or {}).get("style")
+    if not r:
+        return {"findings": [], "score": None}
+    want = {c["component"]: c for c in (spec.get("design_language") or {}).get("component_styles", [])}
+    kind = {x["item_id"]: x["kind"] for x in spec.get("items", [])}
+    groups: dict[tuple, list] = {}
+    for it in r.get("items", []):
+        comp = COMPONENT_OF.get(kind.get(it["id"]))
+        w = want.get(comp)
+        if not w:
+            continue
+        rad, m = w["radius_px"], it["radius"]
+        pill = rad >= 100
+        # corners only show on a painted box (a fill, image or border): plain text has no shape to judge
+        ok = not it.get("painted", True) or (m >= 0.45 * min(it["w"], it["h"]) if pill
+                                              else abs(m - rad) <= max(3.0, 0.35 * rad))
+        if not ok:
+            groups.setdefault((comp, f"{m:g}px corners", "pill / fully round" if pill else f"{rad:g}px corners"),
+                              []).append(it["id"])
+        if w["shadow"] == "none" and it["shadow"]:
+            groups.setdefault((comp, "a box shadow", "no shadow"), []).append(it["id"])
+    findings = [f"{comp} {', '.join(ids[:3])}{' +' + str(len(ids) - 3) if len(ids) > 3 else ''}: built with {got}; "
+                f"A1's design language says {need} ({want[comp]['shape'][:90]})" for (comp, got, need), ids in groups.items()]
+    a1_ids = [d["element_id"] for d in spec.get("decor", []) if d.get("asset")]
+    on = set(r.get("motifs", []))
+    missing = [e for e in a1_ids if e not in on]
+    items = set(kind)                       # a picture A1 asked for, tagged with the motif hook, is not decoration
+    extra = sorted(m for m in on if m not in a1_ids and m not in items)
+    unowned = r.get("unowned", [])
+    findings += [f"A1's decor element '{e}' is not on the page" for e in missing[:4]]
+    findings += [f"motif '{m}' is not one of A1's elements: decoration comes only from A1's list" for m in extra[:4]]
+    if unowned:
+        eg = "; ".join(f"{u['kind']} {u.get('on', '')}" + (f" {u['w']}x{u['h']}" if u.get("w") else "") for u in unowned[:5])
+        findings.append(f"{len(unowned)} decorative shape(s) no A1 element owns ({eg}): remove them, or build that "
+                        f"decoration as one of A1's elements")
+    dev = sum(len(v) for v in groups.values())
+    return {"findings": findings[:14], "deviations": dev, "missing": missing, "extra": extra, "unowned": len(unowned),
+            "score": dev + len(missing) + len(extra) + len(unowned)}
+
+
+A6_ALTERNATES = 4          # loaded faces A6 may swap in when a level's face reads badly (the user's call, 11-28)
+READABLE = ("Sans Serif", "Serif")
+
+
+def font_alternates(st: S.State, spec: dict, n: int = A6_ALTERNATES) -> list[dict]:
+    """Faces from A1's pool that the page doesn't use yet, readable categories first -> [{family, stack, ...}]."""
+    have = {f.lower() for f in spec.get("fonts", [])}
+    pool = [(f, i) for f, i in (st.get("font_pool") or {}).items() if f.lower() not in have]
+    pool.sort(key=lambda x: x[1].get("category") not in READABLE)
+    return [{"family": f, "stack": S.font_stack(f), "category": i.get("category"), "weights": i.get("weights"),
+             "tags": i.get("tags")} for f, i in pool[:n]]
+
+
+def with_fonts(spec: dict, fams: list[str]) -> dict:
+    """The spec with more faces loaded (Google Fonts links) and allowed by the page checks."""
+    new = [f for f in fams if f.lower() not in {x.lower() for x in spec.get("fonts", [])}]
+    return {**spec, "fonts": list(spec.get("fonts", [])) + new,
+            "fonts_css": list(spec.get("fonts_css", [])) + [S.g.google_css(f, False) for f in new]}
+
+
+def font_roles(qa_res: dict | None) -> dict:
+    """At 1440 px: which face sets how many text runs (to see what A6 moved)."""
+    r = ((qa_res or {}).get(1440) or {}).get("readability") or {}
+    return {f: d["runs"] for f, d in (r.get("fonts") or {}).items()}
+
+
+def font_findings(qa_res: dict | None, spec: dict) -> list[str]:
+    """What the browser measured about the faces: a display / handwriting face set at body size, text set very
+    small, a face that never loaded (the page shows a fallback)."""
+    out = []
+    want = spec.get("fonts") or []
+    for w in sorted(qa_res or {}, reverse=True):
+        rd = (qa_res[w] or {}).get("readability") or {}
+        if rd.get("loaded") is not None and w == max(qa_res):
+            lo = {x.lower() for x in rd["loaded"]}
+            out += [f"face '{f}' did not load: the browser draws a fallback face where it is used"
+                    for f in want if f.lower() not in lo]
+        for fam, d in (rd.get("fonts") or {}).items():
+            cat = font_info(fam)["category"] if fam else ""
+            if cat in ("Display", "Handwriting") and (d["small"] or d["long_small"]):
+                out.append(f"'{fam}' ({cat.lower()} face) sets {d['small']} text run(s) under 16 px and "
+                           f"{d['long_small']} long run(s) under 20 px at {w}px, smallest {d['min_px']:g} px "
+                           f"(\"{d['sample']}\", in {', '.join(d['tags'])})")
+            elif d["min_px"] < 12:
+                out.append(f"'{fam}' is set as small as {d['min_px']:g} px at {w}px (\"{d['sample']}\")")
+    return list(dict.fromkeys(out))[:12]
 
 
 def copy_kept(html: str, spec: dict) -> float:

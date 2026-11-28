@@ -11,7 +11,7 @@ export function GET() {
     "",
     `> ${AI.summary}`,
     "",
-    `Built by ${AUTHOR.name} (${AUTHOR.email}, ${AUTHOR.url}). ${AI.facts.find(([k]) => k === "Status")?.[1] ?? ""}`,
+    `Founded by ${AUTHOR.name} (${AUTHOR.email}, ${AUTHOR.url}). ${AI.facts.find(([k]) => k === "Status")?.[1] ?? ""}`,
     "",
     AI.problem,
     "",

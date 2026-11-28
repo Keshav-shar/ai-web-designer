@@ -281,7 +281,46 @@ READ_JS = r"""() => { const out = []; const w = document.createTreeWalker(docume
     const cs = getComputedStyle(el);
     out.push({item: (el.closest('[data-item]') || {dataset: {}}).dataset.item || '', tag: el.tagName.toLowerCase(),
       text: t.textContent.trim().replace(/\s+/g, ' ').slice(0, 60), color: cs.color, x: b.left + scrollX, y: b.top + scrollY,
-      w: b.width, h: b.height, fs: parseFloat(cs.fontSize), fw: parseInt(cs.fontWeight) || 400}); }
+      w: b.width, h: b.height, fs: parseFloat(cs.fontSize), fw: parseInt(cs.fontWeight) || 400,
+      ff: cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(), n: t.textContent.trim().length}); }
+  return out; }"""
+LOADED_JS = r"""() => document.fonts.ready.then(() => [...new Set([...document.fonts]
+  .filter(f => f.status === 'loaded').map(f => f.family.replace(/["']/g, '').trim()))])"""
+# A1's design language, as built (the user's call, 11-28): each item's corners / shadow / border, the decor motifs on
+# the page, and decorative shapes no A1 element owns (an svg outside a motif or item, a painted empty box, a painted
+# ::before / ::after layer). Hooks: data-item, data-motif, data-layer, data-section.
+STYLE_JS = r"""() => {
+  const out = {items: [], motifs: [], unowned: []};
+  const painted = s => s.backgroundImage !== 'none' || (s.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(s.backgroundColor))
+    || parseFloat(s.borderTopWidth) > 0 || parseFloat(s.borderLeftWidth) > 0;
+  const name = el => el.tagName.toLowerCase() + ((el.closest('[data-section]') || {dataset: {}}).dataset.section ? ' in ' +
+    el.closest('[data-section]').dataset.section : '');
+  document.querySelectorAll('[data-item]').forEach(el => {
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) return;
+    out.items.push({id: el.dataset.item, tag: el.tagName.toLowerCase(), w: r.width, h: r.height,
+      radius: parseFloat(cs.borderTopLeftRadius) || 0, shadow: cs.boxShadow !== 'none', painted: painted(cs),
+      border: Math.max(parseFloat(cs.borderTopWidth) || 0, parseFloat(cs.borderLeftWidth) || 0)}); });
+  document.querySelectorAll('[data-motif]').forEach(el => out.motifs.push(el.dataset.motif));
+  for (const el of document.body.querySelectorAll('*')) {
+    if (el.closest('[data-motif],[data-layer]')) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 24 || r.height < 24) continue;
+    const tag = el.tagName.toLowerCase(), item = el.closest('[data-item]');
+    if (tag === 'svg') { if (!item && !el.parentElement.closest('svg')) out.unowned.push({kind: 'svg', on: name(el), w: Math.round(r.width), h: Math.round(r.height)}); continue; }
+    if (el.closest('svg')) continue;
+    for (const pe of ['::before', '::after']) {
+      const ps = getComputedStyle(el, pe);
+      if (!ps.content || ps.content === 'none' || ps.content === 'normal') continue;
+      if ((ps.position === 'absolute' || ps.position === 'fixed') && painted(ps) && (parseFloat(ps.width) || r.width) >= 24
+          && (parseFloat(ps.height) || r.height) >= 24)
+        out.unowned.push({kind: 'pseudo', on: name(el) + pe, bg: ps.backgroundImage.slice(0, 60)});
+    }
+    const cs = getComputedStyle(el);
+    if ((cs.position === 'absolute' || cs.position === 'fixed') && !item && !el.textContent.trim()
+        && !el.querySelector('img,svg,video,canvas,input') && painted(cs))
+      out.unowned.push({kind: 'box', on: name(el), w: Math.round(r.width), h: Math.round(r.height), bg: cs.backgroundImage.slice(0, 60)});
+  }
   return out; }"""
 HIDE_TEXT = ("*{color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important;"
              "text-decoration-color:transparent!important;caret-color:transparent!important}")
@@ -339,7 +378,29 @@ def readability(pg) -> dict:
                         "bg": "#%02X%02X%02X" % med, "ratio": round(cr, 2), "need": need,
                         "ink": None if ink is None else round(ink, 3), "visible": visible, "y": int(it["y"])})
     bad.sort(key=lambda r: (r["visible"], r["ratio"]))
-    return {"texts": len(items), "unreadable": bad}
+    try:
+        loaded = pg.evaluate(LOADED_JS)
+    except Exception:  # noqa: BLE001
+        loaded = None
+    return {"texts": len(items), "unreadable": bad, "fonts": font_use(items), "loaded": loaded}
+
+
+def font_use(items: list[dict]) -> dict:
+    """Which face sets which text: per family, its text runs, the smallest size, runs under 16 px, long runs (40+
+    characters) under 20 px, and one sample of its smallest text. A6 validates the type with it (the user's call,
+    11-28: a face that reads badly where it is used gets replaced)."""
+    out: dict[str, dict] = {}
+    for it in items:
+        f = it.get("ff") or ""
+        d = out.setdefault(f, {"runs": 0, "min_px": 999.0, "small": 0, "long_small": 0, "sample": "", "tags": []})
+        d["runs"] += 1
+        if it["fs"] < d["min_px"]:
+            d["min_px"], d["sample"] = it["fs"], it["text"][:40]
+        d["small"] += it["fs"] < 16
+        d["long_small"] += (it.get("n") or len(it["text"])) >= 40 and it["fs"] < 20
+        if it["tag"] not in d["tags"] and len(d["tags"]) < 6:
+            d["tags"].append(it["tag"])
+    return out
 
 
 def readability_problems(r: dict, top: int = 8) -> list[str]:
@@ -382,6 +443,10 @@ def run(index_html: Path, widths=(1440, 390), shots: bool = False, spec: dict | 
                 pg.goto(index_html.resolve().as_uri(), wait_until="networkidle", timeout=60_000)
                 pg.wait_for_timeout(400)
                 res = analyze(pg.evaluate(JS, path), spec, w)
+                try:
+                    res["style"] = pg.evaluate(STYLE_JS)
+                except Exception:  # noqa: BLE001
+                    res["style"] = None
                 if read:
                     res["readability"] = readability(pg)
                     res["problems"] = list(dict.fromkeys(res["problems"] + readability_problems(res["readability"])))

@@ -86,8 +86,11 @@ def health_skip(model: str) -> tuple[float, dict]:
     return max(0.0, float(r.get("until", 0)) - time.time()), r
 
 
-def health_fail(model: str, why: str) -> bool:
-    """Record a provider-side failure. -> True when this one starts a skip."""
+def health_fail(model: str, why: str, slow: bool = True) -> float:
+    """Record a provider-side failure. -> the skip's length in seconds when this one starts a skip, else 0.
+    Only a SLOW failure (a timeout: 75 s+ lost per try) earns the 2 h skip for a model that hasn't answered in a day.
+    A fast refusal (503 overloaded, rate-limited upstream: ~1 s lost) is capacity, not breakage: HEALTH_BRIEF_S.
+    (A/B run 2026-11-26: two 1-second 503s benched Gemma for 2 h, so the improver's chain was empty for 3 jobs.)"""
     d = _health()
     r = d.get(model) or {"fails": 0, "until": 0}
     if r.get("until", 0) and r["until"] <= time.time():   # an expired skip: a fresh start, one strike already
@@ -97,10 +100,10 @@ def health_fail(model: str, why: str) -> bool:
     start = r["fails"] >= HEALTH_STRIKES and not r.get("until")
     if r["fails"] >= HEALTH_STRIKES:
         recent = time.time() - float(r.get("last_ok") or 0) < HEALTH_RECENT_S
-        r["until"] = time.time() + (HEALTH_BRIEF_S if recent else HEALTH_SKIP_S)
+        r["until"] = time.time() + (HEALTH_BRIEF_S if recent or not slow else HEALTH_SKIP_S)
     d[model] = r
     _health_save(d)
-    return start
+    return round(r["until"] - time.time()) if start else 0.0
 
 
 def health_reset() -> None:

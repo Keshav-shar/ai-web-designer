@@ -117,8 +117,8 @@ STEP_SHORT = {"a1": "the design brief", "a2": "the layout plan", "a3": "the copy
 
 
 def is_backup(agent: str | None, model: str | None) -> bool:
-    if (model or "").startswith("deepseek/"):
-        return NAMES.get(model, "DeepSeek (test)")
+    if (model or "").startswith("deepseek/"):      # DeepSeek leads A1 and A6 on its accounts (the user's call, 11-27)
+        return agent not in ("a1", "a6")
     m = (model or "").removeprefix("openrouter/")
     return bool(agent in PRIMARY and m and m not in PRIMARY[agent])
 

@@ -8,6 +8,9 @@ WHO WRITES WHAT
 - A5 (Composer): Composes the complete landing page from the merged document with senior design judgment—refining spacing, proportion, hierarchy, and polish while keeping all required hooks and layout constraints intact.
 - A6 (Improver): Sees A5's page rendered in a browser and returns it improved: readability, structure, drawn pictures, colour distribution, type and finish.
 
+A1'S DESIGN LANGUAGE IS THE SHAPE LAW
+Every shape comes from A1's `design_language` and A1's elements: no stage adds a shape, ornament, blob, gradient wash, glow or card style of its own, nothing `forbidden_shapes` or `avoid` names, and where A1 is silent the nearest thing A1 specified, never a generic default.
+
 THE REQUEST IS THE SUBJECT
 - What the page is about, its words and every picture's subject come from the user's request.
 - The reference images and the catalog labels (family, vibe, niche) give style only: palette, materials, shapes, type, composition and rendering. Never write those labels on the page or make the references' subjects into this brand's content. A dog-adoption page built from bubble-art references shows dogs rendered in that bubble style, not bubbles.

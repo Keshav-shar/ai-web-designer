@@ -21,7 +21,7 @@ export const Prompt = z
   .pipe(
     z
       .string()
-      .min(3, "Say a little more: what it is and how it should feel.")
+      .min(3, "Say a little more: the idea, then how it should feel.")
       .max(MAX_PROMPT, `Keep it under ${MAX_PROMPT} characters.`)
-      .refine((s) => (s.match(/[\p{L}\p{N}]/gu) ?? []).length >= 2, "Describe the site in a few words."),
+      .refine((s) => (s.match(/[\p{L}\p{N}]/gu) ?? []).length >= 2, "Describe your project in a few words."),
   );

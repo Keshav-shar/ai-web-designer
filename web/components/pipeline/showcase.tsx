@@ -129,7 +129,7 @@ export function PipelineShowcase() {
 
       {(ended || (rm && scene === last)) && (
         <div className="pl-end rise">
-          <span className="title-sm">That&rsquo;s the whole pipeline.</span>
+          <span className="title-sm">That&rsquo;s the whole system.</span>
           <Link href="/evidence" className="btn btn-ghost btn-sm">See the measurements →</Link>
           <Link href="/about#how" className="btn btn-quiet btn-sm">How it works →</Link>
         </div>
@@ -137,7 +137,7 @@ export function PipelineShowcase() {
 
       <details className="faq pl-transcript">
         <summary>
-          <span className="title-sm">Read the whole pipeline</span>
+          <span className="title-sm">Read the full walkthrough</span>
           <span className="plus title-sm" aria-hidden="true">+</span>
         </summary>
         <ol className="pl-script">

@@ -7,7 +7,7 @@ import {
   BarList, ChartCard, DotStrip, Dumbbell, GroupedBars, Legend, SERIES, Stat, StackedBars, Swatch, Table, fmt, fmtPct,
 } from "@/components/evidence/charts";
 
-export const metadata = pageMeta("/evidence", "Evidence", "Measured values, comparisons and corrections from the Cosmogon Labs taste engine's own pipeline: routing accuracy, contrast checks and colour tuning.");
+export const metadata = pageMeta("/evidence", "Evidence", "From research to measurable results: experiments on Cosmogon Labs' current system, covering visual representation, contextual retrieval, contrast and deterministic refinement.");
 
 const pct = (v: number) => fmtPct(v);
 const pct1 = (v: number) => fmtPct(v, 1);
@@ -16,17 +16,23 @@ const RATIO_AXIS = { min: 1, max: 21, log: true, ticks: [1, 2, 3, 4.5, 7, 12, 21
 const TEXT_TYPES = ["type specimen", "print / packaging", "logo / branding"];
 const HERO_TYPES = ["illustration", "moodboard", "icons", "fashion / product", "3D render", "abstract art"];
 
-/* Display labels for the exported data: each stage is described by what the engine does with it. */
+/* Display labels for the exported data (keys are build_evidence.py's exact labels; never edit the generated file). */
 const STAGE: Record<string, string> = {
   "Image and page hits claimed by search": "Public design references gathered by search",
-  "Images kept in 39 aesthetic families": "Specialised into 39 aesthetic families",
-  "Curated 'cream' layer the engine searches": "Defining 'cream' layer the engine routes through",
+  "Images kept in 39 aesthetic families": "Specialised into 39 visual domains",
+  "Curated 'cream' layer the engine searches": "Curated visual knowledge the system retrieves from",
   "Images the lab hands forward": "Contextually matched candidates",
   "In the design brief": "Selected for the design brief",
   "Placed on the page": "Placed on the page",
   "Kept as reference (guides layout / colour)": "Guides layout and colour",
 };
 const stage = (l: string) => STAGE[l] ?? l;
+const METRIC: Record<string, string> = {
+  "Top-1 family is an expected one": "Top-1 domain is an expected one",
+  "Expected family in top 3": "Expected domain in top 3",
+  "Named vibe routes to itself": "Named style retrieves its own domain",
+};
+const metric = (m: string) => METRIC[m] ?? m;
 const STATUS = [
   { key: "on page", label: "Placed on the page", color: SERIES.s1 },
   { key: "reference", label: "Guides layout and colour", color: SERIES.s4 },
@@ -69,25 +75,27 @@ export default function EvidencePage() {
       <header className="grid items-end gap-10 md:grid-cols-[1.7fr_1fr]">
         <div>
           <Eyebrow>Evidence</Eyebrow>
-          <Display as="h1" size={1} className="stacked-sm">What the engine measures, compares and corrects</Display>
+          <Display as="h1" size={1} className="stacked-sm">From research to measurable results.</Display>
           <p className="lede mt-6">
-            Every number on this page comes from the pipeline&rsquo;s own data and code paths. There are no human ratings,
-            and the lab that picks images, palettes and fonts makes no AI calls. Each chart says what it shows and how
-            many runs it rests on.
+            A different approach to AI creation needs more than an interesting idea: it needs measurable improvements.
+            These experiments on Cosmogon&rsquo;s current system cover visual representation, contextual retrieval,
+            classification, design consistency and deterministic refinement. Every number comes from the system&rsquo;s own
+            data and code paths, with no human ratings, and the lab that picks images, palettes and fonts makes no AI calls.
+            Each chart states what it shows and how many runs it rests on.
           </p>
         </div>
         <Texture name="tiles" className="hide-sm h-[260px] border-2 border-ink" style={{ boxShadow: "8px 8px 0 var(--ink)" }} />
       </header>
 
       <div className="card mt-14 grid grid-cols-2 gap-8 p-6 sm:p-8 lg:grid-cols-4">
-        <Stat label="Reference images, specialised" value={fmt(E.funnel.corpus[1].value)} sub={`in ${r.vibes} aesthetic families`} />
+        <Stat label="Reference images, specialised" value={fmt(E.funnel.corpus[1].value)} sub={`in ${r.vibes} visual domains`} />
         <Stat label="CLIP vs best hand-built feature" value={`${pct(clip.hit1)} vs ${pct(bestHand.hit1)}`} sub="nearest-neighbour hit rate" />
-        <Stat label="Expected family in router's top 3" value={pct(top3.v2)} sub={`over ${r.queries} category queries`} />
+        <Stat label="Expected domain in the top 3" value={pct(top3.v2)} sub={`over ${r.queries} category queries`} />
         <Stat label="Colour pairs meeting WCAG" value={`${passed} / ${E.contrast.checks}`} sub={`after tuning, ${E.contrast.runs} pages`} />
       </div>
 
       <nav aria-label="Charts" className="mt-10 flex flex-wrap gap-2 text-[14px]">
-        {[["curation", "1 Curation"], ["representation", "2 Representation"], ["routing", "3 Routing"], ["text", "4 Text filter"],
+        {[["curation", "1 Curation"], ["representation", "2 Representation"], ["routing", "3 Retrieval"], ["text", "4 Text filter"],
           ["contrast", "5 Contrast"], ["corrections", "6 Colour tuning"], ["placement", "7 Image matching"], ["gate", "8 Agent gate"]].map(([id, l]) => (
           <a key={id} href={`#${id}`} className="btn btn-ghost btn-sm">{l}</a>
         ))}
@@ -95,13 +103,13 @@ export default function EvidencePage() {
 
       <div className="mt-12 grid gap-10">
         {/* 1 ------------------------------------------------------------ curation */}
-        <ChartCard id="curation" kicker="1 · Corpus → page" title="Every family is distilled to the references that define it"
-          shows={<>Search gathered {fmt(E.funnel.corpus[0].value)} public design references. CLIP specialises them into {r.vibes} aesthetic families,
-            and the engine routes through the {fmt(E.funnel.corpus[2].value)} that define each cluster best: the <em>cream</em>, images typical of their
+        <ChartCard id="curation" kicker="1 · From visual knowledge to creation" title="Every visual domain is distilled to the references that define it"
+          shows={<>Search gathered {fmt(E.funnel.corpus[0].value)} public design references. CLIP specialises them into {r.vibes} visual domains,
+            and the system retrieves from the {fmt(E.funnel.corpus[2].value)} that define each cluster best: its <em>curated visual knowledge</em>, images typical of their
             cluster without being its most generic (fit between +{E.funnel.cream_rule.band_sigma[0]}σ and +{E.funnel.cream_rule.band_sigma[1]}σ).
             For a single page the lab surfaces about {Math.round(E.funnel.per_page[0].value)} contextually matched candidates. About {Math.round(E.funnel.per_page[1].value)} shape
             the design brief and about {Math.round(E.funnel.per_page[2].value)} are placed, each in the slot it suits.</>}
-          n={`Corpus counts from the scrape database and the family summaries. Per-page values are means of ${E.funnel.runs} fixed prompts run through the lab and compose bench with baseline controls.`}
+          n={`Corpus counts from the scrape database and the domain summaries. Per-page values are means of ${E.funnel.runs} fixed prompts run through the lab and compose bench with baseline controls.`}
           table={<Table head={["Stage", "Count"]} rows={[...E.funnel.corpus.map((x) => [stage(x.label), x.value]), ...E.funnel.per_page.map((x) => [`Per page: ${stage(x.label)}`, x.value])]} />}>
           <h3 className="mb-3 font-ui text-[15px] font-semibold uppercase tracking-[.1em] text-ink">Corpus</h3>
           <BarList max={150000} ticks={[0, 50000, 100000, 150000]} fmtTick={(v) => (v ? `${v / 1000}K` : "0")}
@@ -112,11 +120,11 @@ export default function EvidencePage() {
         </ChartCard>
 
         {/* 2 ------------------------------------------------------------ representation */}
-        <ChartCard id="representation" kicker="2 · Representation" title="CLIP embeddings capture design taste better than hand-built features"
-          shows={<>For every image we checked whether its nearest neighbour came from the same kind of source: a palette sheet, a font specimen,
+        <ChartCard id="representation" kicker="2 · Representation" title="Learning visual relationships through embeddings"
+          shows={<>CLIP embeddings capture visual relationships better than hand-built features. For every image we checked whether its nearest neighbour came from the same kind of source: a palette sheet, a font specimen,
             a UI kit, an effect or a site. CLIP&rsquo;s image embedding finds one {pct(clip.hit1)} of the time, against {pct(bestHand.hit1)} for the best
-            hand-built colour, edge, layout and text-box features. That is why routing, cream and the text filter all run on CLIP.</>}
-          n={`One family fingerprinted so far (${E.views.family}, ${E.views.items} images, ${E.views.labels.length} source labels). Chance is ${pct(E.views.chance)}.`}
+            hand-built colour, edge, layout and text-box features. That is why retrieval, curation and the text filter all run on CLIP.</>}
+          n={`One visual domain fingerprinted so far (${E.views.family}, ${E.views.items} images, ${E.views.labels.length} source labels). Chance is ${pct(E.views.chance)}.`}
           table={<Table head={["View", "hit@1", "Cluster purity"]} rows={E.views.rows.map((x) => [x.label, pct1(x.hit1), pct1(x.purity)])} />}>
           <Legend items={[{ label: "CLIP embedding", color: SERIES.s1 }, { label: "Hand-built features", color: SERIES.base }]} />
           <BarList max={1} ticks={[0, 0.25, 0.5, 0.75, 1]} fmtTick={pct} fmtValue={pct} refs={[{ at: E.views.chance, label: "chance" }]}
@@ -124,26 +132,26 @@ export default function EvidencePage() {
         </ChartCard>
 
         {/* 3 ------------------------------------------------------------ routing */}
-        <ChartCard id="routing" kicker="3 · Routing" title="Router v2 sends more queries to the family a designer would expect"
-          shows={<>Each category query in the taste catalog lists the vibes that suit it, and the router picks a family. v2 widens each family&rsquo;s
-            pool to every website-type image and weights the family-name prior a little more. It leads v1 on all three measures and
-            reaches {r.families_used.v2} of {r.vibes} families (v1: {r.families_used.v1}).</>}
+        <ChartCard id="routing" kicker="3 · Retrieval" title="Improving contextual visual retrieval"
+          shows={<>Router v2 sends more queries to the visual domain a designer would expect. Each category query in the catalog lists the styles that
+            suit it, and the router picks a domain. v2 widens each domain&rsquo;s pool to every website-type image and weights the domain-name prior a little more. It leads v1 on all three measures and
+            reaches {r.families_used.v2} of {r.vibes} domains (v1: {r.families_used.v1}).</>}
           n={`${r.queries} category queries plus ${r.vibes} "<vibe> website design" queries, re-run for this page. Both routers run their default settings. No model is involved.`}
-          table={<Table head={["Measure", "v1", "v2"]} rows={r.rows.map((x) => [x.metric, pct1(x.v1), pct1(x.v2)])} />}>
+          table={<Table head={["Measure", "v1", "v2"]} rows={r.rows.map((x) => [metric(x.metric), pct1(x.v1), pct1(x.v2)])} />}>
           <Legend items={[{ label: "Router v1", color: SERIES.base }, { label: "Router v2", color: SERIES.s1 }]} />
           <GroupedBars max={1} ticks={[0, 0.25, 0.5, 0.75, 1]} fmtTick={pct} fmtValue={pct1}
             series={[{ label: "v1", color: SERIES.base }, { label: "v2", color: SERIES.s1 }]}
-            rows={r.rows.map((x) => ({ label: x.metric, values: [x.v1, x.v2] }))} />
+            rows={r.rows.map((x) => ({ label: metric(x.metric), values: [x.v1, x.v2] }))} />
         </ChartCard>
 
         {/* 4 ------------------------------------------------------------ text filter */}
-        <ChartCard id="text" kicker="4 · Text-free imagery" title={`CLIP clears ${clears("3D render")} of 3D renders for hero use and routes lettering to type`}
-          shows={<>Hero and supporting visuals should carry no baked-in text, so every image is read for lettering first. The CLIP check (text prompts minus
+        <ChartCard id="text" kicker="4 · Text-free imagery" title="Understanding the role of visual content"
+          shows={<>CLIP clears {clears("3D render")} of 3D renders for hero use and routes lettering to type. Hero and supporting visuals should carry no baked-in text, so every image is read for lettering first. The CLIP check (text prompts minus
             no-text prompts, threshold {E.text.threshold}) recognises the lettering in type specimens and packaging, and clears {clears("3D render")} of 3D renders,
             {" "}{clears("abstract art")} of abstract art and {clears("fashion / product")} of product imagery for picture slots. A pixel text detector (more
             than {E.text.pixel_rule.max_lines} lines, or one block taller than {pct(E.text.pixel_rule.max_height)} of the image) would clear
-            only {pct(1 - (byType.get("3D render")?.pixel ?? 0))} of 3D renders, which is why the engine reads text with CLIP.</>}
-          n={`All ${fmt(E.text.images)} cream images, grouped by their cluster type. Both methods run on the same images.`}
+            only {pct(1 - (byType.get("3D render")?.pixel ?? 0))} of 3D renders, which is why the system reads text with CLIP.</>}
+          n={`All ${fmt(E.text.images)} curated images, grouped by their cluster type. Both methods run on the same images.`}
           table={<Table head={["Image type", "Images", "Read as text by CLIP", "Read as text by pixels", "CLIP median"]}
             rows={E.text.rows.map((x) => [x.type, x.n, pct(x.clip), pct(x.pixel), x.median.toFixed(3)])} />}>
           <Legend items={[{ label: "Read as text by CLIP", color: SERIES.s1 }, { label: "Read as text by a pixel detector", color: SERIES.s2 }]} />
@@ -157,8 +165,8 @@ export default function EvidencePage() {
         </ChartCard>
 
         {/* 5 ------------------------------------------------------------ contrast */}
-        <ChartCard id="contrast" kicker="5 · Colour contrast" title={`${passed} of ${E.contrast.checks} colour pairs meet their WCAG target`}
-          shows={<>Each page&rsquo;s palette comes from its family&rsquo;s images, and the guardrail holds it to WCAG: text at 4.5:1, main text at 7:1 on the
+        <ChartCard id="contrast" kicker="5 · Colour contrast" title="Making visual decisions measurable"
+          shows={<>{passed} of {E.contrast.checks} colour pairs meet their WCAG target. Each page&rsquo;s palette comes from its domain&rsquo;s images, and the guardrail holds it to WCAG: text at 4.5:1, main text at 7:1 on the
             background where it can, and button fills at 3:1 on the page. On the one mid-toned surface in the set (dreamy ethereal) it lifts text
             all the way to white, the strongest contrast that surface allows ({E.contrast.fails[0]?.ratio}:1).</>}
           n={`${E.contrast.runs} pages, 6 pairs each, log scale. One dot per page. Hover a dot for its prompt.`}
@@ -173,9 +181,9 @@ export default function EvidencePage() {
         </ChartCard>
 
         {/* 6 ------------------------------------------------------------ corrections */}
-        <ChartCard id="corrections" kicker="6 · Colour tuning" title={`The guardrail tunes ${fixes.length} palette colours for legibility and keeps each family's hue`}
-          shows={<>When a palette colour needs more contrast against its pair, the guardrail moves only its OKLab lightness and keeps hue and chroma.
-            It makes the smallest change that reaches the target, so the page keeps the family&rsquo;s colour: {reached} of {fixes.length} land exactly on
+        <ChartCard id="corrections" kicker="6 · Colour tuning" title="Preserving visual identity through constraints"
+          shows={<>The guardrail tunes {fixes.length} palette colours for legibility and keeps each domain&rsquo;s hue. When a palette colour needs more contrast against its pair, the guardrail moves only its OKLab lightness and keeps hue and chroma.
+            It makes the smallest change that reaches the target, so the page keeps the domain&rsquo;s colour: {reached} of {fixes.length} land exactly on
             target, and the rest go as far as their surface allows. Each row shows the lab&rsquo;s colour and the shipped colour; the tick marks the target.</>}
           n={`Every lightness adjustment across the ${E.contrast.runs} pages. Colours that already met their target needed none and are not shown. Log scale.`}
           table={<Table head={["Prompt", "Token", "On", "Lab → shipped", "Before", "After", "Target"]}
@@ -197,12 +205,12 @@ export default function EvidencePage() {
         </ChartCard>
 
         {/* 7 ------------------------------------------------------------ placement */}
-        <ChartCard id="placement" kicker="7 · Image matching" title="The engine presents only contextually matched images"
-          shows={<>Every candidate comes from the prompt&rsquo;s own family, so everything traced here already fits the brief&rsquo;s context. The compose bench
+        <ChartCard id="placement" kicker="7 · Image matching" title="Context-aware reference selection"
+          shows={<>The system presents only contextually matched images. Every candidate comes from the prompt&rsquo;s own visual domain, so everything traced here already fits the brief&rsquo;s context. The compose bench
             follows each one from the lab run to the page. The brief stays focused on the 18 strongest folder matches, each image goes to the slot
             type it suits (one hero visual, sections that take its kind of image), and close alternates are held for slots already filled.</>}
-          n={`${E.placement.rows.length} fixed prompts, ${totalTaken} traced images. Routed families are shown under each prompt.`}
-          table={<Table head={["Prompt", "Family", ...STATUS.map((s) => s.label)]} rows={E.placement.rows.map((x) => [x.query, x.family, ...STATUS.map((s) => x[s.key])])} />}>
+          n={`${E.placement.rows.length} fixed prompts, ${totalTaken} traced images. Matched visual domains are shown under each prompt.`}
+          table={<Table head={["Prompt", "Visual domain", ...STATUS.map((s) => s.label)]} rows={E.placement.rows.map((x) => [x.query, x.family, ...STATUS.map((s) => x[s.key])])} />}>
           <Legend items={STATUS.map((s) => ({ label: s.label, color: s.color }))} />
           <StackedBars series={STATUS.map((s) => ({ label: s.label, color: s.color }))}
             rows={E.placement.rows.map((x) => ({
@@ -215,8 +223,8 @@ export default function EvidencePage() {
         </ChartCard>
 
         {/* 8 ------------------------------------------------------------ agent gate */}
-        <ChartCard id="gate" kicker="8 · Agent gate" title="Code gates refine the models’ layout before a page ships"
-          shows={<>In the 5-agent landing pipeline, models propose the layout, groups, motifs and composition, and code measures and refines them.
+        <ChartCard id="gate" kicker="8 · Agent gate" title="Deterministic validation of generative output"
+          shows={<>Code gates refine the models&rsquo; layout before a page ships. In the 5-agent landing system, models propose the layout, groups, motifs and composition, and code measures and refines them.
             On the live model run, the gates refined {gateTotal} decisions in a single pass before the page shipped, with no regeneration.</>}
           n={`${E.gate.runs} live model run${E.gate.runs === 1 ? "" : "s"} so far. Free-tier model quotas allow about 10 sites a day, and more runs will be added as they are made. Runs with the models off are excluded.`}
           table={<Table head={["Refinement", "Count"]} rows={E.gate.kinds.map((k) => [k.kind, k.n])} />}>
@@ -225,10 +233,20 @@ export default function EvidencePage() {
         </ChartCard>
       </div>
 
+      <section className="mt-16 max-w-[50rem]" aria-labelledby="evidence-next">
+        <h2 id="evidence-next" className="title">The beginning of a broader research direction.</h2>
+        <p className="lede mt-4">
+          These experiments are an early foundation, not the limits of what we intend to build. We are investigating how
+          richer visual representations, more efficient retrieval and specialised reasoning can make visual knowledge
+          reusable, reduce dependence on expensive generative operations and help systems adapt to different creative
+          contexts: AI that does more than generate, and understands what it is creating, why it works and how to make it better.
+        </p>
+      </section>
+
       <p className="mt-12 max-w-[64ch] text-[13px] text-muted">
         Generated {M.generated_at.slice(0, 10)} from {M.bench_runs} bench runs and {M.landing_runs} landing run{M.landing_runs === 1 ? "" : "s"}. The lab export
         (evidence_export.py) is read-only. It never advances the lab&rsquo;s shared cursor and never calls a model.
-        Prompts: {E.prompts.join(" · ")}. See also <Link className="underline hover:text-ink" href="/about">how the engine works</Link>.
+        Prompts: {E.prompts.join(" · ")}. See also <Link className="underline hover:text-ink" href="/about">the principles behind the research</Link>.
       </p>
     </div>
   );

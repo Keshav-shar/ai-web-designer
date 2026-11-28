@@ -235,12 +235,23 @@ def split_doc(raw: str) -> tuple[str, str]:
     return css, body
 
 
+IMPORT = re.compile(r"""@import\s*(?:url\(\s*(?:"[^"]*"|'[^']*'|[^)]*)\s*\)|"[^"]*"|'[^']*'|[^;{}]*)[^;{}]*;?""",
+                    re.I)
+
+
 def sanitize_css(css: str, assets: set[str]) -> tuple[str, list[str]]:
     dropped = []
     css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
     if re.search(r"@import", css, re.I):
         dropped.append("@import")
-        css = re.sub(r"@import[^;]+;", "", css, flags=re.I)
+        # the whole statement, quoted URL included: a Google Fonts URL carries ';' (wght@400;500;700), and cutting at
+        # the first one left '500;700&display=swap");' in front of :root, which voided every variable (11-28, Q16)
+        css = IMPORT.sub("", css)
+    # a model's own @font-face can only point outside (its url() is dropped below) and, declared under the spec's family
+    # name, it shadows the real Google Fonts faces: the browser drew fallbacks for Syne / Roboto Mono (11-28)
+    if re.search(r"@font-face", css, re.I):
+        dropped.append("@font-face")
+        css = re.sub(r"@font-face\s*\{[^{}]*\}", "", css, flags=re.I)
     if UNSAFE_BEHAVIOR.search(css):
         dropped.append("css[unsafe]")
         css = re.sub(r"expression\([^)]*\)|javascript:[^;}]*|(?<![\w-])behavior\s*:[^;}]*", "", css, flags=re.I)

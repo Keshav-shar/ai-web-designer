@@ -26,7 +26,7 @@ export default async function SitesPage() {
       <Texture name="rings" className="hide-sm absolute right-0 top-10 h-[150px] w-[260px] border-2 border-ink md:top-14" style={{ boxShadow: "8px 8px 0 var(--ink)" }} position="center 30%" />
       <p className="eyebrow">your sites</p>
       <h1 className="display display-1 stacked-sm">The gallery</h1>
-      <p className="lede mt-4">Every page the studio has composed for you, newest first.</p>
+      <p className="lede mt-4">Every experience the studio has composed for you, newest first.</p>
       {!rows.length ? (
         <div className="notice mt-10">Nothing yet. <Link className="font-bold text-cta underline" href="/">Make the first one.</Link></div>
       ) : (

@@ -343,7 +343,28 @@ def design_doc(h: dict) -> dict:
                                               ["decoration never sits on text or on the central graphic"]},
         "layout_spec": a["layout_spec"],
         "strategic_cards": cards,
+        "design_language": DESIGN_LANGUAGE,
     }
+
+
+# the code default's design language: plain and restrained, so nothing generic is invented on top of the lab's picks
+DESIGN_LANGUAGE = {
+    "theory": ["One alignment grid and one spacing rhythm carry every section, so the lab's type and colour lead.",
+               "Ornament stays at the edges; content and the central graphic keep clear space around them."],
+    "shape_vocabulary": {"corners": "small, consistent 4 px corners; the CTA follows the button style",
+                         "edges": "crisp", "strokes": "1 px rules in a palette colour where a divider is needed",
+                         "allowed_shapes": ["rectangles with 4 px corners", "1 px hairline rules"],
+                         "forbidden_shapes": ["organic blobs", "gradient washes", "glass panels"]},
+    "component_styles": [
+        {"component": "button", "shape": "solid rectangle", "radius_px": 4, "border": "none",
+         "fill": "the CTA colour", "shadow": "none", "source": "inferred"},
+        {"component": "card", "shape": "flat panel on the secondary surface", "radius_px": 4,
+         "border": "1 px rule in a muted palette colour", "fill": "secondary surface", "shadow": "none", "source": "inferred"},
+        {"component": "image_frame", "shape": "plain rectangle at the image's aspect", "radius_px": 4, "border": "none",
+         "fill": "none", "shadow": "none", "source": "inferred"}],
+    "ornament_rules": "only the planned decor elements, behind or beside content, never over text",
+    "avoid": ["soft gradient blobs", "glassmorphism", "drop-shadow cards"],
+}
 
 
 LAYOUT_OF = {"nav": ("one row: wordmark left, links and the action right", "about 88px tall"),

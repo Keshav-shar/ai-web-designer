@@ -120,6 +120,10 @@ Z_LAYERS = [0, 5, 10, 20, 50]          # the page's layers (z10 = text and UI)
 DECOR_Z = [0, 5, 20, 50]                # where decoration may go: never the text layer (A2's choices)
 SOURCES = IMAGE_LABELS + ["inferred"]   # which reference image a colour / element was seen in ("inferred" = not seen)
 DECOR_KINDS = ["svg", "css"]
+# A1's design language (the user's call, 11-28): the components whose look A1 decides and every later agent follows
+COMPONENTS = ["button", "card", "nav", "input", "tag", "image_frame", "divider", "icon", "panel"]
+COMPONENT_SHADOWS = ["none", "hard_offset", "soft", "inner", "glow", "emboss"]
+PILL_PX = 999                          # radius_px for a fully rounded (pill / circle) component
 EXTRA_HEXES = 4                       # colours A1 may add beyond the measured ones (logged)
 ASPECTS = ["1:1", "4:3", "3:4", "3:2", "2:3", "16:9", "9:16", "21:9"]
 MAX_SLOTS = 8                         # picture places A1 may ask for (each gets a real image or a drawing)
@@ -158,6 +162,15 @@ def a1() -> dict:
         # every place on the page that shows a picture besides the hero centerpiece: what it shows comes from the
         # request (subject), how it looks from the references (style); code gives it a real image or a drawing
         "image_slots": arr(obj({"slot_id": S, "section_id": S, "subject": S, "style": S, "aspect": enum(ASPECTS)})),
+        # the theory and the shape / component language every later agent builds with (no shapes beyond it)
+        "design_language": obj({
+            "theory": arr(S),
+            "shape_vocabulary": obj({"corners": S, "edges": S, "strokes": S, "allowed_shapes": arr(S),
+                                     "forbidden_shapes": arr(S)}),
+            "component_styles": arr(obj({"component": enum(COMPONENTS), "shape": S, "radius_px": N, "border": S,
+                                         "fill": S, "shadow": enum(COMPONENT_SHADOWS), "source": enum(SOURCES)})),
+            "ornament_rules": S,
+            "avoid": arr(S)}),
     })
 
 

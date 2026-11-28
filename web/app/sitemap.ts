@@ -7,7 +7,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const latest = POSTS[0]?.updated ?? POSTS[0]?.date;
   const when: Record<string, string | undefined> = {
     "/evidence": EVIDENCE_META.generated_at.slice(0, 10),
-    "/ai": EVIDENCE_META.generated_at.slice(0, 10),
     "/discover": latest,
   };
   return [

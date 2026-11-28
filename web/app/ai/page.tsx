@@ -1,10 +1,12 @@
 import { AI } from "@/content/ai";
 import { Display, Eyebrow } from "@/components/ui";
-import { AUTHOR, JsonLd, ORG, PERSON, SITE_NAME, SITE_URL, abs, pageMeta } from "@/lib/seo";
+import { AUTHOR, JsonLd, NOINDEX, ORG, PERSON, SITE_NAME, SITE_URL, abs, pageMeta } from "@/lib/seo";
 
 // A plain, quotable brief for AI crawlers and answer engines. Not linked from the UI on purpose:
-// found through the sitemap and /llms.txt. Same page for people and bots.
-export const metadata = pageMeta("/ai", "AI brief", `${AI.summary} Facts, measured evidence and authorship.`);
+// found through /llms.txt. Crawlable (robots.txt allows it) but noindex, so Google and Bing read the
+// directive and keep it out of results and breadcrumbs. No canonical: it would contradict the noindex.
+const { alternates: _canonical, ...meta } = pageMeta("/ai", "AI brief", `${AI.summary} Facts, measured evidence and authorship.`);
+export const metadata = { ...meta, ...NOINDEX };
 
 export default function AiPage() {
   return (

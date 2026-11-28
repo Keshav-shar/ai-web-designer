@@ -221,6 +221,9 @@ def _run_job(eng: Engine, qwen: Qwen, prompt: str, split: dict, job_id: str | No
     return {"brief": brief, "page": page, "css": css, "files": files_out, "sections": sections}
 
 
+_JOB_USER = [""]          # the user id of the job being served (one job at a time per worker)
+
+
 def run_landing(eng: Engine, o: dict, brief: dict, files: dict, split: dict, theme: str, emit,
                 publish_assets=None) -> dict:
     """SECTION_MODE=agents: the lab run + the job's brief (Engine.recipe) -> worker/landing's 5-agent pipeline -> one
@@ -233,14 +236,19 @@ def run_landing(eng: Engine, o: dict, brief: dict, files: dict, split: dict, the
           "vibe_query": split["vibe_query"], "taste": brief["taste"]})
     h = LH.build(o, split, brief, files, theme=theme, resolve=eng.resolve, text_lines=eng.text_lines)
     od = Path(os.environ["SERPMAN_TMP"]) / f"landing-{job_id or 'local'}-{int(time.time())}"
-    # DeepSeek test arm: only jobs the batch feeder marked in its server-local arms file (never a user's job)
+    # DeepSeek leads A1 + A6 (never A5) only for: jobs the batch feeder marked in its server-local arms file, and jobs
+    # of the accounts listed in DEEPSEEK_USERS (user ids, server env; the user's own accounts, 2026-11-27). Every other
+    # account's job never touches it.
     try:
         arms = json.loads(Path(os.getenv("DEEPSEEK_ARMS", "/srv/cosmogon/tmp/batch/arms.json")).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         arms = {}
-    os.environ["DEEPSEEK_JOB"] = "1" if job_id and arms.get(job_id) == "deepseek" else "0"
-    if os.environ["DEEPSEEK_JOB"] == "1":
-        emit("generating", "Test arm: DeepSeek (test) leads each agent's chain", {"ui": True, "kind": "arm"})
+    ds_users = {u.strip() for u in os.getenv("DEEPSEEK_USERS", "").split(",") if u.strip()}
+    on = bool(job_id and arms.get(job_id) == "deepseek") or bool(_JOB_USER[0] and _JOB_USER[0] in ds_users)
+    os.environ["DEEPSEEK_JOB"] = "1" if on else "0"
+    if on and os.getenv("DEEPSEEK_TEST") == "1":
+        emit("generating", "DeepSeek leads the design brief and the final polish (never the composer)",
+             {"ui": True, "kind": "arm"})
     emit("generating", "the agent pipeline is designing the landing page", {"mode": "agents"})
     seen_model: dict[str, str] = {}
 
@@ -401,6 +409,7 @@ def _serve(sb, qwen, eng, worker_id, beat, theme, loaded: float = 0.0) -> None:
         idle = 2.0
         beat("busy")
         jid, uid = job["id"], job["user_id"]
+        _JOB_USER[0] = str(uid or "")                    # run_landing's DeepSeek switch (DEEPSEEK_USERS)
         prompt = sanitize_prompt(job.get("prompt"))
         # The worker is the only place a prompt is split (split.py): a split stored by an older web build or
         # written by hand is ignored, and the one actually routed is written back for the studio and gallery.

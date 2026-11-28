@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   authors: [{ name: AUTHOR.name, url: AUTHOR.url }],
   creator: AUTHOR.name,
   publisher: SITE_NAME,
-  keywords: ["AI web design", "design engine", "taste engine", "UI design generator", "aesthetic families", "design references", "Keshav Sharma"],
+  keywords: ["visual intelligence", "visual AI research", "AI-driven visual creation", "computer vision", "semantic retrieval", "CLIP embeddings", "design references", "Keshav Sharma"],
   // no site-wide canonical: each public page sets its own, private pages are noindex
   alternates: { types: { "application/rss+xml": [{ url: "/discover/feed.xml", title: `${SITE_NAME} updates` }] } },
   openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/", title: SITE_NAME, description: SITE_DESC },
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Monogram className="h-11 w-11" />
                 <div>
                   <p className="wordmark text-[1.6rem]" style={{ color: "var(--gold)" }}>Cosmogon Labs</p>
-                  <p className="mt-1 text-[0.92rem]" style={{ color: "rgba(251,245,239,.86)" }}>A taste engine for the web · private research demo</p>
+                  <p className="mt-1 text-[0.92rem]" style={{ color: "rgba(251,245,239,.86)" }}>Independent research into visual intelligence and AI-driven creation · Founded by Keshav Sharma</p>
                 </div>
               </div>
               <nav aria-label="Footer">
@@ -75,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </ul>
               </nav>
               <div className="flex w-full flex-wrap justify-between gap-4 border-t pt-6 text-[0.84rem]" style={{ borderColor: "rgba(251,245,239,.2)", color: "rgba(251,245,239,.8)" }}>
-                <span>© Cosmogon Labs. Textures and reference images belong to their authors and are credited as design references.</span>
+                <span>© 2026 Cosmogon Labs. Textures and reference images belong to their authors and are credited as design references.</span>
                 <span>For feedback or suggestions, contact <a className="hover:text-gold" href={`mailto:${AUTHOR.email}`}>{AUTHOR.email}</a></span>
               </div>
             </div>

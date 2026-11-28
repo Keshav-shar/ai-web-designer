@@ -200,8 +200,40 @@ def normalize_doc(doc: dict, st: S.State, h: dict) -> tuple[dict, list]:
                                       "why": S.cut(o.get("why", ""), 200)} for o in (rules.get("permitted_overlaps") or [])[:8]],
               "prohibited_overlaps": [S.cut(x, 200) for x in (rules.get("prohibited_overlaps") or [])[:8]]},
           "layout_spec": layout, "strategic_cards": cards,
-          "image_slots": image_slots(doc.get("image_slots"), sections, log)}
+          "image_slots": image_slots(doc.get("image_slots"), sections, log),
+          "design_language": design_language(doc.get("design_language"), log)}
     return nd, log
+
+
+def design_language(raw, log: list) -> dict:
+    """A1's theory, shape vocabulary and component styles (the user's call, 11-28): the language A2-A6 build with and
+    code measures the page against. Cut to size, one style per component, radius 0..PILL_PX px."""
+    dl = raw if isinstance(raw, dict) else {}
+    sv = dl.get("shape_vocabulary") if isinstance(dl.get("shape_vocabulary"), dict) else {}
+    strs = lambda xs, n, k: [S.cut(x, k) for x in (xs or []) if isinstance(x, str) and x.strip()][:n]  # noqa: E731
+    comps, seen = [], set()
+    for c in dl.get("component_styles") or []:
+        if not isinstance(c, dict) or c.get("component") not in sc.COMPONENTS or c["component"] in seen:
+            continue
+        seen.add(c["component"])
+        try:
+            r = max(0.0, min(float(c.get("radius_px", 0)), float(sc.PILL_PX)))
+        except (TypeError, ValueError):
+            r = 0.0
+        comps.append({"component": c["component"], "shape": S.cut(c.get("shape", ""), 160), "radius_px": r,
+                      "border": S.cut(c.get("border", ""), 120), "fill": S.cut(c.get("fill", ""), 120),
+                      "shadow": c.get("shadow") if c.get("shadow") in sc.COMPONENT_SHADOWS else "none",
+                      "source": c.get("source") if c.get("source") in sc.SOURCES else "inferred"})
+    out = {"theory": strs(dl.get("theory"), 6, 260),
+           "shape_vocabulary": {k: S.cut(sv.get(k, ""), 200) for k in ("corners", "edges", "strokes")}
+           | {"allowed_shapes": strs(sv.get("allowed_shapes"), 10, 80),
+              "forbidden_shapes": strs(sv.get("forbidden_shapes"), 10, 80)},
+           "component_styles": comps, "ornament_rules": S.cut(dl.get("ornament_rules", ""), 400),
+           "avoid": strs(dl.get("avoid"), 8, 120)}
+    if not comps:
+        _log(log, "design_language.component_styles", None, [], "A1 gave no component styles: later agents follow "
+                                                                   "the shape vocabulary and the references alone")
+    return out
 
 
 ROLE_WORDS = (("nav", {"nav", "navbar", "navigation", "topnav", "header", "menu", "topbar", "masthead"}),

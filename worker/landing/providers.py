@@ -544,6 +544,11 @@ class OpenRouter(OpenAICompat):
 
     def shape(self, body: dict) -> None:
         body["model"] = body["model"].removeprefix(OR_PREFIX)
+        if (body.get("response_format") or {}).get("type") == "json_object":
+            # plain JSON mode: the schema already rides in the system message and the pipeline validates the reply.
+            # Free endpoints that support no response_format at all (Nemotron Ultra / Lightning, 11-27) 404'd on
+            # json_object too, so the plain retry never reached them; without it they answer
+            body.pop("response_format")
         if "response_format" in body:                   # route only to endpoints that honour the JSON schema
             body["provider"] = {"require_parameters": True}
 
@@ -713,3 +718,13 @@ class DeepSeek(OpenAICompat):
 
     def backoff(self) -> tuple:
         return (5.0, 15.0)
+
+    # the proxy's 5xx when the saved web login no longer works (A/B run 2026-11-26: every DeepSeek call failed this way
+    # and still cost 20 s of same-model retries). It is not a busy server: no retry helps until the login is renewed.
+    DEAD_LOGIN = ("auth may be expired", "captcha", "pow response has no", "could not create deepseek chat session")
+
+    def special(self, r, low: str, model: str):
+        if r.status_code >= 500 and any(s in low for s in self.DEAD_LOGIN):
+            return ProviderError("auth", f"DeepSeek web login expired or blocked (HTTP {r.status_code}); "
+                                         f"renew the auth file on the server")
+        return super().special(r, low, model)
